@@ -1,4 +1,5 @@
 Author:
-gdestuynder@mozilla.com
+joel.franusic@okta.com
 
-Contributors:
+Based on https://github.com/mozilla-it/duo_openvpn, written by:
+gdestuynder@mozilla.com

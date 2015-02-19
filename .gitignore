@@ -1,1 +1,7 @@
-config.py
+*~
+*.pyc
+venv/
+.DS_Store
+cover/
+.coverage
+okta_openvpn.ini
