@@ -111,6 +111,14 @@ Once that is done, run the tests with the <code>nosetests</code> command:
 $ nosetests
 ```
 
+To generate a code-coverage report on the tests, run <code>nosetests</code> with the following flags:
+
+```shell
+$ nosetests --with-coverage --cover-html
+```
+
+View the coverage reports by opening the <code>cover/index.html</code> in your favorite text editor.
+
 # Contact
 
 Updates or corrections to this document are very welcome. Feel free

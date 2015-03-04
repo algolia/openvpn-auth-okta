@@ -2,10 +2,10 @@
 # The "README.md" file is generated from this file by running the
 # "M-x org-md-export-to-markdown" command from inside of Emacs.
 #
-# Only render the Table of Contents to one level
-#+OPTIONS: toc:0
-# Only create headings three levels deep, levels beyond that become lists
-#+OPTIONS: H:3
+# Don't render a Table of Contents 
+#+OPTIONS: toc:nil
+# Don't render section numbers
+#+OPTIONS: num:nil
 # Turn of subscript parsing: http://super-user.org/wordpress/2012/02/02/how-to-get-rid-of-subscript-annoyance-in-org-mode/comment-page-1/
 #+OPTIONS: ^:{}
 * Introduction
@@ -100,6 +100,13 @@
   $ nosetests
   ```
   #+END_HTML
+  To generate a code-coverage report on the tests, run <code>nosetests</code> with the following flags:
+  #+BEGIN_HTML
+  ```shell
+  $ nosetests --with-coverage --cover-html
+  ```
+  #+END_HTML
+  View the coverage reports by opening the <code>cover/index.html</code> in your favorite text editor.
 * Contact
   Updates or corrections to this document are very welcome. Feel free
   to send me [[https://help.github.com/articles/using-pull-requests/][pull requests]] with suggestions.
