@@ -3,7 +3,7 @@
 # "M-x org-md-export-to-markdown" command from inside of Emacs.
 #
 # Only render the Table of Contents to one level
-#+OPTIONS: toc:1
+#+OPTIONS: toc:0
 # Only create headings three levels deep, levels beyond that become lists
 #+OPTIONS: H:3
 # Turn of subscript parsing: http://super-user.org/wordpress/2012/02/02/how-to-get-rid-of-subscript-annoyance-in-org-mode/comment-page-1/
