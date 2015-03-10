@@ -27,6 +27,28 @@ class TestOktaAPIAuthTLSPinning(OktaTestCase):
         okta = OktaAPIAuth(**config)
         self.assertRaises(PinError, okta.preauth)
 
+    def test_connect_to_unintended_server_writes_0_to_control_file(self):
+        cfg = self.config
+        cfg['okta_url'] = 'https://example.com'
+
+        tmp = tempfile.NamedTemporaryFile()
+        env = MockEnviron({
+            'common_name': self.config['username'],
+            'password': self.config['password'],
+            'auth_control_file': tmp.name,
+            })
+
+        validator = OktaOpenVPNValidator()
+        validator.site_config = cfg
+        validator.env = env
+
+        validator.run()
+
+        self.assertFalse(validator.user_valid)
+        tmp.file.seek(0)
+        rv = tmp.file.read()
+        self.assertEquals(rv, '0')
+
     def test_connect_to_okta_with_good_pins(self):
         config = self.config
         config['okta_url'] = 'https://example.okta.com'
