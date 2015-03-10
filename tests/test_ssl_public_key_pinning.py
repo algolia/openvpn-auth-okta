@@ -72,6 +72,21 @@ class TestOktaAPIAuthTLSPinning(OktaTestCase):
         okta = OktaAPIAuth(**config)
         self.assertRaises(PinError, okta.preauth)
 
+    def test_bad_pin_log_message(self):
+        config = self.config
+        config['assert_pinset'] = ['not-a-sha256']
+        okta = OktaAPIAuth(**config)
+        self.assertRaises(PinError, okta.preauth)
+        last_error = self.okta_log_messages['critical'][-1:][0]
+        messages = [
+            'efusing to authenticate',
+            'mocked-okta-api.herokuapp.com',
+            'TLS public key pinning check',
+            'lease contact support@okta.com',
+            ]
+        for msg in messages:
+            self.assertIn(msg, last_error)
+
     def test_validate_conn_checks_is_verified(self):
         from okta_openvpn import PublicKeyPinsetConnectionPool
         pool = PublicKeyPinsetConnectionPool('example.com', 443)

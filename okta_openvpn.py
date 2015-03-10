@@ -56,6 +56,13 @@ class PublicKeyPinsetConnectionPool(urllib3.HTTPSConnectionPool):
         public_key_sha265_base64 = base64.b64encode(public_key_sha265)
 
         if public_key_sha265_base64 not in self.pinset:
+            pin_failure_message = (
+                'Refusing to authenticate '
+                'because host {remote_host} failed '
+                'a TLS public key pinning check. '
+                'Please contact support@okta.com with this error message'
+            ).format(remote_host=conn.host)
+            log.critical(pin_failure_message)
             raise PinError("Public Key not found in pinset!")
 
 
