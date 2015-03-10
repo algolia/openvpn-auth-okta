@@ -1,72 +1,12 @@
-import sys
-import os
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 from okta_openvpn import OktaAPIAuth
-import logging
+from tests.shared import MockLoggingHandler
+from tests.shared import OktaTestCase
 
 
-class MockLoggingHandler(logging.Handler):
-    """Mock logging handler to check for expected logs.
-
-    Messages are available from an instance's ``messages`` dict,
-    in order, indexed by a lowercase log level string
-    (e.g., 'debug', 'info', etc.).
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.messages = {'debug': [], 'info': [], 'warning': [], 'error': [],
-                         'critical': []}
-        super(MockLoggingHandler, self).__init__(*args, **kwargs)
-
-    def emit(self, record):
-        "Store a message from ``record`` in the instance's ``messages`` dict."
-        self.acquire()
-        try:
-            self.messages[record.levelname.lower()].append(record.getMessage())
-        finally:
-            self.release()
-
-    def reset(self):
-        self.acquire()
-        try:
-            for message_list in self.messages.values():
-                message_list = []
-        finally:
-            self.release()
-
-
-class TestOktaAPIAuth(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestOktaAPIAuth, cls).setUpClass()
-        okta_log = logging.getLogger('okta_openvpn')
-        cls._okta_log_handler = MockLoggingHandler(level='DEBUG')
-        okta_log.addHandler(cls._okta_log_handler)
-        cls.okta_log_messages = cls._okta_log_handler.messages
-
+class TestOktaAPIAuth(OktaTestCase):
     def setUp(self):
         super(TestOktaAPIAuth, self).setUp()
-        self._okta_log_handler.reset()  # So each test is independent
-        herokuapp_dot_com_pin = '2hLOYtjSs5a3Jxy5GVM5EMuqa3JHhR6gM99EoaDauug='
-        self.okta_url = os.environ.get(
-            'okta_url_mock',
-            'https://mocked-okta-api.herokuapp.com')
-        self.okta_token = 'mocked-token-for-openvpn'
-        self.config = {
-            'okta_url': self.okta_url,
-            'okta_token': self.okta_token,
-            'username': 'user_MFA_REQUIRED@example.com',
-            'password': 'Testing1123456',
-            'client_ipaddr': '4.2.2.2',
-            'assert_pinset': [herokuapp_dot_com_pin],
-            }
-
-    def test_true(self):
-        self.assertEquals(True, True)
+        self.config['assert_pinset'] = [self.herokuapp_dot_com_pin]
 
     def test_okta_url_cleaned(self):
         config = self.config

@@ -1,43 +1,20 @@
 import sys
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-from okta_openvpn import (
-    OktaAPIAuth,
-    PinError
-    )
-import logging
-import os
+import tempfile
+import unittest
 
-import urllib3
 from mock import MagicMock
+import urllib3
+
+from okta_openvpn import OktaAPIAuth
+from okta_openvpn import OktaOpenVPNValidator
+from okta_openvpn import PinError
+
+from tests.shared import OktaTestCase
+from tests.shared import MockEnviron
+from tests.shared import MockLoggingHandler
 
 
-class TestOktaAPIAuthTLSPinning(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        # https://urllib3.readthedocs.org/en/latest/security.html#insecurerequestwarning
-        logging.captureWarnings(True)
-
-    def setUp(self):
-        super(TestOktaAPIAuthTLSPinning, self).setUp()
-        self.okta_url = os.environ.get(
-            'okta_url_mock',
-            'https://mocked-okta-api.herokuapp.com')
-        self.okta_token = 'mocked-token-for-openvpn'
-        self.config = {
-            'okta_url': self.okta_url,
-            'okta_token': self.okta_token,
-            'username': 'user_MFA_REQUIRED@example.com',
-            'password': 'Testing1123456',
-            'client_ipaddr': '10.0.0.1',
-            }
-        self.example_dot_com_pin = (
-            'wiviOfSDwIlXvBBiGcwtOsGjCN+73Qo2Xxe5NRI0zwA=')
-        self.herokuapp_dot_com_pin = (
-            '2hLOYtjSs5a3Jxy5GVM5EMuqa3JHhR6gM99EoaDauug=')
-
+class TestOktaAPIAuthTLSPinning(OktaTestCase):
     def test_connect_to_unencrypted_server(self):
         config = self.config
         config['okta_url'] = 'http://example.com'
