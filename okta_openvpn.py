@@ -13,6 +13,7 @@ import json
 import logging
 import logging.handlers
 import os
+import stat
 import sys
 import urlparse
 
@@ -32,6 +33,11 @@ log.addHandler(syslog)
 
 class PinError(Exception):
     "Raised when a pin isn't found in a certificate"
+    pass
+
+
+class ControlFilePermissionsError(Exception):
+    "Raised when the control file or containing directory have bad permissions"
     pass
 
 
@@ -288,7 +294,27 @@ class OktaOpenVPNValidator:
                        self.cls.__name__))
         return False
 
+    def check_control_file_permissions(self):
+        file_mode = os.stat(self.control_file).st_mode
+        if file_mode & stat.S_IWGRP or file_mode & stat.S_IWOTH:
+            msg = ('Refusing to authenticate. '
+                   'The file {}'
+                   ' must not be writable by non-owners.').format(
+                       self.control_file)
+            log.critical(msg)
+            raise ControlFilePermissionsError()
+        dir_name = os.path.split(self.control_file)[0]
+        dir_mode = os.stat(dir_name).st_mode
+        if dir_mode & stat.S_IWGRP or dir_mode & stat.S_IWOTH:
+            msg = ('Refusing to authenticate. '
+                   'The directory containing the file {}'
+                   ' must not be writable by non-owners.').format(
+                       self.control_file)
+            log.critical(msg)
+            raise ControlFilePermissionsError()
+
     def write_result_to_control_file(self):
+        self.check_control_file_permissions()
         if self.user_valid:
             try:
                 with open(self.control_file, 'w') as f:
