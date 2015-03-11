@@ -1,3 +1,5 @@
+from mock import MagicMock
+
 from okta_openvpn import OktaAPIAuth
 from tests.shared import MockLoggingHandler
 from tests.shared import OktaTestCase
@@ -145,6 +147,33 @@ class TestOktaAPIAuth(OktaTestCase):
         self.assertEquals(auth, False)
         last_error = self.okta_log_messages['error'][-1:][0]
         self.assertIn('Unexpected error with the Okta API', last_error)
+
+    def test_user_agent_set(self):
+        config = self.config
+        okta = OktaAPIAuth(**config)
+        okta.pool = MagicMock()
+
+        class Urlopen_Mock:
+            data = '{}'
+        okta.pool.urlopen.return_value = Urlopen_Mock()
+        user_agent = 'user-agent'
+        # http://www.ietf.org/rfc/rfc2616.txt
+        # OktaOpenVPN/1.0.0 (Darwin 13.4.0) CPython/2.7.1
+        okta.preauth()
+        args = okta.pool.urlopen.call_args_list
+        headers = args[0][1]['headers']
+        self.assertIn(user_agent, headers)
+        actual = headers[user_agent]
+        import platform
+        system = platform.uname()[0]
+        system_version = platform.uname()[2]
+        python_version = "{}/{}".format(
+            platform.python_implementation(),
+            platform.python_version(),
+        )
+        for expected in ['OktaOpenVPN/',
+                         system, system_version, python_version]:
+            self.assertIn(expected, actual)
 
     # test_invalid_okta_api_token
     # "authentication filed for unknown reason"

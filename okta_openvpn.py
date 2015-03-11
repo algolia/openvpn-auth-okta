@@ -13,6 +13,7 @@ import json
 import logging
 import logging.handlers
 import os
+import platform
 import stat
 import sys
 import urlparse
@@ -23,6 +24,16 @@ import urllib3
 
 from okta_pinset import okta_pinset
 
+version = "1.0.0"
+# OktaOpenVPN/1.0.0 (Darwin 12.4.0) CPython/2.7.5
+user_agent = ("OktaOpenVPN/{version} "
+              "({system} {system_version}) "
+              "{implementation}/{python_version}").format(
+                  version=version,
+                  system=platform.uname()[0],
+                  system_version=platform.uname()[2],
+                  implementation=platform.python_implementation(),
+                  python_version=platform.python_version())
 log = logging.getLogger('okta_openvpn')
 syslog = logging.handlers.SysLogHandler()
 # http://stackoverflow.com/a/18297526
@@ -104,6 +115,7 @@ class OktaAPIAuth:
     def okta_req(self, path, data):
         ssws = "SSWS {token}".format(token=self.okta_token)
         headers = {
+            'user-agent': user_agent,
             'content-type': 'application/json',
             'accept': 'application/json',
             'authorization': ssws,
