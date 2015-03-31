@@ -27,16 +27,27 @@ $ make
 The Python code in this project depends on the following Python packages:
 
 -   urllib3
--   M2Crypto
+-   m2crypto
 -   certifi
 
 If you use [pip](https://en.wikipedia.org/wiki/Pip_%28package_manager%29) to manage your Python packages, you can install these requirements using this command:
 
 ```shell
-$ sudo pip install urllib3 M3Crypto certifi
+$ sudo pip install urllib3 m2crypto certifi
 ```
 
-This project also comes with a <code>requirements.txt</code> file that works nicely with [virtualenv](https://virtualenv.pypa.io/en/latest/).
+If the pip command above doesn't work, you may need to install pip or the development software that m2crypto depends on.
+On Ubuntu these packages are 'python-pip', 'python-dev', 'libssl-dev', and 'swig' which can be installed with the following command:
+
+```shell
+$ sudo apt-get install python-pip python-dev libssl-dev swig 
+```
+
+This project also comes with a <code>requirements.txt</code> file that works nicely with pip:
+
+```shell
+$ sudo pip install -r requirements.txt
+```
 
 ## Install the Okta OpenVPN plugin
 
@@ -81,6 +92,17 @@ $ sudo mkdir /etc/openvpn/tmp
 ```
 
 Use the [chown](https://en.wikipedia.org/wiki/Chown) and [chmod](https://en.wikipedia.org/wiki/Chmod) commands to set permissions approprate to your setup.
+
+## Configure the Okta OpenVPN plugin
+
+The Okta OpenVPN plugin is configured via the <code>okta\_openvpn.ini</code> file.
+You **must** update this file with the configuration options for your Okta organization for the plugin to work.
+
+If you installed the Okta OpenVPN plugin to the default location, run this command to edit your configuration file.
+
+```shell
+$ sudo $EDITOR /etc/openvpn/okta_openvpn.ini
+```
 
 ## Configure OpenVPN to use the C Plugin
 

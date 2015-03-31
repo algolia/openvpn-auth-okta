@@ -24,8 +24,8 @@ import urllib3
 
 from okta_pinset import okta_pinset
 
-version = "1.0.0"
-# OktaOpenVPN/1.0.0 (Darwin 12.4.0) CPython/2.7.5
+version = "0.9.1"
+# OktaOpenVPN/0.9.0 (Darwin 12.4.0) CPython/2.7.5
 user_agent = ("OktaOpenVPN/{version} "
               "({system} {system_version}) "
               "{implementation}/{python_version}").format(
@@ -35,11 +35,20 @@ user_agent = ("OktaOpenVPN/{version} "
                   implementation=platform.python_implementation(),
                   python_version=platform.python_version())
 log = logging.getLogger('okta_openvpn')
+log.setLevel(logging.DEBUG)
 syslog = logging.handlers.SysLogHandler()
 # http://stackoverflow.com/a/18297526
 syslog_fmt = "%(module)s-%(processName)s[%(process)d]: %(name)s: %(message)s"
 syslog.setFormatter(logging.Formatter(syslog_fmt))
 log.addHandler(syslog)
+# # Uncomment to enable logging to STDERR
+# errlog = logging.StreamHandler()
+# errlog.setFormatter(logging.Formatter(syslog_fmt))
+# log.addHandler(errlog)
+# # Uncomment to enable logging to a file
+# filelog = logging.FileHandler('/tmp/okta_openvpn.log')
+# filelog.setFormatter(logging.Formatter(syslog_fmt))
+# log.addHandler(filelog)
 
 
 class PinError(Exception):
@@ -192,20 +201,21 @@ class OktaAPIAuth:
                 self.username)
             log.debug(msg)
 
-            try:
-                factors = rv['_embedded']['factors']
-                factor = factors[0]
+            res = None
+            for factor in rv['_embedded']['factors']:
+                if factor['factorType'] != "token:software:totp":
+                    continue
                 fid = factor['id']
                 state_token = rv['stateToken']
-                res = self.doauth(fid, state_token)
-            except Exception, s:
-                log.error('Unexpected error with the Okta API: %s' % (s))
-                return False
-
-            if 'status' in res and res['status'] == 'SUCCESS':
-                log.info(("User %s is now authenticated "
-                          "with MFA via Okta API") % self.username)
-                return True
+                try:
+                    res = self.doauth(fid, state_token)
+                except Exception, s:
+                    log.error('Unexpected error with the Okta API: %s' % (s))
+                    return False
+                if 'status' in res and res['status'] == 'SUCCESS':
+                    log.info(("User %s is now authenticated "
+                              "with MFA via Okta API") % self.username)
+                    return True
 
             if 'errorCauses' in res:
                 msg = res['errorCauses'][0]['errorSummary']
@@ -228,6 +238,7 @@ class OktaOpenVPNValidator:
         self.config_file = None
         self.env = os.environ
         self.okta_config = {}
+        self.username_suffix = None
 
     def read_configuration_file(self):
         cfg_path_defaults = [
@@ -247,6 +258,7 @@ class OktaOpenVPNValidator:
                         'okta_url': cfg.get('OktaAPI', 'Url'),
                         'okta_token': cfg.get('OktaAPI', 'Token'),
                         }
+                    self.username_suffix = cfg.get('OktaAPI', 'UsernameSuffix')
                     return True
                 except:
                     pass
@@ -262,16 +274,22 @@ class OktaOpenVPNValidator:
         if 'okta_token' not in self.site_config:
             log.critical('OKTA_TOKEN not defined in configuration')
             return False
+        # Taken from a validated VPN client-side SSL certificate
         username = self.env.get('common_name')
         password = self.env.get('password')
         client_ipaddr = self.env.get('untrusted_ip', '0.0.0.0')
-        # take username as provided by the user - it cannot be trusted
+        # Note:
+        #   username_trusted is True if the username comes from a certificate
+        #
+        #   Meaning, if self.common_name is NOT set, but self.username IS,
+        #   then self.username_trusted will be False
         if (username is not None):
             self.username_trusted = True
         else:
+            # This is set according to what the VPN client has sent us
             username = self.env.get('username')
-        # Note:
-        #   username_trusted is True if the username comes from a certificate
+        if self.username_suffix:
+            username = username + '@' + self.username_suffix
         self.control_file = self.env.get('auth_control_file')
         if self.control_file is None:
             log.info(("No control file found, "

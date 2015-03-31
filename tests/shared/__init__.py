@@ -27,10 +27,13 @@ class OktaTestCase(unittest.TestCase):
             'okta_url_mock',
             'https://mocked-okta-api.herokuapp.com')
         self.okta_token = 'mocked-token-for-openvpn'
+        self.username_prefix = 'user_MFA_REQUIRED'
+        self.username_suffix = 'example.com'
         self.config = {
             'okta_url': self.okta_url,
             'okta_token': self.okta_token,
-            'username': 'user_MFA_REQUIRED@example.com',
+            'username': "{}@{}".format(self.username_prefix,
+                                       self.username_suffix),
             'password': 'Testing1123456',
             'client_ipaddr': '4.2.2.2',
             }

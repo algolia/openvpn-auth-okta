@@ -29,17 +29,30 @@
 ** Install required Python packages
    The Python code in this project depends on the following Python packages:
    - urllib3
-   - M2Crypto
+   - m2crypto
    - certifi
 
    If you use [[https://en.wikipedia.org/wiki/Pip_%28package_manager%29][pip]] to manage your Python packages, you can install these requirements using this command:
    #+BEGIN_HTML
    ```shell
-   $ sudo pip install urllib3 M3Crypto certifi
+   $ sudo pip install urllib3 m2crypto certifi
    ```
    #+END_HTML
 
-   This project also comes with a <code>requirements.txt</code> file that works nicely with [[https://virtualenv.pypa.io/en/latest/][virtualenv]].
+   If the pip command above doesn't work, you may need to install pip or the development software that m2crypto depends on.
+   On Ubuntu these packages are 'python-pip', 'python-dev', 'libssl-dev', and 'swig' which can be installed with the following command:
+   #+BEGIN_HTML
+   ```shell
+   $ sudo apt-get install python-pip python-dev libssl-dev swig 
+   ```
+   #+END_HTML
+
+   This project also comes with a <code>requirements.txt</code> file that works nicely with pip:
+   #+BEGIN_HTML
+   ```shell
+   $ sudo pip install -r requirements.txt
+   ```
+   #+END_HTML
 ** Install the Okta OpenVPN plugin
    You have two options to install the Okta OpenVPN plugin:
    1. For default setups, use <code>make install</code> to run the install for you.
@@ -74,6 +87,16 @@
    ```
    #+END_HTML
    Use the [[https://en.wikipedia.org/wiki/Chown][chown]] and [[https://en.wikipedia.org/wiki/Chmod][chmod]] commands to set permissions approprate to your setup.
+** Configure the Okta OpenVPN plugin
+   The Okta OpenVPN plugin is configured via the <code>okta_openvpn.ini</code> file.
+   You *must* update this file with the configuration options for your Okta organization for the plugin to work.
+
+   If you installed the Okta OpenVPN plugin to the default location, run this command to edit your configuration file.
+   #+BEGIN_HTML
+   ```shell
+   $ sudo $EDITOR /etc/openvpn/okta_openvpn.ini
+   ```
+   #+END_HTML
 ** Configure OpenVPN to use the C Plugin
    Set up OpenVPN to call the Okta plugin by adding the following lines to your OpenVPN <code>server.conf</code> configuration file:
    #+BEGIN_HTML

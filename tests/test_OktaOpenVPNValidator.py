@@ -108,6 +108,55 @@ class TestOktaAPIAuth(OktaTestCase):
         last_error = self.okta_log_messages['info'][-1:][0]
         self.assertIn('is now authenticated with MFA via Okta API', last_error)
 
+    def test_suffix_with_username_and_password(self):
+        cfg = {
+            'okta_url': self.okta_url,
+            'okta_token': self.okta_token,
+            }
+        env = MockEnviron({
+            'common_name': self.username_prefix,
+            'password': self.config['password']
+            })
+        validator = OktaOpenVPNValidator()
+        validator.site_config = cfg
+        validator.username_suffix = self.username_suffix
+        validator.env = env
+        validator.load_environment_variables()
+        validator.okta_config['assert_pinset'] = [self.herokuapp_dot_com_pin]
+
+        rv = validator.authenticate()
+        self.assertEquals(rv, True)
+        last_error = self.okta_log_messages['info'][-1:][0]
+        self.assertIn('is now authenticated with MFA via Okta API', last_error)
+
+    def test_suffix_with_valid_config_file(self):
+        config_format = (
+            "[OktaAPI]\n"
+            "Url: {}\n"
+            "Token: {}\n"
+            "UsernameSuffix: {}\n")
+        cfg = tempfile.NamedTemporaryFile()
+        cfg.file.write(config_format.format(
+            self.okta_url,
+            self.okta_token,
+            self.username_suffix))
+        cfg.file.seek(0)
+        env = MockEnviron({
+            'common_name': self.username_prefix,
+            'password': self.config['password']
+            })
+        validator = OktaOpenVPNValidator()
+        validator.config_file = cfg.name
+        validator.env = env
+        validator.read_configuration_file()
+        validator.load_environment_variables()
+        # Disable Public Key Pinning
+        validator.okta_config['assert_pinset'] = [self.herokuapp_dot_com_pin]
+        rv = validator.authenticate()
+        self.assertEquals(rv, True)
+        last_error = self.okta_log_messages['info'][-1:][0]
+        self.assertIn('is now authenticated with MFA via Okta API', last_error)
+
     def test_with_invalid_config_file(self):
         cfg = tempfile.NamedTemporaryFile()
         cfg.file.write('invalidconfig')
