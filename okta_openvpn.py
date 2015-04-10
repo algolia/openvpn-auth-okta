@@ -24,7 +24,7 @@ import urllib3
 
 from okta_pinset import okta_pinset
 
-version = "0.9.1"
+version = "0.9.2"
 # OktaOpenVPN/0.9.0 (Darwin 12.4.0) CPython/2.7.5
 user_agent = ("OktaOpenVPN/{version} "
               "({system} {system_version}) "
@@ -288,7 +288,7 @@ class OktaOpenVPNValidator:
         else:
             # This is set according to what the VPN client has sent us
             username = self.env.get('username')
-        if self.username_suffix:
+        if self.username_suffix and '@' not in username:
             username = username + '@' + self.username_suffix
         self.control_file = self.env.get('auth_control_file')
         if self.control_file is None:
