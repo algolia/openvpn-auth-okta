@@ -115,6 +115,18 @@ tmp-dir "/etc/openvpn/tmp"
 
 The default location for OpenVPN configuration files is <code>/etc/openvpn/server.conf</code>
 
+# Verification
+
+The source code for this plugin is signed using GPG.
+
+It is recommended that this software be verified using the <code>gpg tag -v</code> command.
+
+For example, to verify the v0.9.1 tag, use the command below:
+
+```shell
+$ git tag -v v0.9.1
+```
+
 # Testing
 
 The code in <code>okta\_openvpn.py</code> has 100% test coverage. Tests are run using the "<code>nosetests</code>" command.
