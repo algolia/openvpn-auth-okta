@@ -4,7 +4,7 @@ This is an OpenVPN plugin that authenticates users directly against Okta, with s
 
 # Requirements
 
-This plugin requires that OpenVPN be configured or use in the following ways:
+This plugin requires that OpenVPN be configured or used in the following ways:
 
 1.  OpenVPN must be configured to call plugins via a deferred call.
 2.  OpenVPN clients *must* authenticate using client SSL certificates.
@@ -14,7 +14,20 @@ This plugin requires that OpenVPN be configured or use in the following ways:
 
 # Setup and Configuration
 
-## Compile the C Plugin
+## Verify the GPG signature on this repository
+
+The source code for this plugin is signed using [GPG](https://gnupg.org/).
+
+It is recommended that this plugin be verified using the 
+<code>gpg tag -v $TAGNAME</code> command.
+
+For example, to verify the v0.9.1 tag, use the command below:
+
+```shell
+$ git tag -v v0.9.1
+```
+
+## Compile the C plugin
 
 Compile the C plugin from this directory using this command:
 
@@ -69,7 +82,7 @@ $ sudo make install
 
 If you have a custom setup, 
 follow the instructions below to install 
-the C plugin and Python script that constitute the Okta OpenVPN plugin.
+the C plugin and Python scripts that constitute the Okta OpenVPN plugin.
 
 ### Manually installing the C Plugin
 
@@ -77,13 +90,14 @@ To manually install the C plugin, copy the <code>defer\_simple.so</code> file to
 
 ### Manually installing the Python script
 
-To manually install the Python script, copy the <code>okta\_openvpn.py</code>, 
+To manually install the Python scripts, copy the <code>okta\_openvpn.py</code>, 
 <code>okta\_pinset.py</code>, 
 and <code>okta\_openvpn.ini</code> files to the location where your OpenVPN plugin scripts are stored.
 
 ## Make sure that OpenVPN has a tempory directory
 
-In OpenVPN, the use of a "deferred plugin" requires the use of temporary files. 
+In OpenVPN, the "deferred plugin" model requires the use of
+temporary files to work.
 It is recommended that these temporary files be stored in a directory that only OpenVPN has access to. 
 The default location for this directory is <code>/etc/openvpn/tmp</code>. If this directory doesn't exist, create it using this command:
 
@@ -114,18 +128,6 @@ tmp-dir "/etc/openvpn/tmp"
 ```
 
 The default location for OpenVPN configuration files is <code>/etc/openvpn/server.conf</code>
-
-# Verification
-
-The source code for this plugin is signed using GPG.
-
-It is recommended that this software be verified using the <code>gpg tag -v</code> command.
-
-For example, to verify the v0.9.1 tag, use the command below:
-
-```shell
-$ git tag -v v0.9.1
-```
 
 # Testing
 
