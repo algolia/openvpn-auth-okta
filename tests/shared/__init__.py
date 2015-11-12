@@ -19,6 +19,11 @@ class OktaTestCase(unittest.TestCase):
     def setUp(self):
         super(OktaTestCase, self).setUp()
         self._okta_log_handler.reset()  # So each test is independent
+        # # Here is how a pin like those below may be generated:
+        # echo -n | openssl s_client -connect example.com:443 |
+        # openssl x509 -noout -pubkey |
+        # openssl rsa  -pubin -outform der |
+        # openssl dgst -sha256 -binary | base64
         self.example_dot_com_pin = (
             'wiviOfSDwIlXvBBiGcwtOsGjCN+73Qo2Xxe5NRI0zwA=')
         self.herokuapp_dot_com_pin = (
