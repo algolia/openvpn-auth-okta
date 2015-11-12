@@ -19,12 +19,12 @@ This plugin requires that OpenVPN be configured or used in the following ways:
 The source code for this plugin is signed using [GPG](https://gnupg.org/).
 
 It is recommended that this plugin be verified using the 
-<code>gpg tag -v $TAGNAME</code> command.
+<code>git tag -v $TAGNAME</code> command.
 
-For example, to verify the v0.9.1 tag, use the command below:
+For example, to verify the v0.9.4 tag, use the command below:
 
 ```shell
-$ git tag -v v0.9.1
+$ git tag -v v0.9.4
 ```
 
 ## Compile the C plugin
