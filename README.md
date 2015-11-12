@@ -7,7 +7,7 @@ This is an OpenVPN plugin that authenticates users directly against Okta, with s
 This plugin requires that OpenVPN be configured or used in the following ways:
 
 1.  OpenVPN must be configured to call plugins via a deferred call.
-2.  OpenVPN clients *must* authenticate using client SSL certificates.
+2.  By default, OpenVPN clients *must* authenticate using client SSL certificates.
 3.  If authenticating using MFA, the end user will authenticate by appending their six-digit MFA token to the end of their password.
     For example, if a user's password is "correcthorsebatterystaple" and their six-digit MFA token is 123456, 
     they would use "correcthorsebatterystaple123456" as the password for their OpenVPN client

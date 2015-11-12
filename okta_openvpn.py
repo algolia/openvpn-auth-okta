@@ -7,6 +7,7 @@
 # Contributors: gdestuynder@mozilla.com
 
 import ConfigParser
+from ConfigParser import MissingSectionHeaderError
 import base64
 import hashlib
 import json
@@ -239,6 +240,7 @@ class OktaOpenVPNValidator:
         self.env = os.environ
         self.okta_config = {}
         self.username_suffix = None
+        self.always_trust_username = False
 
     def read_configuration_file(self):
         cfg_path_defaults = [
@@ -246,22 +248,32 @@ class OktaOpenVPNValidator:
             '/etc/okta_openvpn.ini',
             'okta_openvpn.ini']
         cfg_path = cfg_path_defaults
+        parser_defaults = {
+            'AllowUntrustedUsers': self.always_trust_username,
+            'UsernameSuffix': self.username_suffix,
+            }
         if self.config_file:
             cfg_path = []
             cfg_path.append(self.config_file)
+        log.debug(cfg_path)
         for cfg_file in cfg_path:
             if os.path.isfile(cfg_file):
                 try:
-                    cfg = ConfigParser.ConfigParser()
+                    cfg = ConfigParser.ConfigParser(defaults=parser_defaults)
                     cfg.read(cfg_file)
                     self.site_config = {
                         'okta_url': cfg.get('OktaAPI', 'Url'),
                         'okta_token': cfg.get('OktaAPI', 'Token'),
                         }
+                    always_trust_username = cfg.get(
+                        'OktaAPI',
+                        'AllowUntrustedUsers')
+                    if always_trust_username == 'True':
+                        self.always_trust_username = True
                     self.username_suffix = cfg.get('OktaAPI', 'UsernameSuffix')
                     return True
-                except:
-                    pass
+                except MissingSectionHeaderError, e:
+                    log.debug(e)
         if 'okta_url' not in self.site_config and \
            'okta_token' not in self.site_config:
             log.critical("Failed to load config")
@@ -288,6 +300,8 @@ class OktaOpenVPNValidator:
         else:
             # This is set according to what the VPN client has sent us
             username = self.env.get('username')
+        if self.always_trust_username:
+            self.username_trusted = self.always_trust_username
         if self.username_suffix and '@' not in username:
             username = username + '@' + self.username_suffix
         self.control_file = self.env.get('auth_control_file')
