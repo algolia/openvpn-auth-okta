@@ -93,10 +93,10 @@ class PublicKeyPinsetConnectionPool(urllib3.HTTPSConnectionPool):
             raise PinError("Public Key not found in pinset!")
 
 
-class OktaAPIAuth:
+class OktaAPIAuth(object):
     def __init__(self, okta_url, okta_token,
                  username, password, client_ipaddr,
-                 allow_insecure_auth=False, assert_pinset=okta_pinset):
+                 assert_pinset=None):
         passcode_len = 6
         self.okta_url = None
         self.okta_token = okta_token
@@ -105,6 +105,8 @@ class OktaAPIAuth:
         self.client_ipaddr = client_ipaddr
         self.passcode = None
         self.okta_urlparse = urlparse.urlparse(okta_url)
+        if assert_pinset is None:
+            assert_pinset = okta_pinset
         url_new = (self.okta_urlparse.scheme,
                    self.okta_urlparse.netloc,
                    '', '', '', '')
@@ -168,39 +170,35 @@ class OktaAPIAuth:
             password is None or
             password == '')
         if invalid_username_or_password:
-            log.info(("Missing username or password for user: {} ({}) - "
-                      "Reported username may be 'None' due to this").format(
-                          username, self.client_ipaddr))
+            log.info("Missing username or password for user: %s (%s) - "
+                     "Reported username may be 'None' due to this", username, self.client_ipaddr)
             return False
 
         if not self.passcode:
-            log.info("No second factor found for username %s" % (
-                username))
+            log.info("No second factor found for username %s", username)
 
-        log.debug("Authenticating username %s" % username)
+        log.debug("Authenticating username %s", username)
         try:
             rv = self.preauth()
         except Exception, s:
-            log.error('Error connecting to the Okta API: %s' % (s))
+            log.error('Error connecting to the Okta API: %s', s)
             return False
         if 'errorCauses' in rv:
             msg = rv['errorSummary']
-            log.info('User %s pre-authentication failed: %s' % (
-                self.username, msg))
+            log.info('User %s pre-authentication failed: %s', self.username, msg)
             return False
         elif 'status' in rv:
             status = rv['status']
 
         if status == "SUCCESS":
-            log.info('User %s authenticated without MFA' % self.username)
+            log.info('User %s authenticated without MFA', self.username)
             return True
         elif status == "MFA_ENROLL" or status == "MFA_ENROLL_ACTIVATE":
-            log.info('User %s needs to enroll first' % self.username)
+            log.info('User %s needs to enroll first', self.username)
             return False
         elif status == "MFA_REQUIRED" or status == "MFA_CHALLENGE":
-            msg = "User {} password validates, checking second factor".format(
-                self.username)
-            log.debug(msg)
+            log.debug("User %s password validates, checking second factor",
+                      self.username)
 
             res = None
             for factor in rv['_embedded']['factors']:
@@ -211,25 +209,23 @@ class OktaAPIAuth:
                 try:
                     res = self.doauth(fid, state_token)
                 except Exception, s:
-                    log.error('Unexpected error with the Okta API: %s' % (s))
+                    log.error('Unexpected error with the Okta API: %s', s)
                     return False
                 if 'status' in res and res['status'] == 'SUCCESS':
-                    log.info(("User %s is now authenticated "
-                              "with MFA via Okta API") % self.username)
+                    log.info("User %s is now authenticated "
+                             "with MFA via Okta API", self.username)
                     return True
 
             if 'errorCauses' in res:
                 msg = res['errorCauses'][0]['errorSummary']
-                log.debug('User %s MFA token authentication failed: %s' % (
-                    self.username, msg))
+                log.debug('User %s MFA token authentication failed: %s', self.username, msg)
             return False
         else:
-            log.info("User %s is not allowed to authenticate: %s" % (
-                self.username, status))
+            log.info("User %s is not allowed to authenticate: %s", self.username, status)
             return False
 
 
-class OktaOpenVPNValidator:
+class OktaOpenVPNValidator(object):
     def __init__(self):
         self.cls = OktaAPIAuth
         self.username_trusted = False
@@ -295,7 +291,7 @@ class OktaOpenVPNValidator:
         #
         #   Meaning, if self.common_name is NOT set, but self.username IS,
         #   then self.username_trusted will be False
-        if (username is not None):
+        if username is not None:
             self.username_trusted = True
         else:
             # This is set according to what the VPN client has sent us
@@ -322,39 +318,42 @@ class OktaOpenVPNValidator:
 
     def authenticate(self):
         if not self.username_trusted:
-            log.warning("Username %s is not trusted - failing" %
+            log.warning("Username %s is not trusted - failing",
                         self.okta_config['username'])
             return False
         try:
             okta = self.cls(**self.okta_config)
             self.user_valid = okta.auth()
             return self.user_valid
-        except:
-            pass
-        log.error(("User %s (%s) authentication failed, "
-                   "because %s() failed unexpectedly") % (
-                       self.okta_config['username'],
-                       self.okta_config['client_ipaddr'],
-                       self.cls.__name__))
+        except Exception as exception:
+            log.error(
+                "User %s (%s) authentication failed, "
+                "because %s() failed unexpectedly - %s",
+                self.okta_config['username'],
+                self.okta_config['client_ipaddr'],
+                self.cls.__name__,
+                exception
+            )
         return False
 
     def check_control_file_permissions(self):
         file_mode = os.stat(self.control_file).st_mode
         if file_mode & stat.S_IWGRP or file_mode & stat.S_IWOTH:
-            msg = ('Refusing to authenticate. '
-                   'The file {}'
-                   ' must not be writable by non-owners.').format(
-                       self.control_file)
-            log.critical(msg)
+            log.critical(
+                'Refusing to authenticate. The file %s'
+                ' must not be writable by non-owners.',
+                self.control_file
+            )
             raise ControlFilePermissionsError()
         dir_name = os.path.split(self.control_file)[0]
         dir_mode = os.stat(dir_name).st_mode
         if dir_mode & stat.S_IWGRP or dir_mode & stat.S_IWOTH:
-            msg = ('Refusing to authenticate. '
-                   'The directory containing the file {}'
-                   ' must not be writable by non-owners.').format(
-                       self.control_file)
-            log.critical(msg)
+            log.critical(
+                'Refusing to authenticate.'
+                ' The directory containing the file %s'
+                ' must not be writable by non-owners.',
+                self.control_file
+            )
             raise ControlFilePermissionsError()
 
     def write_result_to_control_file(self):
