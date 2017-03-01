@@ -19,14 +19,16 @@ import stat
 import sys
 import urlparse
 
-import M2Crypto
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 import certifi
 import urllib3
 
 from okta_pinset import okta_pinset
 
-version = "0.9.2"
-# OktaOpenVPN/0.9.0 (Darwin 12.4.0) CPython/2.7.5
+version = "0.10.0"
+# OktaOpenVPN/0.10.0 (Darwin 12.4.0) CPython/2.7.5
 user_agent = ("OktaOpenVPN/{version} "
               "({system} {system_version}) "
               "{implementation}/{python_version}").format(
@@ -38,7 +40,6 @@ user_agent = ("OktaOpenVPN/{version} "
 log = logging.getLogger('okta_openvpn')
 log.setLevel(logging.DEBUG)
 syslog = logging.handlers.SysLogHandler()
-# http://stackoverflow.com/a/18297526
 syslog_fmt = "%(module)s-%(processName)s[%(process)d]: %(name)s: %(message)s"
 syslog.setFormatter(logging.Formatter(syslog_fmt))
 log.addHandler(syslog)
@@ -72,17 +73,17 @@ class PublicKeyPinsetConnectionPool(urllib3.HTTPSConnectionPool):
         if not conn.is_verified:
             raise Exception("Unexpected verification error.")
 
-        der = conn.sock.getpeercert(binary_form=True)
-        x509 = M2Crypto.X509.load_cert_string(der, M2Crypto.X509.FORMAT_DER)
-        mem = M2Crypto.BIO.MemoryBuffer()
-        x509.get_pubkey().get_rsa().save_pub_key_bio(mem)
-        public_key = mem.getvalue()
-        public_key_base64 = ''.join(public_key.split("\n")[1:-2])
-        public_key_raw = base64.b64decode(public_key_base64)
-        public_key_sha265 = hashlib.sha256(public_key_raw).digest()
-        public_key_sha265_base64 = base64.b64encode(public_key_sha265)
+        cert = conn.sock.getpeercert(binary_form=True)
+        public_key = x509.load_der_x509_certificate(
+            cert,
+            default_backend()).public_key()
+        public_key_raw = public_key.public_bytes(
+            serialization.Encoding.DER,
+            serialization.PublicFormat.SubjectPublicKeyInfo)
+        public_key_sha256 = hashlib.sha256(public_key_raw).digest()
+        public_key_sha256_base64 = base64.b64encode(public_key_sha256)
 
-        if public_key_sha265_base64 not in self.pinset:
+        if public_key_sha256_base64 not in self.pinset:
             pin_failure_message = (
                 'Refusing to authenticate '
                 'because host {remote_host} failed '
