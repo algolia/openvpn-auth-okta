@@ -38,6 +38,7 @@ class TestOktaAPIAuth(OktaTestCase):
         cfg = {
             'okta_url': self.okta_url
         }
+        # Empty out the Mock Environment 
         env = MockEnviron({})
         validator = OktaOpenVPNValidator()
         validator.site_config = cfg
@@ -48,6 +49,7 @@ class TestOktaAPIAuth(OktaTestCase):
         self.assertIn('OKTA_TOKEN not defined', last_error)
 
     def test_no_username_or_password(self):
+        # Make our own config with out username or password
         cfg = {
             'okta_url': self.okta_url,
             'okta_token': self.okta_token,
@@ -61,6 +63,70 @@ class TestOktaAPIAuth(OktaTestCase):
         self.assertEquals(rv, False)
         last_error = self.okta_log_messages['warning'][-1:][0]
         self.assertIn('is not trusted - failing', last_error)
+
+    def test_okta_verify_push(self):
+        cfg = {
+            'okta_url': self.okta_url,
+            'okta_token': self.okta_token,
+            'mfa_push_max_retries': 20,
+            'mfa_push_delay_secs': self.mfa_push_delay_secs,
+            }
+        env = MockEnviron({
+            'common_name': 'user_MFA_PUSH@example.com',
+            'password': self.config['password']
+            })
+        validator = OktaOpenVPNValidator()
+        validator.site_config = cfg
+        validator.env = env
+        validator.load_environment_variables()
+        validator.okta_config['assert_pinset'] = [self.herokuapp_dot_com_pin]
+
+        rv = validator.authenticate()
+        self.assertEquals(rv, True)
+        last_error = self.okta_log_messages['info'][-1]
+        self.assertIn('is now authenticated with MFA via Okta API', last_error)
+
+    def test_okta_verify_push_timeout(self):
+        cfg = {
+            'okta_url': self.okta_url,
+            'okta_token': self.okta_token,
+            'mfa_push_max_retries': 1,
+            'mfa_push_delay_secs': self.mfa_push_delay_secs,
+            }
+        env = MockEnviron({
+            'common_name': 'user_MFA_PUSH@example.com',
+            'password': self.config['password']
+            })
+        validator = OktaOpenVPNValidator()
+        validator.site_config = cfg
+        validator.env = env
+        validator.load_environment_variables()
+        validator.okta_config['assert_pinset'] = [self.herokuapp_dot_com_pin]
+
+        rv = validator.authenticate()
+        self.assertEquals(rv, False)
+        last_error = self.okta_log_messages['info'][-1]
+        self.assertIn('push timed out', last_error)
+
+    def test_okta_verify_push_fails(self):
+        cfg = {
+            'okta_url': self.okta_url,
+            'okta_token': self.okta_token,
+            'mfa_push_max_retries': 20,
+            'mfa_push_delay_secs': self.mfa_push_delay_secs,
+            }
+        env = MockEnviron({
+            'common_name': 'user_MFA_PUSH_REJECTED@example.com',
+            'password': self.config['password']
+            })
+        validator = OktaOpenVPNValidator()
+        validator.site_config = cfg
+        validator.env = env
+        validator.load_environment_variables()
+        validator.okta_config['assert_pinset'] = [self.herokuapp_dot_com_pin]
+
+        rv = validator.authenticate()
+        self.assertEquals(rv, False)
 
     def test_with_username_and_password(self):
         cfg = {

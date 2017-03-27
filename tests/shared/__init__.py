@@ -42,6 +42,7 @@ class OktaTestCase(unittest.TestCase):
             'password': 'Testing1123456',
             'client_ipaddr': '4.2.2.2',
             }
+        self.mfa_push_delay_secs = 1
 
 
 class ThrowsErrorOktaAPI(OktaAPIAuth):

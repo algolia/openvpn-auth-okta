@@ -18,3 +18,7 @@ Token:
 ## NOT RECCOMMENDED FOR PRODUCTION ENVIRONMENTS
 ## (Example below)
 # AllowUntrustedUsers: True
+## Configure how often poll Okta for results of an Okta Verify Push
+## Values below are what are set by default:
+# MFAPushMaxRetries: 20
+# MFAPushDelaySeconds: 3

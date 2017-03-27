@@ -9,12 +9,16 @@
 # Turn of subscript parsing: http://super-user.org/wordpress/2012/02/02/how-to-get-rid-of-subscript-annoyance-in-org-mode/comment-page-1/
 #+OPTIONS: ^:{}
 * Introduction
-  This is an OpenVPN plugin that authenticates users directly against
-  Okta, with support for MFA.
+  This is a plugin for OpenVPN (Community Edition) that authenticates
+  users directly against Okta, with support for MFA.
+
+  #+BEGIN_EXAMPLE
+  Note: This plugin does not work with OpenVPN Access Server (OpenVPN-AS)
+  #+END_EXAMPLE
 
 * Requirements
-  This plugin requires that OpenVPN be configured or used in the
-  following ways:
+  This plugin requires that OpenVPN Community Edition be configured or
+  used in the following ways:
 
   1. OpenVPN must be configured to call plugins via a deferred call.
   2. By default, OpenVPN clients /must/ authenticate using client SSL
