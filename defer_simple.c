@@ -24,6 +24,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include <openvpn-plugin.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 struct context {
 	char *script_path;

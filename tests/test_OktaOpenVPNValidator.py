@@ -1,12 +1,11 @@
 import os
-import sys
 import tempfile
 
 from mock import MagicMock
+from mock import patch
 
 from okta_openvpn import OktaOpenVPNValidator
 from tests.shared import MockEnviron
-from tests.shared import MockLoggingHandler
 from tests.shared import OktaTestCase
 from tests.shared import ThrowsErrorOktaAPI
 import okta_openvpn
@@ -38,7 +37,7 @@ class TestOktaAPIAuth(OktaTestCase):
         cfg = {
             'okta_url': self.okta_url
         }
-        # Empty out the Mock Environment 
+        # Empty out the Mock Environment
         env = MockEnviron({})
         validator = OktaOpenVPNValidator()
         validator.site_config = cfg
@@ -85,6 +84,33 @@ class TestOktaAPIAuth(OktaTestCase):
         self.assertEquals(rv, True)
         last_error = self.okta_log_messages['info'][-1]
         self.assertIn('is now authenticated with MFA via Okta API', last_error)
+
+    @patch('time.sleep', return_value=None)
+    def test_okta_verify_push_int(self, patched_time_sleep):
+        cfg = {
+            'okta_url': self.okta_url,
+            'okta_token': self.okta_token,
+            'mfa_push_max_retries': int(20),
+            'mfa_push_delay_secs': int(11),
+            }
+        env = MockEnviron({
+            'common_name': 'user_MFA_PUSH@example.com',
+            'password': self.config['password']
+            })
+        validator = OktaOpenVPNValidator()
+        validator.site_config = cfg
+        validator.env = env
+        validator.load_environment_variables()
+        validator.okta_config['assert_pinset'] = [self.herokuapp_dot_com_pin]
+        validator.authenticate()
+        for call in patched_time_sleep.call_args_list:
+            args, kwargs = call
+            for arg in args:
+                import pprint
+                pprint.pprint(arg)
+                msg = "time.sleep() must be called with a float not %s"
+                assert isinstance(arg, float), msg % type(arg)
+        patched_time_sleep.assert_called_with(11)
 
     def test_okta_verify_push_timeout(self):
         cfg = {

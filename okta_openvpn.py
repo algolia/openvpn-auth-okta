@@ -28,7 +28,7 @@ import urllib3
 
 from okta_pinset import okta_pinset
 
-version = "0.10.1-beta"
+version = "0.10.2-beta"
 # OktaOpenVPN/0.10.0 (Darwin 12.4.0) CPython/2.7.5
 user_agent = ("OktaOpenVPN/{version} "
               "({system} {system_version}) "
@@ -224,7 +224,7 @@ class OktaAPIAuth(object):
                     while fctr_rslt in res and res[fctr_rslt] == 'WAITING':
                         print("Sleeping for {}".format(
                             self.mfa_push_delay_secs))
-                        time.sleep(self.mfa_push_delay_secs)
+                        time.sleep(float(self.mfa_push_delay_secs))
                         res = self.doauth(fid, state_token)
                         check_count += 1
                         if check_count > self.mfa_push_max_retries:
