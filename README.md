@@ -28,7 +28,7 @@ It is recommended that this plugin be verified using the <code>git tag -v $TAGNA
 For example, to verify the v0.10.0 tag, use the command below:
 
 ```shell
-$ git tag -v v0.10.0
+$ git tag -v v0.11.0
 ```
 
 

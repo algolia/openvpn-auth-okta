@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # vim: set noexpandtab:ts=4
 
 # This Source Code Form is subject to the terms of the Mozilla Public
@@ -6,8 +6,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # Contributors: gdestuynder@mozilla.com
 
-import ConfigParser
-from ConfigParser import MissingSectionHeaderError
+import configparser
+from configparser import MissingSectionHeaderError
 import base64
 import hashlib
 import json
@@ -18,7 +18,7 @@ import platform
 import stat
 import sys
 import time
-import urlparse
+import urllib.parse
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -28,7 +28,7 @@ import urllib3
 
 from okta_pinset import okta_pinset
 
-version = "0.10.2-beta"
+version = "0.11.0"
 # OktaOpenVPN/0.10.0 (Darwin 12.4.0) CPython/2.7.5
 user_agent = ("OktaOpenVPN/{version} "
               "({system} {system_version}) "
@@ -40,18 +40,19 @@ user_agent = ("OktaOpenVPN/{version} "
                   python_version=platform.python_version())
 log = logging.getLogger('okta_openvpn')
 log.setLevel(logging.DEBUG)
-syslog = logging.handlers.SysLogHandler()
-syslog_fmt = "%(module)s-%(processName)s[%(process)d]: %(name)s: %(message)s"
-syslog.setFormatter(logging.Formatter(syslog_fmt))
-log.addHandler(syslog)
+log_fmt = "%(module)s-%(processName)s[%(process)d]: %(name)s: %(message)s"
+# # Uncomment to enab le logging to syslog
+# syslog = logging.handlers.SysLogHandler()
+# syslog.setFormatter(logging.Formatter(log_fmt))
+# log.addHandler(syslog)
 # # Uncomment to enable logging to STDERR
 # errlog = logging.StreamHandler()
-# errlog.setFormatter(logging.Formatter(syslog_fmt))
+# errlog.setFormatter(logging.Formatter(log_fmt))
 # log.addHandler(errlog)
-# # Uncomment to enable logging to a file
-# filelog = logging.FileHandler('/tmp/okta_openvpn.log')
-# filelog.setFormatter(logging.Formatter(syslog_fmt))
-# log.addHandler(filelog)
+# Uncomment to enable logging to a file
+filelog = logging.FileHandler('/tmp/okta_openvpn.log')
+filelog.setFormatter(logging.Formatter(log_fmt))
+log.addHandler(filelog)
 
 
 class PinError(Exception):
@@ -108,7 +109,7 @@ class OktaAPIAuth(object):
         self.password = password
         self.client_ipaddr = client_ipaddr
         self.passcode = None
-        self.okta_urlparse = urlparse.urlparse(okta_url)
+        self.okta_urlparse = urllib.parse.urlparse(okta_url)
         self.mfa_push_delay_secs = mfa_push_delay_secs
         self.mfa_push_max_retries = mfa_push_max_retries
         if assert_pinset is None:
@@ -116,7 +117,7 @@ class OktaAPIAuth(object):
         url_new = (self.okta_urlparse.scheme,
                    self.okta_urlparse.netloc,
                    '', '', '', '')
-        self.okta_url = urlparse.urlunparse(url_new)
+        self.okta_url = urllib.parse.urlunparse(url_new)
         if password and len(password) > passcode_len:
             last = password[-passcode_len:]
             if last.isdigit():
@@ -287,7 +288,7 @@ class OktaOpenVPNValidator(object):
         for cfg_file in cfg_path:
             if os.path.isfile(cfg_file):
                 try:
-                    cfg = ConfigParser.ConfigParser(defaults=parser_defaults)
+                    cfg = configparser.ConfigParser(defaults=parser_defaults)
                     cfg.read(cfg_file)
                     self.site_config = {
                         'okta_url': cfg.get('OktaAPI', 'Url'),
