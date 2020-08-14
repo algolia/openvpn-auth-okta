@@ -85,7 +85,7 @@ class PublicKeyPinsetConnectionPool(urllib3.HTTPSConnectionPool):
         public_key_sha256 = hashlib.sha256(public_key_raw).digest()
         public_key_sha256_base64 = base64.b64encode(public_key_sha256)
 
-        if public_key_sha256_base64 not in self.pinset:
+        if public_key_sha256_base64.decode() not in self.pinset:
             pin_failure_message = (
                 'Refusing to authenticate '
                 'because host {remote_host} failed '
@@ -288,7 +288,7 @@ class OktaOpenVPNValidator(object):
         for cfg_file in cfg_path:
             if os.path.isfile(cfg_file):
                 try:
-                    cfg = configparser.ConfigParser(defaults=parser_defaults)
+                    cfg = configparser.RawConfigParser(defaults=parser_defaults)
                     cfg.read(cfg_file)
                     self.site_config = {
                         'okta_url': cfg.get('OktaAPI', 'Url'),
