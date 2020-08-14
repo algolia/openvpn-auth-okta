@@ -228,7 +228,7 @@ class OktaAPIAuth(object):
                         time.sleep(float(self.mfa_push_delay_secs))
                         res = self.doauth(fid, state_token)
                         check_count += 1
-                        if check_count > self.mfa_push_max_retries:
+                        if check_count > int(self.mfa_push_max_retries):
                             log.info('User %s MFA push timed out' %
                                      self.username)
                             return False
