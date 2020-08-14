@@ -228,7 +228,7 @@ class OktaAPIAuth(object):
                         time.sleep(float(self.mfa_push_delay_secs))
                         res = self.doauth(fid, state_token)
                         check_count += 1
-                        if check_count > self.mfa_push_max_retries:
+                        if check_count > int(self.mfa_push_max_retries):
                             log.info('User %s MFA push timed out' %
                                      self.username)
                             return False
@@ -320,7 +320,7 @@ class OktaOpenVPNValidator(object):
             log.critical('OKTA_TOKEN not defined in configuration')
             return False
         # Taken from a validated VPN client-side SSL certificate
-        username = self.env.get('common_name')
+        username = self.env.get('username')
         password = self.env.get('password')
         client_ipaddr = self.env.get('untrusted_ip', '0.0.0.0')
         # Note:
