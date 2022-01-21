@@ -59,6 +59,9 @@ class PinError(Exception):
     "Raised when a pin isn't found in a certificate"
     pass
 
+class UnknownControlFileError(Exception):
+    "Raised when the control file is None"
+    pass
 
 class ControlFilePermissionsError(Exception):
     "Raised when the control file or containing directory have bad permissions"
@@ -118,11 +121,16 @@ class OktaAPIAuth(object):
                    self.okta_urlparse.netloc,
                    '', '', '', '')
         self.okta_url = urllib.parse.urlunparse(url_new)
+
+        # If the password provided by the user is longer than a OTP (6 cars)
+        # and the last 6 caracters are digits
+        # then extract the user password (first) and the OTP
         if password and len(password) > passcode_len:
             last = password[-passcode_len:]
             if last.isdigit():
                 self.passcode = last
                 self.password = password[:-passcode_len]
+
         self.pool = PublicKeyPinsetConnectionPool(
             self.okta_urlparse.hostname,
             self.okta_urlparse.port,
@@ -184,7 +192,7 @@ class OktaAPIAuth(object):
             return False
 
         if not self.passcode:
-            log.info("No second factor found for username %s", username)
+            log.info("No TOTP found %s's password", username)
 
         log.debug("Authenticating username %s", username)
         try:
@@ -212,8 +220,8 @@ class OktaAPIAuth(object):
             log.debug("User %s password validates, checking second factor",
                       self.username)
             res = None
+            supported_factor_types = ["token:software:totp", "push"]
             for factor in rv['_embedded']['factors']:
-                supported_factor_types = ["token:software:totp", "push"]
                 if factor['factorType'] not in supported_factor_types:
                     continue
                 fid = factor['id']
@@ -223,8 +231,6 @@ class OktaAPIAuth(object):
                     check_count = 0
                     fctr_rslt = 'factorResult'
                     while fctr_rslt in res and res[fctr_rslt] == 'WAITING':
-                        print("Sleeping for {}".format(
-                            self.mfa_push_delay_secs))
                         time.sleep(float(self.mfa_push_delay_secs))
                         res = self.doauth(fid, state_token)
                         check_count += 1
@@ -284,7 +290,6 @@ class OktaOpenVPNValidator(object):
         if self.config_file:
             cfg_path = []
             cfg_path.append(self.config_file)
-        log.debug(cfg_path)
         for cfg_file in cfg_path:
             if os.path.isfile(cfg_file):
                 try:
@@ -377,6 +382,8 @@ class OktaOpenVPNValidator(object):
         return False
 
     def check_control_file_permissions(self):
+        if self.control_file is None:
+            raise UnknownControlFileError()
         file_mode = os.stat(self.control_file).st_mode
         if file_mode & stat.S_IWGRP or file_mode & stat.S_IWOTH:
             log.critical(
