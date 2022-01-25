@@ -6,7 +6,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # Contributors: gdestuynder@mozilla.com
 
-# pylint: disable=C0116,C0115
+# pylint: disable=C0116,C0115,C0114
 
 import configparser
 from configparser import MissingSectionHeaderError
@@ -30,7 +30,7 @@ import urllib3
 
 from okta_pinset import okta_pinset
 
-VERSION = "0.12.0"
+VERSION = "1.0.0"
 # OktaOpenVPN/0.10.0 (Darwin 12.4.0) CPython/2.7.5
 USER_AGENT = ("OktaOpenVPN/{version} "
               "({system} {system_version}) "
