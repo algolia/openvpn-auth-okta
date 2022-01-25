@@ -4,6 +4,8 @@
 # openssl rsa  -pubin -outform der |
 # openssl dgst -sha256 -binary | base64
 okta_pinset = [
+    # algolia.okta.com
+    'MaqlcUgk2mvY/RFSGeSwBRkI+rZ6/dxe/DuQfBT/vnQ=',
     # okta.com
     'r5EfzZxQVvQpKo3AgYRaT7X2bDO/kj3ACwmxfdT2zt8=',
     'MaqlcUgk2mvY/RFSGeSwBRkI+rZ6/dxe/DuQfBT/vnQ=',

@@ -1,0 +1,20 @@
+okta-openvpn (1.0.0-algolia) stable; urgency=medium
+
+  * Version 1.0.0:
+    fix pylint / flake8 issues
+    Do not allow users without MFA
+    Update Openvpn plugin API used in defer_simple.so
+
+ -- Foundation Squad <foundation@algolia.com>  Tue, 25 Jan 2022 10:20:41 +0200
+
+okta-openvpn (0.2~focal) stable; urgency=medium
+
+  * Version 0.2
+
+ -- Foundation Squad <foundation@algolia.com>  Fri, 21 Jan 2022 14:20:41 +0200
+
+okta-openvpn (0.1~focal) stable; urgency=medium
+
+  * Version 0.1
+
+ -- Foundation Squad <foundation@algolia.com>  Mon,  7 Sep 2020 15:30:41 +0200

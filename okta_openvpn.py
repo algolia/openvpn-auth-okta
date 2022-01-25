@@ -6,6 +6,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # Contributors: gdestuynder@mozilla.com
 
+# pylint: disable=C0116,C0115,C0114
+
 import configparser
 from configparser import MissingSectionHeaderError
 import base64
@@ -28,50 +30,44 @@ import urllib3
 
 from okta_pinset import okta_pinset
 
-version = "0.11.0"
+VERSION = "1.0.0"
 # OktaOpenVPN/0.10.0 (Darwin 12.4.0) CPython/2.7.5
-user_agent = ("OktaOpenVPN/{version} "
+USER_AGENT = ("OktaOpenVPN/{version} "
               "({system} {system_version}) "
               "{implementation}/{python_version}").format(
-                  version=version,
+                  version=VERSION,
                   system=platform.uname()[0],
                   system_version=platform.uname()[2],
                   implementation=platform.python_implementation(),
                   python_version=platform.python_version())
+
 log = logging.getLogger('okta_openvpn')
 log.setLevel(logging.DEBUG)
-log_fmt = "%(module)s-%(processName)s[%(process)d]: %(name)s: %(message)s"
-# # Uncomment to enab le logging to syslog
-# syslog = logging.handlers.SysLogHandler()
-# syslog.setFormatter(logging.Formatter(log_fmt))
-# log.addHandler(syslog)
-# # Uncomment to enable logging to STDERR
-# errlog = logging.StreamHandler()
-# errlog.setFormatter(logging.Formatter(log_fmt))
-# log.addHandler(errlog)
-# Uncomment to enable logging to a file
-filelog = logging.FileHandler('/tmp/okta_openvpn.log')
-filelog.setFormatter(logging.Formatter(log_fmt))
-log.addHandler(filelog)
+LOG_FMT = "%(module)s[%(process)d]: %(message)s"
+errlog = logging.StreamHandler()
+errlog.setFormatter(logging.Formatter(LOG_FMT))
+log.addHandler(errlog)
 
 
 class PinError(Exception):
-    "Raised when a pin isn't found in a certificate"
-    pass
+    """Raised when a pin isn't found in a certificate"""
+
+
+class UnknownControlFileError(Exception):
+    """Raised when the control file is None"""
 
 
 class ControlFilePermissionsError(Exception):
-    "Raised when the control file or containing directory have bad permissions"
-    pass
+    """Raised when the control file or containing directory have bad permissions"""
 
 
 class PublicKeyPinsetConnectionPool(urllib3.HTTPSConnectionPool):
     def __init__(self, *args, **kwargs):
         self.pinset = kwargs.pop('assert_pinset', None)
-        super(PublicKeyPinsetConnectionPool, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _validate_conn(self, conn):
-        super(PublicKeyPinsetConnectionPool, self)._validate_conn(conn)
+        super()._validate_conn(conn)
         if not conn.is_verified:
             raise Exception("Unexpected verification error.")
 
@@ -96,7 +92,7 @@ class PublicKeyPinsetConnectionPool(urllib3.HTTPSConnectionPool):
             raise PinError("Public Key not found in pinset!")
 
 
-class OktaAPIAuth(object):
+class OktaAPIAuth():
     def __init__(self, okta_url, okta_token,
                  username, password, client_ipaddr,
                  mfa_push_delay_secs=None,
@@ -118,11 +114,16 @@ class OktaAPIAuth(object):
                    self.okta_urlparse.netloc,
                    '', '', '', '')
         self.okta_url = urllib.parse.urlunparse(url_new)
+
+        # If the password provided by the user is longer than a OTP (6 cars)
+        # and the last 6 caracters are digits
+        # then extract the user password (first) and the OTP
         if password and len(password) > passcode_len:
             last = password[-passcode_len:]
             if last.isdigit():
                 self.passcode = last
                 self.password = password[:-passcode_len]
+
         self.pool = PublicKeyPinsetConnectionPool(
             self.okta_urlparse.hostname,
             self.okta_urlparse.port,
@@ -134,7 +135,7 @@ class OktaAPIAuth(object):
     def okta_req(self, path, data):
         ssws = "SSWS {token}".format(token=self.okta_token)
         headers = {
-            'user-agent': user_agent,
+            'user-agent': USER_AGENT,
             'content-type': 'application/json',
             'accept': 'application/json',
             'authorization': ssws,
@@ -169,7 +170,7 @@ class OktaAPIAuth(object):
         username = self.username
         password = self.password
         status = False
-        rv = False
+        retp = False
 
         invalid_username_or_password = (
             username is None or
@@ -177,82 +178,72 @@ class OktaAPIAuth(object):
             password is None or
             password == '')
         if invalid_username_or_password:
-            log.info("Missing username or password for user: %s (%s) - "
-                     "Reported username may be 'None' due to this",
-                     username,
-                     self.client_ipaddr)
+            log.error("Missing username or password for user: %s (%s) - "
+                      "Reported username may be 'None' due to this",
+                      username, self.client_ipaddr)
             return False
 
         if not self.passcode:
-            log.info("No second factor found for username %s", username)
+            log.info("[%s] No TOTP found in password", username)
 
-        log.debug("Authenticating username %s", username)
+        log.debug("[%s] Authenticating", username)
         try:
-            rv = self.preauth()
-        except Exception as s:
-            log.error('Error connecting to the Okta API: %s', s)
+            retp = self.preauth()
+        except Exception as err1:
+            log.error('[%s] Error connecting to the Okta API: %s',
+                      username, err1)
             return False
         # Check for erros from Okta
-        if 'errorCauses' in rv:
-            msg = rv['errorSummary']
-            log.info('User %s pre-authentication failed: %s',
-                     self.username,
-                     msg)
+        if 'errorCauses' in retp:
+            msg = retp['errorSummary']
+            log.info('[%s] pre-authentication failed: %s', username, msg)
             return False
-        elif 'status' in rv:
-            status = rv['status']
+        if 'status' in retp:
+            status = retp['status']
         # Check authentication status from Okta
         if status == "SUCCESS":
-            log.info('User %s authenticated without MFA', self.username)
-            return True
-        elif status == "MFA_ENROLL" or status == "MFA_ENROLL_ACTIVATE":
-            log.info('User %s needs to enroll first', self.username)
+            log.info('[%s] allowed without MFA - refused', username)
             return False
-        elif status == "MFA_REQUIRED" or status == "MFA_CHALLENGE":
-            log.debug("User %s password validates, checking second factor",
-                      self.username)
+        if status in ["MFA_ENROLL", "MFA_ENROLL_ACTIVATE"]:
+            log.info('[%s] user needs to enroll first', username)
+            return False
+        if status in ["MFA_REQUIRED", "MFA_CHALLENGE"]:
+            log.debug("[%s] user password validates, checking second factor",
+                      username)
             res = None
-            for factor in rv['_embedded']['factors']:
-                supported_factor_types = ["token:software:totp", "push"]
+            supported_factor_types = ["token:software:totp", "push"]
+            for factor in retp['_embedded']['factors']:
                 if factor['factorType'] not in supported_factor_types:
                     continue
                 fid = factor['id']
-                state_token = rv['stateToken']
+                state_token = retp['stateToken']
                 try:
                     res = self.doauth(fid, state_token)
                     check_count = 0
                     fctr_rslt = 'factorResult'
                     while fctr_rslt in res and res[fctr_rslt] == 'WAITING':
-                        print("Sleeping for {}".format(
-                            self.mfa_push_delay_secs))
                         time.sleep(float(self.mfa_push_delay_secs))
                         res = self.doauth(fid, state_token)
                         check_count += 1
                         if check_count > int(self.mfa_push_max_retries):
-                            log.info('User %s MFA push timed out' %
-                                     self.username)
+                            log.info('[%s] User MFA push timed out', username)
                             return False
-                except Exception as e:
-                    log.error('Unexpected error with the Okta API: %s', e)
+                except Exception as err2:
+                    log.error('[%s] Unexpected error with the Okta API: %s', username, err2)
                     return False
                 if 'status' in res and res['status'] == 'SUCCESS':
-                    log.info("User %s is now authenticated "
-                             "with MFA via Okta API", self.username)
+                    log.info("[%s] User is now authenticated with MFA via Okta API", username)
                     return True
             if 'errorCauses' in res:
                 msg = res['errorCauses'][0]['errorSummary']
-                log.debug('User %s MFA token authentication failed: %s',
-                          self.username,
-                          msg)
-            return False
-        else:
-            log.info("User %s is not allowed to authenticate: %s",
-                     self.username,
-                     status)
+                log.debug('[%s] User MFA token authentication failed: %s', username, msg)
             return False
 
+        log.info("[%s] User is not allowed to authenticate: %s", username, status)
+        return False
 
-class OktaOpenVPNValidator(object):
+
+class OktaOpenVPNValidator():
     def __init__(self):
         self.cls = OktaAPIAuth
         self.username_trusted = False
@@ -284,7 +275,6 @@ class OktaOpenVPNValidator(object):
         if self.config_file:
             cfg_path = []
             cfg_path.append(self.config_file)
-        log.debug(cfg_path)
         for cfg_file in cfg_path:
             if os.path.isfile(cfg_file):
                 try:
@@ -305,12 +295,13 @@ class OktaOpenVPNValidator(object):
                         self.always_trust_username = True
                     self.username_suffix = cfg.get('OktaAPI', 'UsernameSuffix')
                     return True
-                except MissingSectionHeaderError as e:
-                    log.debug(e)
+                except MissingSectionHeaderError as err:
+                    log.debug(err)
         if 'okta_url' not in self.site_config and \
            'okta_token' not in self.site_config:
             log.critical("Failed to load config")
             return False
+        return True
 
     def load_environment_variables(self):
         if 'okta_url' not in self.site_config:
@@ -355,10 +346,11 @@ class OktaOpenVPNValidator(object):
         assert_pin = self.env.get('assert_pin')
         if assert_pin:
             self.okta_config['assert_pinset'] = [assert_pin]
+        return True
 
     def authenticate(self):
         if not self.username_trusted:
-            log.warning("Username %s is not trusted - failing",
+            log.warning("[%s] User is not trusted - failing",
                         self.okta_config['username'])
             return False
         try:
@@ -367,7 +359,7 @@ class OktaOpenVPNValidator(object):
             return self.user_valid
         except Exception as exception:
             log.error(
-                "User %s (%s) authentication failed, "
+                "[%s] User at %s authentication failed, "
                 "because %s() failed unexpectedly - %s",
                 self.okta_config['username'],
                 self.okta_config['client_ipaddr'],
@@ -377,6 +369,8 @@ class OktaOpenVPNValidator(object):
         return False
 
     def check_control_file_permissions(self):
+        if self.control_file is None:
+            raise UnknownControlFileError()
         file_mode = os.stat(self.control_file).st_mode
         if file_mode & stat.S_IWGRP or file_mode & stat.S_IWOTH:
             log.critical(
@@ -399,15 +393,14 @@ class OktaOpenVPNValidator(object):
     def write_result_to_control_file(self):
         self.check_control_file_permissions()
         try:
-            with open(self.control_file, 'w') as f:
+            with open(self.control_file, 'w') as contf:
                 if self.user_valid:
-                    f.write('1')
+                    contf.write('1')
                 else:
-                    f.write('0')
+                    contf.write('0')
         except IOError:
-            log.critical("Failed to write to OpenVPN control file '{}'".format(
-                self.control_file
-            ))
+            log.critical("Failed to write to OpenVPN control file '%s'",
+                         self.control_file)
 
     def run(self):
         self.read_configuration_file()
@@ -416,14 +409,11 @@ class OktaOpenVPNValidator(object):
         self.write_result_to_control_file()
 
 
-def return_error_code_for(validator):
-    if validator.user_valid:
-        sys.exit(0)
-    else:
-        sys.exit(1)
-
 # This is tested by test_command.sh via tests/test_command.py
 if __name__ == "__main__":  # pragma: no cover
     validator = OktaOpenVPNValidator()
     validator.run()
-    return_error_code_for(validator)
+    if validator.user_valid:
+        sys.exit(0)
+    else:
+        sys.exit(1)
