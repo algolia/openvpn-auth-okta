@@ -202,8 +202,8 @@ class OktaAPIAuth():
             status = retp['status']
         # Check authentication status from Okta
         if status == "SUCCESS":
-            log.info('[%s] authenticated without MFA', username)
-            return True
+            log.info('[%s] allowed without MFA - refused', username)
+            return False
         if status in ["MFA_ENROLL", "MFA_ENROLL_ACTIVATE"]:
             log.info('[%s] user needs to enroll first', username)
             return False
