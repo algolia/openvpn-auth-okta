@@ -13,7 +13,7 @@ import (
   "strings"
   //"crypto/sha256" 
 
-  "gopkg.in/algolia/okta-openvpn/pkg/types.golang"
+  "gopkg.in/algolia/okta-openvpn.v2/pkg/types"
 
   "gopkg.in/ini.v1"
 

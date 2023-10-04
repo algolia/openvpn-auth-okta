@@ -12,8 +12,8 @@ import (
   "os"
   //"crypto/sha256"
 
-  "github.com/algolia/okta-openvpn/pkg/types.golang"
-  "gopkg.in/algolia/okta-openvpn/pkg/validator.golang"
+  "gopkg.in/algolia/okta-openvpn.v2/pkg/types"
+  "gopkg.in/algolia/okta-openvpn.v2/pkg/validator"
 )
 
 type OktaAPI = types.OktaAPI
