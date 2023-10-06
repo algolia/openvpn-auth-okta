@@ -1,4 +1,4 @@
-module gopkg.in/algolia/okta-openvpn.v2
+module okta-openvpn
 
 go 1.21.1
 
