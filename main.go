@@ -9,12 +9,13 @@ import (
   "encoding/base64"
   "encoding/json"
   "errors"
+  "flag"
   "fmt"
-  //"golang.org/x/sys/unix"
   "net/http"
   "net/url"
   "os"
   "path/filepath"
+  "regexp"
   "slices"
   "strings"
   "strconv"
@@ -33,31 +34,36 @@ var (
 		"/etc/okta_openvpn.ini",
 		"okta_openvpn.ini",
 	}
+  pinset_paths = [3]string{
+	  "/etc/openvpn/okta_pinset.cfg",
+		"/etc/okta_pinset.cfg",
+		"okta_pinset.cfg",
+  }
+  debug *bool
 )
 
-const (
-  passcodeLen int = 6
-)
+const userAgent string = "OktaOpenVPN/2.1.0 (Linux 5.4.0) Go-http-client/1.21.1"
 
+// Contains the configuration for the Okta API connection
+// Those configuration options are read from okta_openvpn.ini
 type OktaAPI struct {
   Url                 string
   Token               string
   UsernameSuffix      string
-  AllowUntrustedUsers bool
-  // These can be modified in the 'okta_openvpn.ini' file.
-  // By default, we retry for 2 minutes:
-  MFAPushMaxRetries   int
-  MFAPushDelaySeconds int
+  AssertPin           []string
+  AllowUntrustedUsers bool // default: false
+  MFAPushMaxRetries   int // default = 20
+  MFAPushDelaySeconds int // default = 3
 }
 
+// User credentials and informations
 type OktaUserConfig struct {
   Username  string
   Password  string
   ClientIp  string
-  AssertPin []string
 }
 
-type OktaApiAuth struct {
+type oktaApiAuth struct {
   APICfg    *OktaAPI
   UserCfg   *OktaUserConfig
   Passcode  string
@@ -66,11 +72,11 @@ type OktaApiAuth struct {
 }
 
 type OktaOpenVPNValidator struct {
+  configFile      string
   usernameTrusted bool
   isUserValid     bool
   controlFile     string
   apiConfig       *OktaAPI
-  configFile      string
   oktaUserConfig  *OktaUserConfig
 }
 
@@ -93,13 +99,14 @@ func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
 }
 
 func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
-  var cfg_path [3]string
+  var cfg_path []string
   if validator.configFile == "" {
-    cfg_path = cfg_path_defaults
-  }/* else {
-    // TODO
+    for _, v := range cfg_path_defaults {
+      cfg_path = append(cfg_path, v)
+    }
+  } else {
     cfg_path = append(cfg_path, validator.configFile)
-  }*/
+  }
   for _, cfg_file := range cfg_path {
     if info, err := os.Stat(cfg_file); err != nil {
       continue
@@ -109,7 +116,7 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
       } else {
         cfg, err := ini.Load(cfg_file)
         if err != nil {
-          fmt.Println("Error loading ini file: ", err)
+          fmt.Printf("Error loading ini file: %s\n", err)
           return err
         }
         validator.apiConfig = &OktaAPI{
@@ -118,7 +125,7 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
           MFAPushDelaySeconds: 3,
         }
         if err := cfg.Section("OktaAPI").MapTo(validator.apiConfig); err != nil {
-          fmt.Println("Error parsing ini file: ", err)
+          fmt.Printf("Error parsing ini file: %s\n", err)
           return err
         }
         if validator.apiConfig.Url == "" || validator.apiConfig.Token == "" {
@@ -133,23 +140,79 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
   return errors.New("No ini file found")
 }
 
-func (validator *OktaOpenVPNValidator) LoadEnvVars() (error) {
+func (validator *OktaOpenVPNValidator) LoadPinset() (error) {
+  for _, pinsetFile := range pinset_paths {
+    if info, err := os.Stat(pinsetFile); err != nil {
+      continue
+    } else {
+      if info.IsDir() {
+        continue
+      } else {
+        if pinset, err := os.ReadFile(pinsetFile); err != nil {
+          fmt.Printf("Can not read pinset config file %s\n", pinsetFile)
+          return err
+        } else {
+          validator.apiConfig.AssertPin = strings.Split(string(pinset), "\n")
+          return nil
+        }
+      }
+    }
+  }
+  return errors.New("No pinset file found")
+}
+
+func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
+  if _, err := os.Stat(path); err != nil {
+      fmt.Printf("OpenVPN via-file %s does not exists\n", path)
+    return err
+  } else {
+    if viaFileBuf, err := os.ReadFile(path); err != nil {
+      fmt.Printf("Can not read OpenVPN via-file %s\n", path)
+      return err
+    } else {
+      viaFileInfos := strings.Split(string(viaFileBuf), "\n")
+      if len(viaFileInfos) != 2 {
+        fmt.Printf("Invalid OpenVPN via-file %s content\n", path)
+        return errors.New("Invalid via-file")
+      }
+      username := viaFileInfos[0]
+      password := viaFileInfos[1]
+      if username != "" {
+        validator.usernameTrusted = true
+      }
+      if validator.apiConfig.AllowUntrustedUsers {
+        validator.usernameTrusted = true
+      }
+      if validator.apiConfig.UsernameSuffix != ""  && !strings.Contains(username, "@") {
+        username = fmt.Sprintf("%s@%s", username, validator.apiConfig.UsernameSuffix)
+      }
+      validator.oktaUserConfig = &OktaUserConfig{
+        Username: username,
+        Password: password,
+        ClientIp: "0.0.0.0",
+      }
+      return nil
+    }
+  }
+}
+
+func (validator *OktaOpenVPNValidator) LoadEnvVars() {
   username := os.Getenv("username")
+  commonName := os.Getenv("common_name")
   password := os.Getenv("password")
   clientIp := getEnv("untrusted_ip", "0.0.0.0")
-  assertPin := os.Getenv("assert_pin")
   validator.controlFile = os.Getenv("auth_control_file")
 
   if validator.controlFile == "" {
     fmt.Println("No control file found, if using a deferred plugin auth will stall and fail.")
   }
-  if username != "" {
+  if commonName != "" {
     validator.usernameTrusted = true
   }
   if validator.apiConfig.AllowUntrustedUsers {
     validator.usernameTrusted = true
   }
-  if validator.apiConfig.UsernameSuffix != ""  && strings.Contains(username, "@") {
+  if validator.apiConfig.UsernameSuffix != ""  && !strings.Contains(username, "@") {
     username = fmt.Sprintf("%s@%s", username, validator.apiConfig.UsernameSuffix)
   }
 
@@ -158,43 +221,31 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() (error) {
     Password: password,
     ClientIp: clientIp,
   }
-  if assertPin != "" {
-    validator.oktaUserConfig.AssertPin = []string{assertPin}
-  } else {
-    pinsetFile := "okta_pinset.cfg"
-    if pinset, err := os.ReadFile(pinsetFile); err != nil {
-      fmt.Printf("Can not read pinset config file %s\n", pinsetFile)
-      return err
-    } else {
-      validator.oktaUserConfig.AssertPin = strings.Split(string(pinset), "\n")
-    }
-  }
-  return nil
 }
 
-func (validator *OktaOpenVPNValidator) Authenticate() (bool) {
-  var err error
+func (validator *OktaOpenVPNValidator) Authenticate() {
   if !validator.usernameTrusted {
-    fmt.Println("[", validator.oktaUserConfig.Username,"] User is not trusted - failing")
-    return false
+    fmt.Printf("[%s] User is not trusted - failing\n", validator.oktaUserConfig.Username)
+    validator.isUserValid = false
+    return
   }
-  okta, err := NewOktaApiAuth(validator.apiConfig, validator.oktaUserConfig)
+  okta, err := newOktaApiAuth(validator.apiConfig, validator.oktaUserConfig)
   if err != nil {
-    return false
+    validator.isUserValid = false
+    return
   }
-  validator.isUserValid, err = okta.Auth()
-  if err != nil {
-    fmt.Println("[", validator.oktaUserConfig.Username, "]",
-      "User at [", validator.oktaUserConfig.ClientIp, "]",
-      "authentication failed, because OktaApiAuth.Auth failed - ",
-      err)
+
+  if err := okta.Auth(); err != nil {
+    validator.isUserValid = false
+  } else {
+    validator.isUserValid = true
   }
-  return validator.isUserValid
 }
 
+// Check that path is not group or other writable
 func checkNotWritable(path string) bool {
-  sIWGRP := 0b000010000
-  sIWOTH := 0b000000010
+  sIWGRP := 0b000010000 // Group write permissions
+  sIWOTH := 0b000000010 // Other write permissions
 
   fileInfo, err := os.Stat(path)
   if err != nil {
@@ -208,6 +259,7 @@ func checkNotWritable(path string) bool {
   return true
 }
 
+// validate the OpenVPN control file and its directory permissions
 func (validator *OktaOpenVPNValidator) CheckControlFilePerm() error {
   if validator.controlFile == "" {
     return errors.New("Unknow control file")
@@ -228,23 +280,24 @@ func (validator *OktaOpenVPNValidator) CheckControlFilePerm() error {
   return nil
 }
 
-func (validator *OktaOpenVPNValidator) WriteControlFile() (err error) {
-  if err = validator.CheckControlFilePerm(); err != nil {
-    return err
+func (validator *OktaOpenVPNValidator) WriteControlFile() {
+  if err := validator.CheckControlFilePerm(); err != nil {
+    return
   }
   if validator.isUserValid {
     if err := os.WriteFile(validator.controlFile, []byte("1"), 0600); err !=nil {
-      return err
+      fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
     }
   } else {
     if err := os.WriteFile(validator.controlFile, []byte("0"), 0600); err !=nil {
-      return err
+      fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
     }
   }
-  return nil
 }
 
-func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
+// Prepare an http client with the proper TLS config
+// validate the server public key against our list of pinned key fingerprint
+func connectionPool(oktaURL string, pinset []string) (*http.Client, error) {
   if rawURL, err := url.Parse(oktaURL); err != nil {
     return nil, err
   } else {
@@ -257,7 +310,7 @@ func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
     tcpURL := fmt.Sprintf("%s:%s", rawURL.Hostname(), port)
     conn, err := tls.Dial("tcp", tcpURL, &tls.Config{InsecureSkipVerify: true})
     if err != nil {
-      fmt.Println("Error in Dial", err)
+      fmt.Printf("Error in Dial: %s\n", err)
       return nil, err
     }
     defer conn.Close()
@@ -265,7 +318,10 @@ func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
     for _, cert := range certs {
       if !cert.IsCA {
         // Compute public key base64 digest
-        derPubKey, _ := x509.MarshalPKIXPublicKey(cert.PublicKey)
+        derPubKey, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
+        if err != nil {
+	        return nil, err
+	      }
         pubKeySha := sha256.Sum256(derPubKey)
         digest := base64.StdEncoding.EncodeToString([]byte(string(pubKeySha[:])))
 
@@ -279,7 +335,7 @@ func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
       }
     }
   }
-  
+
   tlsCfg := &tls.Config{
     InsecureSkipVerify: false,
     MinVersion: tls.VersionTLS12,
@@ -307,7 +363,8 @@ func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
   return httpClient, nil
 }
 
-func NewOktaApiAuth(siteConfig *OktaAPI, oktaConfig *OktaUserConfig) (auth *OktaApiAuth, err error) {
+func newOktaApiAuth(apiConfig *OktaAPI, userConfig *OktaUserConfig) (auth *oktaApiAuth, err error) {
+  passcodeLen := 6
   /*
   utsname := unix.Utsname{}
   _ = unix.Uname(&utsname)
@@ -318,27 +375,38 @@ func NewOktaApiAuth(siteConfig *OktaAPI, oktaConfig *OktaUserConfig) (auth *Okta
   fmt.Printf("agent: %s\n", userAgent)
 
   using dynamic user agent does not work ....
+  so for now use a const var
   */
 
-  userAgent := "OktaOpenVPN/2.1.0 (Linux 5.4.0) Go-http-client/1.21.1"
-  auth = &OktaApiAuth{APICfg: siteConfig, UserCfg: oktaConfig, UserAgent: string(userAgent)}
-  if len(oktaConfig.Password) > passcodeLen {
-    last := oktaConfig.Password[len(oktaConfig.Password)-passcodeLen:]
+  auth = &oktaApiAuth{APICfg: apiConfig, UserCfg: userConfig, UserAgent: userAgent}
+  // If the password provided by the user is longer than a OTP (6 cars)
+  // and the last 6 caracters are digits
+  // then extract the user password (first) and the OTP
+  if len(userConfig.Password) > passcodeLen {
+    last := userConfig.Password[len(userConfig.Password)-passcodeLen:]
     if _, err := strconv.Atoi(last); err == nil {
       auth.Passcode = last
-      oktaConfig.Password = oktaConfig.Password[:len(oktaConfig.Password)-passcodeLen]
+      userConfig.Password = userConfig.Password[:len(userConfig.Password)-passcodeLen]
+    } else {
+      fmt.Printf("[%s] No TOTP found in password\n", auth.UserCfg.Username)
     }
   }
   
-  auth.Pool, err = ConnectionPool(siteConfig.Url, oktaConfig.AssertPin)
+  auth.Pool, err = connectionPool(apiConfig.Url, apiConfig.AssertPin)
   if err != nil {
     return nil, err
   }
   return auth, nil
 }
 
-func (auth *OktaApiAuth) OktaReq(path string, data map[string]string) (a map[string]interface{}, err error) {
-  u, _ := url.ParseRequestURI(auth.APICfg.Url)
+// Do a POST http request to the Okta API using the path and payload provided
+func (auth *oktaApiAuth) OktaReq(path string, data map[string]string) (a map[string]interface{}, err error) {
+  u, err := url.ParseRequestURI(auth.APICfg.Url)
+  if err != nil {
+    fmt.Printf("Error validating url: %s\n", err)
+    return nil, err
+  }
+
   u.Path = fmt.Sprintf("/api/v1%s", path)
 
   ssws := fmt.Sprintf("SSWS %s", auth.APICfg.Token)
@@ -348,13 +416,20 @@ func (auth *OktaApiAuth) OktaReq(path string, data map[string]string) (a map[str
     "Accept": "application/json",
     "Authorization": ssws,
   }
+  if auth.UserCfg.ClientIp != "0.0.0.0" {
+    headers["X-Forwarded-For"] = auth.UserCfg.ClientIp
+  }
 
   jsonData, err := json.Marshal(data)
   if err != nil {
-    fmt.Println("impossible to marshall date", err)
-    return a, err
+    fmt.Printf("Error marshaling request payload: %s\n", err)
+    return nil, err
   }
-  r, _ := http.NewRequest(http.MethodPost, u.String(), bytes.NewReader(jsonData))
+  r, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewReader(jsonData))
+  if err != nil {
+    fmt.Printf("Error creating http request: %s\n", err)
+    return nil, err
+  }
   for k, v := range headers {
     r.Header.Add(k, v)
   }
@@ -365,16 +440,20 @@ func (auth *OktaApiAuth) OktaReq(path string, data map[string]string) (a map[str
   defer resp.Body.Close()
   jsonBody, err := io.ReadAll(resp.Body)
   if err != nil {
+    fmt.Printf("Error reading Okta API response: %s\n", err)
     return nil, err
   }
   err = json.Unmarshal(jsonBody, &a)
   if err != nil {
+    fmt.Printf("Error unmarshaling Okta API response: %s\n", err)
     return nil, err
   }
-  return a, err
+  return a, nil
 }
 
-func (auth *OktaApiAuth) PreAuth() (map[string]interface{}, error) {
+// Call the preauth Okta API endpoint
+func (auth *oktaApiAuth) PreAuth() (map[string]interface{}, error) {
+  // https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application
   data := map[string]string{
     "username": auth.UserCfg.Username,
     "password": auth.UserCfg.Password,
@@ -382,7 +461,9 @@ func (auth *OktaApiAuth) PreAuth() (map[string]interface{}, error) {
   return auth.OktaReq("/authn", data)
 }
 
-func (auth *OktaApiAuth) DoAuth(fid string, stateToken string) (map[string]interface{}, error) {
+// Call the MFA auth Okta API endpoint
+func (auth *oktaApiAuth) DoAuth(fid string, stateToken string) (map[string]interface{}, error) {
+  // https://developer.okta.com/docs/reference/api/authn/#verify-call-factor
   path := fmt.Sprintf("/authn/factors/%s/verify", fid)
   data := map[string]string{
     "fid": fid,
@@ -392,39 +473,42 @@ func (auth *OktaApiAuth) DoAuth(fid string, stateToken string) (map[string]inter
   return auth.OktaReq(path, data)
 }
 
-func (auth *OktaApiAuth) Auth() (bool, error) {
+func (auth *oktaApiAuth) CancelAuth(stateToken string) (map[string]interface{}, error) {
+  data := map[string]string{
+    "stateToken": stateToken,
+  }
+  return auth.OktaReq("/authn/cancel", data)
+}
+
+func (auth *oktaApiAuth) Auth() (error) {
   var status string
   if auth.UserCfg.Username == "" && auth.UserCfg.Password == "" {
-    fmt.Println("Missing username or password for user: ",
-      auth.UserCfg.Username, " (", auth.UserCfg.ClientIp, ") - ",
+    fmt.Printf("Missing username or password for user: %s (%s) - %s\n",
+      auth.UserCfg.Username,
+      auth.UserCfg.ClientIp,
       "Reported username may be 'None' due to this")
-    return false, nil
-  }
-  if auth.Passcode == "" {
-    fmt.Printf("[%s] No TOTP found in password\n", auth.UserCfg.Username)
-  } else {
-    fmt.Println("TOTP found:", auth.UserCfg.Password)
+    return errors.New("Missing username or password")
   }
   fmt.Printf("[%s] Authenticating\n", auth.UserCfg.Username)
   retp, err := auth.PreAuth()
   if err != nil {
     fmt.Printf("[%s] Error connecting to the Okta API: %s\n", auth.UserCfg.Username, err)
-    return false, err
+    return err
   }
 
   if _, ok := retp["errorCauses"]; ok {
     fmt.Printf("[%s] pre-authentication failed: %s\n", auth.UserCfg.Username, retp["errorSummary"])
-    return false, nil
+    return errors.New("pre-authentication failed")
   }
   if st, ok := retp["status"]; ok {
     status = st.(string)
     switch status {
     case "SUCCESS":
       fmt.Printf("[%s] allowed without MFA - refused\n", auth.UserCfg.Username)
-      return false, nil
+      return errors.New("No MFA")
     case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
       fmt.Printf("[%s] user needs to enroll first\n", auth.UserCfg.Username)
-      return false, nil
+      return errors.New("Needs to enroll")
     case "MFA_REQUIRED", "MFA_CHALLENGE":
       fmt.Printf("[%s] user password validates, checking second factor\n", auth.UserCfg.Username)
       factors := retp["_embedded"].(map[string]interface{})["factors"].([]interface{})
@@ -433,68 +517,101 @@ func (auth *OktaApiAuth) Auth() (bool, error) {
       for _, factor := range factors {
         factorType := factor.(map[string]interface{})["factorType"].(string)
         if !slices.Contains(supportedFactorTypes, factorType) {
-          fmt.Println("skipping factortype ", factorType)
-          continue
-        }
-        fmt.Println(factorType)
-        if factorType != "token:software:totp" && auth.Passcode != "" {
-          fmt.Println("passcode is set and factortype not token:software:totp , skipping", factorType)
+          fmt.Printf("Unsupported factortype: %s, skipping\n", factorType)
           continue
         }
         fid := factor.(map[string]interface{})["id"].(string)
         stateToken := retp["stateToken"].(string)
         res, err = auth.DoAuth(fid, stateToken)
         if err != nil {
-          return false, err
+          _, _ = auth.CancelAuth(stateToken)
+          return err
         }
         checkCount := 0
         for res["factorResult"] == "WAITING" {
           time.Sleep(time.Duration(auth.APICfg.MFAPushDelaySeconds)  * time.Second)
           res, err = auth.DoAuth(fid, stateToken)
           if err != nil {
-            return false, err
+            _, _ = auth.CancelAuth(stateToken)
+            return err
           }
           if checkCount++; checkCount > auth.APICfg.MFAPushMaxRetries {
             fmt.Printf("[%s] User MFA push timed out\n", auth.UserCfg.Username)
-            return false, nil
+            _, _ = auth.CancelAuth(stateToken)
+            return errors.New("MFA timeout")
           }
         }
         if _, ok := res["status"]; ok {
           if res["status"] == "SUCCESS" {
             fmt.Printf("[%s] User is now authenticated with MFA via Okta API\n", auth.UserCfg.Username)
-            return true, nil
+            return nil
+          } else {
+            fmt.Printf("[%s] User MFA push failed: %s\n", auth.UserCfg.Username, res["factorResult"])
+            _, _ = auth.CancelAuth(stateToken)
+            return errors.New("MFA failed")
           }
         }
       }
       if _, ok := res["errorCauses"]; ok {
-        fmt.Println("errorCauses")
+        cause := res["errorCauses"].([]interface{})[0]
+        errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
+        fmt.Printf("[%s] User MFA token authentication failed: %s\n", auth.UserCfg.Username, errorSummary)
+        return errors.New(errorSummary)
       }
-      return false, nil
+      return errors.New("Unknown error")
 
     default:
       fmt.Printf("Unknown preauth status: %s\n", status)
-      return false, nil
+      return errors.New("Unknown preauth status")
     }
   }
 
   fmt.Printf("[%s] User is not allowed to authenticate: %s\n", auth.UserCfg.Username, status)
-  return false, errors.New("NOOP")
+  return errors.New("Not allowed")
 }
 
 func main() {
-  var err error
+  debug = flag.Bool("d", false, "enable debugging")
+	flag.Parse()
+	args := flag.Args()
+  if *debug {
+    fmt.Println("DEBUG MODE")
+  }
+
   validator := NewOktaOpenVPNValidator()
-  if err = validator.ReadConfigFile(); err != nil {
+  if err := validator.ReadConfigFile(); err != nil {
     os.Exit(1)
   }
-  if err = validator.LoadEnvVars(); err != nil {
+
+  if len(args) > 0 {
+    // We're running in "Script Plugins" mode with "via-file" method
+    // see "--auth-user-pass-verify cmd method" in
+    //   https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/
+    if err := validator.LoadViaFile(args[0]); err != nil {
+      os.Exit(1)
+    }
+  } else {
+    // We're running in "Script Plugins" mode with "via-env" method
+    // or in "Shared Object Plugin" mode
+    // see https://openvpn.net/community-resources/using-alternative-authentication-methods/
+    validator.LoadEnvVars()
+  }
+  /* OpenVPN doc says:
+  To protect against a client passing a maliciously formed username or password string,
+  the username string must consist only of these characters:
+  alphanumeric, underbar ('_'), dash ('-'), dot ('.'), or at ('@').
+  */
+  match, err := regexp.MatchString(`^([[:alpha:]]|[_\-\.@])*$`, validator.oktaUserConfig.Username);
+  if err != nil || !match {
+    fmt.Println("Invalid username format")
     os.Exit(1)
   }
-  _ = validator.Authenticate()
-  if err := validator.WriteControlFile(); err != nil {
+
+  if err := validator.LoadPinset(); err != nil {
     os.Exit(1)
   }
-  //validator.run()
+  validator.Authenticate()
+  validator.WriteControlFile()
   if validator.isUserValid {
     os.Exit(0)
   }
