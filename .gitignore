@@ -1,5 +1,8 @@
 *~
 *.pyc
+*.so
+*.o
+okta_openvpn
 venv/
 .DS_Store
 cover/
