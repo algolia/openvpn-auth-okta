@@ -179,7 +179,7 @@ deferred_auth_handler(struct plugin_context *context,
      */
 
     /* do mighty complicated work that will really take time here... */
-    execve(script, &script, (char *const*)envp);
+    execve(script, (char *const*)argv, (char *const*)envp);
     /*
      * Since we exec'ed we should never get here.  But just in case, exit hard.
      */
