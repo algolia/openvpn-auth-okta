@@ -20,8 +20,8 @@ plugin: defer_simple.c openvpn-plugin.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -I. -c defer_simple.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-soname,defer_simple.so -o defer_simple.so defer_simple.o
 
-script: main.go
-	CGO_ENABLED=0 go build -o okta_openvpn -a -ldflags $(GOLDFLAGS)
+script: cmd/okta-openvpn/main.go
+	CGO_ENABLED=0 go build -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
