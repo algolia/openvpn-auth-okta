@@ -29,7 +29,7 @@ install: all
 	$(INSTALL) -m755 defer_simple.so $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
 	$(INSTALL) -m755 okta_openvpn $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
 	$(INSTALL) -m644 okta_pinset.cfg $(DESTDIR)/etc/openvpn/okta_pinset.cfg
-	$(INSTALL) -m644 okta_openvpn.ini.inc $(DESTDIR)/etc/openvpn/okta_openvpn.ini
+	$(INSTALL) -m640 okta_openvpn.ini.inc $(DESTDIR)/etc/openvpn/okta_openvpn.ini
 
 clean:
 	rm -f *.o
