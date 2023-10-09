@@ -9,6 +9,7 @@ import (
   "net/http"
   "net/url"
   "slices"
+  "sort"
   "strconv"
   "time"
 
@@ -16,7 +17,7 @@ import (
   "gopkg.in/algolia/okta-openvpn.v2/pkg/utils"
 )
 
-const userAgent string = "OktaOpenVPN/2.1.0 (Linux 5.4.0) Go-http-client/1.21.1"
+const userAgent string = "Mozilla/5.0 (Linux; x86_64) OktaOpenVPN/2.1.0"
 
 type OktaAPI = types.OktaAPI
 type OktaUserConfig = types.OktaUserConfig
@@ -25,7 +26,6 @@ type OktaUserConfig = types.OktaUserConfig
 type oktaApiAuth struct {
   APICfg    *OktaAPI
   UserCfg   *OktaUserConfig
-  Passcode  string
   Pool      *http.Client
   UserAgent string
 }
@@ -52,7 +52,7 @@ func NewOktaApiAuth(apiConfig *OktaAPI, userConfig *OktaUserConfig) (auth *oktaA
   if len(userConfig.Password) > passcodeLen {
     last := userConfig.Password[len(userConfig.Password)-passcodeLen:]
     if _, err := strconv.Atoi(last); err == nil {
-      auth.Passcode = last
+      userConfig.Passcode = last
       userConfig.Password = userConfig.Password[:len(userConfig.Password)-passcodeLen]
     } else {
       fmt.Printf("[%s] No TOTP found in password\n", auth.UserCfg.Username)
@@ -135,7 +135,7 @@ func (auth *oktaApiAuth) DoAuth(fid string, stateToken string) (map[string]inter
   data := map[string]string{
     "fid": fid,
     "stateToken": stateToken,
-    "passCode": auth.Passcode,
+    "passCode": auth.UserCfg.Passcode,
   }
   return auth.OktaReq(path, data)
 }
@@ -178,9 +178,22 @@ func (auth *oktaApiAuth) Auth() (error) {
       return errors.New("Needs to enroll")
     case "MFA_REQUIRED", "MFA_CHALLENGE":
       fmt.Printf("[%s] user password validates, checking second factor\n", auth.UserCfg.Username)
+
+      stateToken := retp["stateToken"].(string)
       factors := retp["_embedded"].(map[string]interface{})["factors"].([]interface{})
       supportedFactorTypes := []string{"token:software:totp", "push"}
       var res map[string]interface{}
+
+      // When a TOTP is provided ensure that the proper Okta factor id used first, fallback to push
+      // use first push when TOTP is empty
+      var preferedFactor string = "push"
+      if auth.UserCfg.Passcode != "" {
+	preferedFactor = "token:software:totp"
+      }
+      sort.Slice(factors, func(i, j int) bool {
+	      return factors[i].(map[string]interface{})["factorType"].(string) == preferedFactor
+      })
+
       for _, factor := range factors {
         factorType := factor.(map[string]interface{})["factorType"].(string)
         if !slices.Contains(supportedFactorTypes, factorType) {
@@ -188,7 +201,6 @@ func (auth *oktaApiAuth) Auth() (error) {
           continue
         }
         fid := factor.(map[string]interface{})["id"].(string)
-        stateToken := retp["stateToken"].(string)
         res, err = auth.DoAuth(fid, stateToken)
         if err != nil {
           _, _ = auth.CancelAuth(stateToken)
@@ -196,6 +208,9 @@ func (auth *oktaApiAuth) Auth() (error) {
         }
         checkCount := 0
         for res["factorResult"] == "WAITING" {
+          fmt.Printf("[%s] sleeping for %d secondes ...\n",
+	    auth.UserCfg.Username, auth.
+	    APICfg.MFAPushDelaySeconds)
           time.Sleep(time.Duration(auth.APICfg.MFAPushDelaySeconds)  * time.Second)
           res, err = auth.DoAuth(fid, stateToken)
           if err != nil {

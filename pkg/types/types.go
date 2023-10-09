@@ -16,6 +16,7 @@ type OktaAPI struct {
 type OktaUserConfig struct {
   Username  string
   Password  string
+  Passcode  string
   ClientIp  string
 }
 
