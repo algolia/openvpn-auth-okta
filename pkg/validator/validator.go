@@ -13,6 +13,11 @@ import (
   "gopkg.in/algolia/okta-openvpn.v2/pkg/utils"
 )
 
+const (
+  ViaFile PluginMode = iota
+  ViaEnv             = iota
+)
+
 var (
   cfg_path_defaults = [3]string{
 	  "/etc/openvpn/okta_openvpn.ini",
@@ -29,6 +34,8 @@ var (
 type OktaAPI = types.OktaAPI
 type OktaUserConfig = types.OktaUserConfig
 
+type PluginMode uint8
+
 type OktaOpenVPNValidator struct {
   configFile      string
   usernameTrusted bool
@@ -36,6 +43,7 @@ type OktaOpenVPNValidator struct {
   controlFile     string
   apiConfig       *OktaAPI
   oktaUserConfig  *OktaUserConfig
+  mode            PluginMode
 }
 
 func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
@@ -53,6 +61,10 @@ func (validator *OktaOpenVPNValidator) Username() string {
 
 func (validator *OktaOpenVPNValidator) IsUserValid() bool {
   return validator.isUserValid
+}
+
+func (validator *OktaOpenVPNValidator) Mode() PluginMode {
+  return validator.mode
 }
 
 func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
@@ -148,6 +160,7 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
         Password: password,
         ClientIp: "0.0.0.0",
       }
+      validator.mode = ViaFile
       return nil
     }
   }
@@ -178,6 +191,7 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() {
     Password: password,
     ClientIp: clientIp,
   }
+  validator.mode = ViaEnv
 }
 
 func (validator *OktaOpenVPNValidator) Authenticate() {

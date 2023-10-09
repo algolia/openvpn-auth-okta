@@ -54,7 +54,9 @@ func main() {
     os.Exit(1)
   }
   oktaValidator.Authenticate()
-  oktaValidator.WriteControlFile()
+  if oktaValidator.Mode() == validator.ViaFile {
+    oktaValidator.WriteControlFile()
+  }
   if oktaValidator.IsUserValid() {
     os.Exit(0)
   }
