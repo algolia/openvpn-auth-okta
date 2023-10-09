@@ -171,11 +171,17 @@ func (auth *oktaApiAuth) Auth() (error) {
     status = st.(string)
     switch status {
     case "SUCCESS":
-      fmt.Printf("[%s] allowed without MFA - refused\n", auth.UserCfg.Username)
-      return errors.New("No MFA")
+      if auth.APICfg.MFARequired {
+        fmt.Printf("[%s] allowed without MFA and MFA is required- refused\n", auth.UserCfg.Username)
+        return errors.New("MFA required")
+      } else {
+				return nil
+			}
+
     case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
       fmt.Printf("[%s] user needs to enroll first\n", auth.UserCfg.Username)
       return errors.New("Needs to enroll")
+
     case "MFA_REQUIRED", "MFA_CHALLENGE":
       fmt.Printf("[%s] user password validates, checking second factor\n", auth.UserCfg.Username)
 

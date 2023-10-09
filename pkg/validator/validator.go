@@ -90,6 +90,7 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
         }
         validator.apiConfig = &OktaAPI{
           AllowUntrustedUsers: false,
+	  MFARequired: false,
           MFAPushMaxRetries: 20,
           MFAPushDelaySeconds: 3,
         }

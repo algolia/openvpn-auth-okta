@@ -7,6 +7,7 @@ type OktaAPI struct {
   Token               string
   UsernameSuffix      string
   AssertPin           []string
+  MFARequired         bool // default: false
   AllowUntrustedUsers bool // default: false
   MFAPushMaxRetries   int // default = 20
   MFAPushDelaySeconds int // default = 3
