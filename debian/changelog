@@ -1,3 +1,12 @@
+okta-openvpn (2.1.1-algolia) stable; urgency=medium
+
+  * Version 2.1.1:
+    First Golang implementation
+    Fix defer_plugin (passing script instead of argv to execve)
+    Updated Makefile and debian files
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Mon,  9 Oct 2023 05:30:41 +0200
+
 okta-openvpn (1.0.0-algolia) stable; urgency=medium
 
   * Version 1.0.0:
