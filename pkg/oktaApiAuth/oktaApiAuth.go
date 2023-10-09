@@ -179,9 +179,20 @@ func (auth *oktaApiAuth) Auth() (error) {
     case "MFA_REQUIRED", "MFA_CHALLENGE":
       fmt.Printf("[%s] user password validates, checking second factor\n", auth.UserCfg.Username)
 
+      stateToken := retp["stateToken"].(string)
       factors := retp["_embedded"].(map[string]interface{})["factors"].([]interface{})
       supportedFactorTypes := []string{"token:software:totp", "push"}
       var res map[string]interface{}
+
+      // When a TOTP is provided ensure that the proper Okta factor id used first, fallback to push
+      // use first push when TOTP is empty
+      var preferedFactor string = "push"
+      if auth.UserCfg.Passcode != "" {
+	preferedFactor = "token:software:totp"
+      }
+      sort.Slice(factors, func(i, j int) bool {
+	      return factors[i].(map[string]interface{})["factorType"].(string) == preferedFactor
+      })
 
       for _, factor := range factors {
         factorType := factor.(map[string]interface{})["factorType"].(string)
@@ -190,7 +201,6 @@ func (auth *oktaApiAuth) Auth() (error) {
           continue
         }
         fid := factor.(map[string]interface{})["id"].(string)
-        stateToken := retp["stateToken"].(string)
         res, err = auth.DoAuth(fid, stateToken)
         if err != nil {
           _, _ = auth.CancelAuth(stateToken)
