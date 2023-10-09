@@ -17,7 +17,7 @@ import (
   "gopkg.in/algolia/okta-openvpn.v2/pkg/utils"
 )
 
-const userAgent string = "OktaOpenVPN/2.1.0 (Linux 5.4.0) Go-http-client/1.21.1"
+const userAgent string = "Mozilla/5.0 (Linux; x86_64) OktaOpenVPN/2.1.0"
 
 type OktaAPI = types.OktaAPI
 type OktaUserConfig = types.OktaUserConfig
