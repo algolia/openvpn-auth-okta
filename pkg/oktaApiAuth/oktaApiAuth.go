@@ -9,6 +9,7 @@ import (
   "net/http"
   "net/url"
   "slices"
+  "sort"
   "strconv"
   "time"
 
@@ -25,7 +26,6 @@ type OktaUserConfig = types.OktaUserConfig
 type oktaApiAuth struct {
   APICfg    *OktaAPI
   UserCfg   *OktaUserConfig
-  Passcode  string
   Pool      *http.Client
   UserAgent string
 }
@@ -52,7 +52,7 @@ func NewOktaApiAuth(apiConfig *OktaAPI, userConfig *OktaUserConfig) (auth *oktaA
   if len(userConfig.Password) > passcodeLen {
     last := userConfig.Password[len(userConfig.Password)-passcodeLen:]
     if _, err := strconv.Atoi(last); err == nil {
-      auth.Passcode = last
+      userConfig.Passcode = last
       userConfig.Password = userConfig.Password[:len(userConfig.Password)-passcodeLen]
     } else {
       fmt.Printf("[%s] No TOTP found in password\n", auth.UserCfg.Username)
@@ -135,7 +135,7 @@ func (auth *oktaApiAuth) DoAuth(fid string, stateToken string) (map[string]inter
   data := map[string]string{
     "fid": fid,
     "stateToken": stateToken,
-    "passCode": auth.Passcode,
+    "passCode": auth.UserCfg.Passcode,
   }
   return auth.OktaReq(path, data)
 }
@@ -178,9 +178,11 @@ func (auth *oktaApiAuth) Auth() (error) {
       return errors.New("Needs to enroll")
     case "MFA_REQUIRED", "MFA_CHALLENGE":
       fmt.Printf("[%s] user password validates, checking second factor\n", auth.UserCfg.Username)
+
       factors := retp["_embedded"].(map[string]interface{})["factors"].([]interface{})
       supportedFactorTypes := []string{"token:software:totp", "push"}
       var res map[string]interface{}
+
       for _, factor := range factors {
         factorType := factor.(map[string]interface{})["factorType"].(string)
         if !slices.Contains(supportedFactorTypes, factorType) {
@@ -196,6 +198,9 @@ func (auth *oktaApiAuth) Auth() (error) {
         }
         checkCount := 0
         for res["factorResult"] == "WAITING" {
+          fmt.Printf("[%s] sleeping for %d secondes ...\n",
+	    auth.UserCfg.Username, auth.
+	    APICfg.MFAPushDelaySeconds)
           time.Sleep(time.Duration(auth.APICfg.MFAPushDelaySeconds)  * time.Second)
           res, err = auth.DoAuth(fid, stateToken)
           if err != nil {
