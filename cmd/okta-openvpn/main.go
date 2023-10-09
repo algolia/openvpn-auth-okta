@@ -37,7 +37,9 @@ func main() {
     // We're running in "Script Plugins" mode with "via-env" method
     // or in "Shared Object Plugin" mode
     // see https://openvpn.net/community-resources/using-alternative-authentication-methods/
-    oktaValidator.LoadEnvVars()
+    if err := oktaValidator.LoadEnvVars(); err != nil {
+      os.Exit(1)
+    }
   }
   /* OpenVPN doc says:
   To protect against a client passing a maliciously formed username or password string,

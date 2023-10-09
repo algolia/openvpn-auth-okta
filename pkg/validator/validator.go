@@ -166,7 +166,7 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
   }
 }
 
-func (validator *OktaOpenVPNValidator) LoadEnvVars() {
+func (validator *OktaOpenVPNValidator) LoadEnvVars() error {
   username := os.Getenv("username")
   commonName := os.Getenv("common_name")
   password := os.Getenv("password")
@@ -176,9 +176,20 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() {
   if validator.controlFile == "" {
     fmt.Println("No control file found, if using a deferred plugin auth will stall and fail.")
   }
-  if commonName != "" {
+  // if the username comes from a certificate and AllowUntrustedUsers is false:
+  // user is trusted
+  // otherwise BE CAREFUL, username from OpenVPN credentials will be used !
+  if commonName != "" && !validator.apiConfig.AllowUntrustedUsers {
     validator.usernameTrusted = true
+    username = commonName
   }
+
+  // if username is empty, there is an issue somewhere
+  if username == "" {
+    fmt.Println("No username or CN provided")
+    return errors.New("Invalid CN or username")
+  }
+
   if validator.apiConfig.AllowUntrustedUsers {
     validator.usernameTrusted = true
   }
@@ -192,6 +203,7 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() {
     ClientIp: clientIp,
   }
   validator.mode = ViaEnv
+  return nil
 }
 
 func (validator *OktaOpenVPNValidator) Authenticate() {
