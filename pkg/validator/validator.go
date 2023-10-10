@@ -42,7 +42,7 @@ type OktaOpenVPNValidator struct {
   isUserValid     bool
   controlFile     string
   apiConfig       *OktaAPI
-  oktaUserConfig  *OktaUserConfig
+  userConfig      *OktaUserConfig
   mode            PluginMode
 }
 
@@ -56,7 +56,7 @@ func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
 }
 
 func (validator *OktaOpenVPNValidator) Username() string {
-  return validator.oktaUserConfig.Username
+  return validator.userConfig.Username
 }
 
 func (validator *OktaOpenVPNValidator) IsUserValid() bool {
@@ -156,7 +156,7 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
       if validator.apiConfig.UsernameSuffix != ""  && !strings.Contains(username, "@") {
         username = fmt.Sprintf("%s@%s", username, validator.apiConfig.UsernameSuffix)
       }
-      validator.oktaUserConfig = &OktaUserConfig{
+      validator.userConfig = &OktaUserConfig{
         Username: username,
         Password: password,
         ClientIp: "0.0.0.0",
@@ -198,7 +198,7 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() error {
     username = fmt.Sprintf("%s@%s", username, validator.apiConfig.UsernameSuffix)
   }
 
-  validator.oktaUserConfig = &OktaUserConfig{
+  validator.userConfig = &OktaUserConfig{
     Username: username,
     Password: password,
     ClientIp: clientIp,
@@ -209,11 +209,11 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() error {
 
 func (validator *OktaOpenVPNValidator) Authenticate() {
   if !validator.usernameTrusted {
-    fmt.Printf("[%s] User is not trusted - failing\n", validator.oktaUserConfig.Username)
+    fmt.Printf("[%s] User is not trusted - failing\n", validator.userConfig.Username)
     validator.isUserValid = false
     return
   }
-  okta, err := oktaApiAuth.NewOktaApiAuth(validator.apiConfig, validator.oktaUserConfig)
+  okta, err := oktaApiAuth.NewOktaApiAuth(validator.apiConfig, validator.userConfig)
   if err != nil {
     validator.isUserValid = false
     return
@@ -227,7 +227,7 @@ func (validator *OktaOpenVPNValidator) Authenticate() {
 }
 
 // validate the OpenVPN control file and its directory permissions
-func (validator *OktaOpenVPNValidator) CheckControlFilePerm() error {
+func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
   if validator.controlFile == "" {
     return errors.New("Unknow control file")
   }
@@ -248,7 +248,7 @@ func (validator *OktaOpenVPNValidator) CheckControlFilePerm() error {
 }
 
 func (validator *OktaOpenVPNValidator) WriteControlFile() {
-  if err := validator.CheckControlFilePerm(); err != nil {
+  if err := validator.checkControlFilePerm(); err != nil {
     return
   }
   if validator.isUserValid {
