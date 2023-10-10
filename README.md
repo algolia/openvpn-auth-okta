@@ -28,7 +28,7 @@ It is recommended that this plugin be verified using the <code>git tag -v $TAGNA
 For example, to verify the v0.10.0 tag, use the command below:
 
 ```shell
-$ git tag -v v0.11.0
+$ git tag -v v2.1.4
 ```
 
 
@@ -37,30 +37,13 @@ $ git tag -v v0.11.0
 Compile the C plugin from this directory using this command:
 
 ```shell
-$ make
+$ make plugin
 ```
 
-
-## Install required Python packages
-
-The Python code in this project depends on the following Python packages:
-
--   urllib3
--   cryptography
--   certifi
-
-If you use [pip](https://en.wikipedia.org/wiki/Pip_%28package_manager%29) to manage your Python packages, you can install these requirements using this command:
+Compile the Golang binary plugin from this directory using this command:
 
 ```shell
-$ sudo pip install urllib3 cryptography certifi
-```
-
-If the pip command above doesn't work, you may need to install pip or the development software that cryptography depends on.
-
-This project also comes with a <code>requirements.txt</code> file that works nicely with pip:
-
-```shell
-$ sudo pip install -r requirements.txt
+$ make plugin
 ```
 
 
@@ -88,9 +71,9 @@ If you have a custom setup, follow the instructions below to install the C plugi
 To manually install the C plugin, copy the <code>defer\_simple.so</code> file to the location where your OpenVPN plugins are stored.
 
 
-### Manually installing the Python script
+### Manually installing the Golang binary
 
-To manually install the Python scripts, copy the <code>okta\_openvpn.py</code>, <code>okta\_pinset.py</code>, and <code>okta\_openvpn.ini</code> files to the location where your OpenVPN plugin scripts are stored.
+To manually install the binary, copy the <code>okta\_openvpn</code>, <code>okta\_pinset.cfg</code>, and <code>okta\_openvpn.ini</code> files to the location where your OpenVPN plugin scripts are stored.
 
 
 ## Make sure that OpenVPN has a tempory directory
@@ -101,7 +84,7 @@ In OpenVPN, the "deferred plugin" model requires the use of temporary files to w
 $ sudo mkdir /etc/openvpn/tmp
 ```
 
-Use the [chown](https://en.wikipedia.org/wiki/Chown) and [chmod](https://en.wikipedia.org/wiki/Chmod) commands to set permissions approprate to your setup.
+Use the [chown](https://en.wikipedia.org/wiki/Chown) and [chmod](https://en.wikipedia.org/wiki/Chmod) commands to set permissions approprate to your setup (The user that runs OpenVPN should be owner and only writer).
 
 
 ## Configure the Okta OpenVPN plugin
@@ -120,42 +103,12 @@ $ sudo $EDITOR /etc/openvpn/okta_openvpn.ini
 Set up OpenVPN to call the Okta plugin by adding the following lines to your OpenVPN <code>server.conf</code> configuration file:
 
 ```ini
-plugin /usr/lib/openvpn/plugins/defer_simple.so /usr/lib/openvpn/plugins/okta_openvpn.py
+plugin /usr/lib/openvpn/plugins/defer_simple.so /usr/lib/openvpn/plugins/okta_openvpn
 tmp-dir "/etc/openvpn/tmp"
 ```
 
 The default location for OpenVPN configuration files is <code>/etc/openvpn/server.conf</code>
 
-
-# Testing
-
-The code in <code>okta\_openvpn.py</code> has 100% test coverage. Tests are run using the "<code>nosetests</code>" command.
-
-Run the commands below to set up an environment for testing:
-
-```shell
-$ virtualenv venv
-$ source venv/bin/activate
-$ pip install -r requirements.txt
-```
-
-Once that is done, run the tests with the <code>nosetests</code> command:
-
-```shell
-$ nosetests
-```
-
-To generate a code-coverage report on the tests, run <code>nosetests</code> with the following flags:
-
-```shell
-$ nosetests --with-coverage --cover-html
-```
-
-View the coverage reports by opening the <code>cover/index.html</code> in your favorite text editor.
-
-
 # Contact
 
 Updates or corrections to this document are very welcome. Feel free to send me [pull requests](https://help.github.com/articles/using-pull-requests/) with suggestions.
-
-Additionally, please send me comments or questions via email: &#106;&#111;&#101;&#108;&#046;&#102;&#114;&#097;&#110;&#117;&#115;&#105;&#099;&#064;&#111;&#107;&#116;&#097;&#046;&#099;&#111;&#109;
