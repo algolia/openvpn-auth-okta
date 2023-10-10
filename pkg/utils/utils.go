@@ -51,7 +51,7 @@ func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
     if port == "" {
       port="443"
     }
-    // Connect to the server, fetch its public key and validate it againts the
+    // Connect to the server, fetch its public key and validate it against the
     // base64 digest in pinset slice
     tcpURL := fmt.Sprintf("%s:%s", rawURL.Hostname(), port)
     conn, err := tls.Dial("tcp", tcpURL, &tls.Config{InsecureSkipVerify: true})
@@ -66,8 +66,8 @@ func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
         // Compute public key base64 digest
         derPubKey, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
         if err != nil {
-	        return nil, err
-	      }
+          return nil, err
+        }
         pubKeySha := sha256.Sum256(derPubKey)
         digest := base64.StdEncoding.EncodeToString([]byte(string(pubKeySha[:])))
 

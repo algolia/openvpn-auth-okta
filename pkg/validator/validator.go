@@ -20,14 +20,14 @@ const (
 
 var (
   cfg_path_defaults = [3]string{
-	  "/etc/openvpn/okta_openvpn.ini",
-		"/etc/okta_openvpn.ini",
-		"okta_openvpn.ini",
-	}
+    "/etc/openvpn/okta_openvpn.ini",
+    "/etc/okta_openvpn.ini",
+    "okta_openvpn.ini",
+  }
   pinset_paths = [3]string{
-	  "/etc/openvpn/okta_pinset.cfg",
-		"/etc/okta_pinset.cfg",
-		"okta_pinset.cfg",
+    "/etc/openvpn/okta_pinset.cfg",
+    "/etc/okta_pinset.cfg",
+    "okta_pinset.cfg",
   }
 )
 
@@ -47,7 +47,7 @@ type OktaOpenVPNValidator struct {
 }
 
 func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
-	return &OktaOpenVPNValidator{
+  return &OktaOpenVPNValidator{
     usernameTrusted: false,
     isUserValid: false,
     controlFile: "",
@@ -90,7 +90,7 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
         }
         validator.apiConfig = &OktaAPI{
           AllowUntrustedUsers: false,
-	  MFARequired: false,
+          MFARequired: false,
           MFAPushMaxRetries: 20,
           MFAPushDelaySeconds: 3,
         }

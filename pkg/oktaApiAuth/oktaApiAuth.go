@@ -175,8 +175,8 @@ func (auth *oktaApiAuth) Auth() (error) {
         fmt.Printf("[%s] allowed without MFA and MFA is required- refused\n", auth.userConfig.Username)
         return errors.New("MFA required")
       } else {
-				return nil
-			}
+        return nil
+      }
 
     case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
       fmt.Printf("[%s] user needs to enroll first\n", auth.userConfig.Username)
@@ -194,10 +194,10 @@ func (auth *oktaApiAuth) Auth() (error) {
       // use first push when TOTP is empty
       var preferedFactor string = "push"
       if auth.userConfig.Passcode != "" {
-	preferedFactor = "token:software:totp"
+        preferedFactor = "token:software:totp"
       }
       sort.Slice(factors, func(i, j int) bool {
-	      return factors[i].(map[string]interface{})["factorType"].(string) == preferedFactor
+        return factors[i].(map[string]interface{})["factorType"].(string) == preferedFactor
       })
 
       for _, factor := range factors {
@@ -215,8 +215,8 @@ func (auth *oktaApiAuth) Auth() (error) {
         checkCount := 0
         for res["factorResult"] == "WAITING" {
           fmt.Printf("[%s] sleeping for %d secondes ...\n",
-	    auth.userConfig.Username, auth.
-	    apiConfig.MFAPushDelaySeconds)
+            auth.userConfig.Username, auth.
+            apiConfig.MFAPushDelaySeconds)
           time.Sleep(time.Duration(auth.apiConfig.MFAPushDelaySeconds)  * time.Second)
           res, err = auth.doAuth(fid, stateToken)
           if err != nil {
