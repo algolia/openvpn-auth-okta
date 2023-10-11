@@ -159,12 +159,7 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
       }
       username := viaFileInfos[0]
       password := viaFileInfos[1]
-      if username != "" {
-        validator.usernameTrusted = true
-      }
-      if validator.apiConfig.AllowUntrustedUsers {
-        validator.usernameTrusted = true
-      }
+      validator.usernameTrusted = true
       if validator.apiConfig.UsernameSuffix != ""  && !strings.Contains(username, "@") {
         username = fmt.Sprintf("%s@%s", username, validator.apiConfig.UsernameSuffix)
       }
