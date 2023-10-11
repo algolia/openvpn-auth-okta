@@ -169,6 +169,11 @@ func (auth *oktaApiAuth) Auth() (error) {
   }
   if st, ok := retp["status"]; ok {
     status = st.(string)
+    stateToken := ""
+    if tok, ok := retp["stateToken"]; ok {
+      stateToken = tok.(string)
+    }
+
     switch status {
     case "SUCCESS":
       if auth.apiConfig.MFARequired {
@@ -178,14 +183,18 @@ func (auth *oktaApiAuth) Auth() (error) {
         return nil
       }
 
+    case "LOCKED_OUT":
+      fmt.Printf("[%s] user is locked out\n", auth.userConfig.Username)
+      return errors.New("User locked out")
+
     case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
       fmt.Printf("[%s] user needs to enroll first\n", auth.userConfig.Username)
+      _, _ = auth.cancelAuth(stateToken)
       return errors.New("Needs to enroll")
 
     case "MFA_REQUIRED", "MFA_CHALLENGE":
       fmt.Printf("[%s] user password validates, checking second factor\n", auth.userConfig.Username)
 
-      stateToken := retp["stateToken"].(string)
       factors := retp["_embedded"].(map[string]interface{})["factors"].([]interface{})
       supportedFactorTypes := []string{"token:software:totp", "push"}
       var res map[string]interface{}
