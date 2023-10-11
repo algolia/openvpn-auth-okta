@@ -40,6 +40,16 @@ func CheckNotWritable(path string) bool {
   return true
 }
 
+func RemoveEmptyStrings(s []string) []string {
+  var r []string
+  for _, str := range s {
+    if str != "" {
+      r = append(r, str)
+    }
+  }
+  return r
+}
+
 // Prepare an http client with the proper TLS config
 // validate the server public key against our list of pinned key fingerprint
 func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
