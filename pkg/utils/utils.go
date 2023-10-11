@@ -5,7 +5,6 @@ import (
   "crypto/tls"
   "crypto/x509"
   "encoding/base64"
-  "errors"
   "fmt"
   "net/http"
   "net/url"
@@ -76,7 +75,7 @@ func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
             rawURL.Hostname(),
             "a TLS public key pinning check.",
             "Please contact support@okta.com with this error message")
-          return nil, errors.New("Invalid key pinning")
+            return nil, fmt.Errorf("Invalid key pinning: %s", digest)
         }
       }
     }
