@@ -152,7 +152,8 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
       return err
     } else {
       viaFileInfos := strings.Split(string(viaFileBuf), "\n")
-      if len(viaFileInfos) != 2 {
+      viaFileInfos = utils.RemoveEmptyStrings(viaFileInfos)
+      if len(viaFileInfos) < 2 {
         fmt.Printf("Invalid OpenVPN via-file %s content\n", path)
         return errors.New("Invalid via-file")
       }
