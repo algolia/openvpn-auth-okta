@@ -1,0 +1,14 @@
+{
+  "status": "LOCKED_OUT",
+  "_links": {
+    "next": {
+      "name": "unlock",
+      "href": "https://{yourOktaDomain}/api/v1/authn/recovery/unlock",
+      "hints": {
+        "allow": [
+          "POST"
+        ]
+      }
+    }
+  }
+}

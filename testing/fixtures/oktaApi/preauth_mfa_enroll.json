@@ -1,0 +1,140 @@
+{
+  "stateToken": "007ucIX7PATyn94hsHfOLVaXAmOBkKHWnOOLG43bsb",
+  "expiresAt": "2017-03-29T21:49:09.000Z",
+  "status": "MFA_ENROLL",
+  "_embedded": {
+    "user": {
+      "id": "00ub0oNGTSWTBKOLGLNR",
+      "passwordChanged": "2017-03-29T21:37:25.000Z",
+      "profile": {
+        "login": "dade.murphy@example.com",
+        "firstName": "Dade",
+        "lastName": "Murphy",
+        "locale": "en_US",
+        "timeZone": "America/Los_Angeles"
+      }
+    },
+    "factors": [
+      {
+        "factorType": "question",
+        "provider": "OKTA",
+        "vendorName": "OKTA",
+        "_links": {
+          "questions": {
+            "href": "https://{yourOktaDomain}/api/v1/users/00u1nehnZ6qp4Qy8G0g4/factors/questions",
+            "hints": {
+              "allow": [
+                "GET"
+              ]
+            }
+          },
+          "enroll": {
+            "href": "https://{yourOktaDomain}/api/v1/authn/factors",
+            "hints": {
+              "allow": [
+                "POST"
+              ]
+            }
+          }
+        },
+        "status": "NOT_SETUP",
+        "enrollment": "OPTIONAL"
+      },
+      {
+        "factorType": "token:software:totp",
+        "provider": "OKTA",
+        "vendorName": "OKTA",
+        "_links": {
+          "enroll": {
+            "href": "https://{yourOktaDomain}/api/v1/authn/factors",
+            "hints": {
+              "allow": [
+                "POST"
+              ]
+            }
+          }
+        },
+        "status": "NOT_SETUP",
+        "enrollment": "OPTIONAL"
+      },
+      {
+        "factorType": "token:software:totp",
+        "provider": "GOOGLE",
+        "vendorName": "GOOGLE",
+        "_links": {
+          "enroll": {
+            "href": "https://{yourOktaDomain}/api/v1/authn/factors",
+            "hints": {
+              "allow": [
+                "POST"
+              ]
+            }
+          }
+        },
+        "status": "NOT_SETUP",
+        "enrollment": "OPTIONAL"
+      },
+      {
+        "factorType": "sms",
+        "provider": "OKTA",
+        "vendorName": "OKTA",
+        "_links": {
+          "enroll": {
+            "href": "https://{yourOktaDomain}/api/v1/authn/factors",
+            "hints": {
+              "allow": [
+                "POST"
+              ]
+            }
+          }
+        },
+        "status": "NOT_SETUP",
+        "enrollment": "OPTIONAL"
+      },
+      {
+        "factorType": "push",
+        "provider": "OKTA",
+        "vendorName": "OKTA",
+        "_links": {
+          "enroll": {
+            "href": "https://{yourOktaDomain}/api/v1/authn/factors",
+            "hints": {
+              "allow": [
+                "POST"
+              ]
+            }
+          }
+        },
+        "status": "NOT_SETUP",
+        "enrollment": "OPTIONAL"
+      },
+      {
+        "factorType": "token:hardware",
+        "provider": "YUBICO",
+        "vendorName": "YUBICO",
+        "_links": {
+          "enroll": {
+            "href": "https://{yourOktaDomain}/api/v1/authn/factors",
+            "hints": {
+              "allow": [
+                "POST"
+              ]
+            }
+          }
+        },
+        "status": "NOT_SETUP",
+        "enrollment": "OPTIONAL"
+      }
+    ]
+  },
+  "_links": {
+    "cancel": {
+      "href": "https://{yourOktaDomain}/api/v1/authn/cancel",
+      "hints": {
+        "allow": [
+          "POST"
+        ]
+      }
+    }
+  }
+}
