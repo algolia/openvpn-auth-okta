@@ -24,7 +24,7 @@ var (
     "/etc/okta_openvpn.ini",
     "okta_openvpn.ini",
   }
-  pinset_paths = [3]string{
+  pinsetDefaultPaths = [3]string{
     "/etc/openvpn/okta_pinset.cfg",
     "/etc/okta_pinset.cfg",
     "okta_pinset.cfg",
@@ -38,6 +38,7 @@ type PluginMode uint8
 
 type OktaOpenVPNValidator struct {
   configFile      string
+  pinsetFile      string
   usernameTrusted bool
   isUserValid     bool
   controlFile     string
@@ -111,7 +112,15 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
 }
 
 func (validator *OktaOpenVPNValidator) LoadPinset() (error) {
-  for _, pinsetFile := range pinset_paths {
+  var pinsetPaths []string
+  if validator.pinsetFile == "" {
+    for _, v := range pinsetDefaultPaths {
+      pinsetPaths = append(pinsetPaths, v)
+    }
+  } else {
+    pinsetPaths = append(pinsetPaths, validator.pinsetFile)
+  }
+  for _, pinsetFile := range pinsetPaths {
     if info, err := os.Stat(pinsetFile); err != nil {
       continue
     } else {
