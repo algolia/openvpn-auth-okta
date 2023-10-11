@@ -19,7 +19,7 @@ const (
 )
 
 var (
-  cfg_path_defaults = [3]string{
+  cfgDefaultPaths = [3]string{
     "/etc/openvpn/okta_openvpn.ini",
     "/etc/okta_openvpn.ini",
     "okta_openvpn.ini",
@@ -69,22 +69,22 @@ func (validator *OktaOpenVPNValidator) Mode() PluginMode {
 }
 
 func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
-  var cfg_path []string
+  var cfgPaths []string
   if validator.configFile == "" {
-    for _, v := range cfg_path_defaults {
-      cfg_path = append(cfg_path, v)
+    for _, v := range cfgDefaultPaths {
+      cfgPaths = append(cfgPaths, v)
     }
   } else {
-    cfg_path = append(cfg_path, validator.configFile)
+    cfgPaths = append(cfgPaths, validator.configFile)
   }
-  for _, cfg_file := range cfg_path {
-    if info, err := os.Stat(cfg_file); err != nil {
+  for _, cfgFile := range cfgPaths {
+    if info, err := os.Stat(cfgFile); err != nil {
       continue
     } else {
       if info.IsDir() {
         continue
       } else {
-        cfg, err := ini.Load(cfg_file)
+        cfg, err := ini.Load(cfgFile)
         if err != nil {
           fmt.Printf("Error loading ini file: %s\n", err)
           return err
@@ -103,11 +103,12 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
           fmt.Println("Missing param Url or Token")
           return errors.New("Missing param Url or Token")
         }
+        validator.configFile = cfgFile
         return nil
       }
     }
   }
-  fmt.Printf("No ini file found in %v\n", cfg_path)
+  fmt.Printf("No ini file found in %v\n", cfgPaths)
   return errors.New("No ini file found")
 }
 
@@ -132,6 +133,7 @@ func (validator *OktaOpenVPNValidator) LoadPinset() (error) {
           return err
         } else {
           validator.apiConfig.AssertPin = strings.Split(string(pinset), "\n")
+          validator.pinsetFile = pinsetFile
           return nil
         }
       }
