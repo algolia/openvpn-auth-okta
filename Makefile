@@ -23,6 +23,12 @@ plugin: defer_simple.c openvpn-plugin.h
 script: cmd/okta-openvpn/main.go
 	CGO_ENABLED=0 go build -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
 
+test:
+	go test ./pkg/... -v -cover -coverprofile=cover.out -covermode=atomic -coverpkg=./pkg/...
+
+coverage.html: cover.out
+	go tool cover -html=cover.out -o coverage.html
+
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
 	mkdir -p $(DESTDIR)/etc/openvpn/
@@ -36,4 +42,4 @@ clean:
 	rm -f *.so
 	rm -f okta_openvpn
 
-.PHONY: clean plugin install
+.PHONY: clean plugin install test
