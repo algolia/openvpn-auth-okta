@@ -99,7 +99,7 @@ func ConnectionPool(oktaURL string, pinset []string) (*http.Client, error) {
             rawURL.Hostname(),
             "a TLS public key pinning check.",
             "Please contact support@okta.com with this error message")
-            return nil, fmt.Errorf("Invalid key pinning: %s", digest)
+            return nil, fmt.Errorf("Server pubkey does not match pinned keys")
         }
       }
     }
