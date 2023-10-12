@@ -48,11 +48,12 @@ type authRequest struct {
 
 func TestAuth(t *testing.T) {
   defer gock.Off()
-  gock.Observe(gock.DumpRequest)
+  // Uncomment the following line to see HTTP requests intercepted by gock
+  //gock.Observe(gock.DumpRequest)
   gock.DisableNetworking()
 
   /*
-    all the response JSON file used here have been extracted from
+    all the JSON response files used here have been extracted from
       https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application
       https://developer.okta.com/docs/reference/api/authn/#multifactor-authentication-operations
     with fatcor id and stateToken modifications
