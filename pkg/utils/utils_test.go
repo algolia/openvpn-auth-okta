@@ -73,8 +73,8 @@ func startTLS(t *testing.T) {
     ReadTimeout: 1*time.Second,
     WriteTimeout: 1*time.Second,
   }
-  err := s.ListenAndServeTLS("../../testing/fixtures/server.crt",
-    "../../testing/fixtures/server.key")
+  err := s.ListenAndServeTLS("../../testing/fixtures/utils/server.crt",
+    "../../testing/fixtures/utils/server.key")
   assert.NoError(t, err)
   t.Cleanup(func() { _ = s.Close() })
 }
