@@ -1,36 +1,22 @@
 # Introduction
 
-This is a plugin for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA.
+This is a plugin/binary for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA (TOTP or PUSH only).
 
     Note: This plugin does not work with OpenVPN Access Server (OpenVPN-AS)
 
 
 # Requirements
 
-This plugin requires that OpenVPN Community Edition be configured or used in the following ways:
+This plugin requires that OpenVPN Community Edition be configured or used in one the following ways:
 
-1.  OpenVPN must be configured to call plugins via a deferred call.
+1.  OpenVPN can be configured to call plugins via a deferred call (aka `Shared Object Plugin` mode) or call the binary directly (aka `Script Plugin` mode).
 2.  By default, OpenVPN clients *must* authenticate using client SSL certificates.
-3.  If authenticating using MFA, the end user will authenticate by appending their six-digit MFA token to the end of their password.
+3.  If authenticating using MFA, the end user will authenticate by appending their six-digit MFA TOTP to the end of their password or by validating Push notifications.
 
-For example, if a user's password is `correcthorsebatterystaple` and their six-digit MFA token is `123456`, they would use `correcthorsebatterystaple123456` as the password for their OpenVPN client
-
-
-# Setup and Configuration
+For TOTP, if a user's password is `correcthorsebatterystaple` and their six-digit MFA TOTP is `123456`, they would use `correcthorsebatterystaple123456` as the password for their OpenVPN client
 
 
-## Verify the GPG signature on this repository
-
-The source code for this plugin is signed using [GPG](https://gnupg.org/).
-
-It is recommended that this plugin be verified using the <code>git tag -v $TAGNAME</code> command.
-
-For example, to verify the v0.10.0 tag, use the command below:
-
-```shell
-$ git tag -v v2.1.4
-```
-
+# Installation
 
 ## Compile the C plugin
 
@@ -43,7 +29,7 @@ $ make plugin
 Compile the Golang binary plugin from this directory using this command:
 
 ```shell
-$ make plugin
+$ make script
 ```
 
 
@@ -63,7 +49,7 @@ $ sudo make install
 
 ## Manually installing the Okta OpenVPN plugin
 
-If you have a custom setup, follow the instructions below to install the C plugin and Python scripts that constitute the Okta OpenVPN plugin.
+If you have a custom setup, follow the instructions below to install the C plugin and Golang binary that constitute the Okta OpenVPN plugin.
 
 
 ### Manually installing the C Plugin
@@ -87,6 +73,8 @@ $ sudo mkdir /etc/openvpn/tmp
 Use the [chown](https://en.wikipedia.org/wiki/Chown) and [chmod](https://en.wikipedia.org/wiki/Chmod) commands to set permissions approprate to your setup (The user that runs OpenVPN should be owner and only writer).
 
 
+# Installation
+
 ## Configure the Okta OpenVPN plugin
 
 The Okta OpenVPN plugin is configured via the <code>okta\_openvpn.ini</code> file. You **must** update this file with the configuration options for your Okta organization for the plugin to work.
@@ -98,7 +86,7 @@ $ sudo $EDITOR /etc/openvpn/okta_openvpn.ini
 ```
 
 
-## Configure OpenVPN to use the C Plugin
+## Configure OpenVPN to use the C Shared Plugin
 
 Set up OpenVPN to call the Okta plugin by adding the following lines to your OpenVPN <code>server.conf</code> configuration file:
 
@@ -108,6 +96,34 @@ tmp-dir "/etc/openvpn/tmp"
 ```
 
 The default location for OpenVPN configuration files is <code>/etc/openvpn/server.conf</code>
+
+
+## Configure OpenVPN to use the binary in `Script Plugin` mode
+
+Set up OpenVPN to call the Okta Golang binary by adding the following lines to your OpenVPN <code>server.conf</code> configuration file:
+
+```ini
+auth-user-pass-verify /usr/lib/openvpn/plugins/okta_openvpn via-file
+tmp-dir "/etc/openvpn/tmp"
+```
+
+```ini
+auth-user-pass-verify /usr/lib/openvpn/plugins/okta_openvpn via-env
+tmp-dir "/etc/openvpn/tmp"
+```
+
+Please check the OpenVPN [manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-0/#options) for security considerations regarding this mode.
+
+The default location for OpenVPN configuration files is <code>/etc/openvpn/server.conf</code>
+
+
+# Useful links
+
+- [OpenVPN: Using alternative authentication methods](https://openvpn.net/community-resources/using-alternative-authentication-methods/)
+- [OpenVPN 2.4 manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/)
+- [Openvpn auth-pam plugin code](https://github.com/OpenVPN/openvpn/tree/master/src/plugins/auth-pam)
+- [Okta API - PreAuth](https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application)
+- 
 
 # Contact
 
