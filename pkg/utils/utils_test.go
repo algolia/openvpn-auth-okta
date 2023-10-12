@@ -29,6 +29,32 @@ type tlsTest struct {
   res      func(t assert.TestingT, object interface{}, msgAndArgs ...interface{}) bool
 }
 
+type usernameTest struct {
+  testName string
+  username string
+  res      bool
+}
+
+func TestCheckUsernameFormat(t *testing.T) {
+  tests := []usernameTest{
+    {
+      "Test valid username - success",
+      "dade.murphy@example.com",
+      true,
+    },
+    {
+      "Test invalid username - failure",
+      "dade.*murphy/",
+      false,
+    },
+  }
+  for _, test := range tests {
+    t.Run(test.testName, func(t *testing.T) {
+      res := CheckUsernameFormat(test.username)
+      assert.Equal(t, test.res, res)
+    })
+  }
+}
 
 func startTLS(t *testing.T) {
   t.Helper()
@@ -54,7 +80,6 @@ func startTLS(t *testing.T) {
 }
 
 func TestConnectionPool(t *testing.T) {
-
   tests := []tlsTest{
     {
       "Valid pinset",
