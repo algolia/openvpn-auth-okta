@@ -1,0 +1,80 @@
+version: 2.1
+orbs:
+  snyk: snyk/snyk@1.1.2
+
+executors:
+  golang:
+    docker:
+      - image: cimg/go:1.18
+
+jobs:
+  golangci-lint:
+    executor: golang
+    steps:
+      - checkout
+      # Download and cache dependencies
+      - restore_cache: &restore-cache
+          keys:
+            - go-mod-{{ checksum "go.sum" }}
+      - run:
+          name: Install dependencies
+          command: |
+            go mod download
+      - run:
+          name: Install golangci-lint
+          command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.45.2
+      - run:
+          name: GolangCI Lint
+          command: golangci-lint run
+      - save_cache: &save-cache
+          paths:
+            - /home/circleci/go/pkg/mod
+          key: go-mod-{{ checksum "go.sum" }}
+  test:
+    executor: golang
+    steps:
+      - checkout
+      # Download and cache dependencies
+      - restore_cache:
+          <<: *restore-cache
+      - run:
+          name: Install dependencies
+          command: |
+            go mod download
+      - run:
+          name: Test
+          command: make test
+      - run:
+          name: Coverage report
+          command: make coverage.html
+      - store_artifacts:
+          path: coverage.html
+      - save_cache:
+          <<: *save-cache
+  snyk-open-source:
+    executor: golang
+    steps:
+      - checkout
+      - snyk/scan:
+          severity-threshold: high
+          additional-arguments: --tags=repository=okta-openvpn,team=infrastructure,team=iaas
+  snyk-code:
+    executor: golang
+    steps:
+      - checkout
+      - snyk/scan:
+          command: code test
+          severity-threshold: high
+          additional-arguments: --tags=repository=okta-openvpn,team=infrastructure,team=iaas
+
+workflows:
+  lint_test_build:
+    jobs:
+      - hold:
+          type: approval
+      - golangci-lint
+      - test:
+          requires:
+            - golangci-lint
+      - snyk-code
+      - snyk-open-source
