@@ -123,6 +123,7 @@ func TestConnectionPool(t *testing.T) {
     startTLS(t)
   }()
 
+  time.Sleep(1 * time.Second)
   for _, test := range tests {
     t.Run(test.testName, func(t *testing.T) {
       _, err := ConnectionPool(fmt.Sprintf("https://%s:%s", test.host, test.port), test.pinset)
