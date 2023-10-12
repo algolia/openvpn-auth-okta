@@ -10,6 +10,7 @@ cover/
 okta_openvpn.ini
 cover.out
 coverage.html
+.dccache
 
 # Temporary testing files
 testing/fixtures/validator/valid_control_file

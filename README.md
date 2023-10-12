@@ -127,7 +127,7 @@ The default location for OpenVPN configuration files is `/etc/openvpn/server.con
 - [Okta API - PreAuth](https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application)
 - [Okta API - Auth with TOTP MFA](https://developer.okta.com/docs/reference/api/authn/#verify-totp-factor)
 - [Okta API - Auth with Push MFA](https://developer.okta.com/docs/reference/api/authn/#verify-push-factor)
-- 
+
 
 # Contact
 
