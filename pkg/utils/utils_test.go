@@ -18,15 +18,18 @@ cat testing/fixtures/server.crt |\
   openssl dgst -sha256 -binary | base64
 */
 const (
-  tlsEndpoint   string = "127.0.0.1:1443"
+  tlsHost       string = "127.0.0.1"
+  tlsPort       string = "1443"
   validPinset   string = "j69yToSVkR6G7RKEc0qvsA6MysH+luI3wBIihDA20nI="
   invalidPinset string = "ABCDEF"
 )
 
 type tlsTest struct {
   testName string
+  host     string
+  port     string
   pinset   []string
-  res      func(t assert.TestingT, object interface{}, msgAndArgs ...interface{}) bool
+  err      error
 }
 
 type usernameTest struct {
@@ -67,7 +70,7 @@ func startTLS(t *testing.T) {
   })
   cfg := &tls.Config{MinVersion: tls.VersionTLS12}
   s := http.Server{
-    Addr: tlsEndpoint,
+    Addr: fmt.Sprintf("%s:%s", tlsHost, tlsPort),
     Handler: mux,
     TLSConfig: cfg,
     ReadTimeout: 1*time.Second,
@@ -80,17 +83,41 @@ func startTLS(t *testing.T) {
 }
 
 func TestConnectionPool(t *testing.T) {
+  invalidHost := "invalid{host"
+  invalidHostErr := fmt.Sprintf("parse \"https://%s:%s\": invalid character \"{\" in host name",
+    invalidHost,
+    tlsPort)
+
   tests := []tlsTest{
     {
-      "Valid pinset",
+      "Test valid pinset",
+      tlsHost,
+      tlsPort,
       []string{validPinset},
-      assert.Nil,
+      nil,
     },
     {
-      "Invalid pinset",
+      "Test invalid pinset",
+      tlsHost,
+      tlsPort,
       []string{invalidPinset},
-      assert.NotNil,
+      fmt.Errorf("Server pubkey does not match pinned keys"),
     },
+    {
+      "Test unreachable host",
+      tlsHost,
+      "1444",
+      []string{},
+      fmt.Errorf(fmt.Sprintf("dial tcp %s:1444: connect: connection refused", tlsHost)),
+    },
+    {
+      "Test invalid url",
+      invalidHost,
+      tlsPort,
+      []string{},
+      fmt.Errorf(invalidHostErr),
+    },
+
   }
   go func(){
     startTLS(t)
@@ -98,8 +125,15 @@ func TestConnectionPool(t *testing.T) {
 
   for _, test := range tests {
     t.Run(test.testName, func(t *testing.T) {
-      _, err := ConnectionPool(fmt.Sprintf("https://%s", tlsEndpoint), test.pinset)
-      test.res(t, err)
+      _, err := ConnectionPool(fmt.Sprintf("https://%s:%s", test.host, test.port), test.pinset)
+      if test.err == nil {
+        if err != nil {
+          t.Logf(err.Error())
+        }
+        assert.Nil(t, err)
+      } else {
+        assert.Equal(t, test.err.Error(), err.Error())
+      }
     })
   }
 }
