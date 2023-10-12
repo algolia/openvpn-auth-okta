@@ -8,6 +8,8 @@ venv/
 cover/
 .coverage
 okta_openvpn.ini
+cover.out
+coverage.html
 
 # Temporary testing files
 testing/fixtures/validator/valid_control_file
