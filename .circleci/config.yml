@@ -72,9 +72,15 @@ workflows:
     jobs:
       - hold:
           type: approval
-      - golangci-lint
+      - golangci-lint:
+          requires:
+            - hold
       - test:
           requires:
             - golangci-lint
-      - snyk-code
-      - snyk-open-source
+      - snyk-code:
+          requires:
+            - hold
+      - snyk-open-source:
+          requires:
+            - hold
