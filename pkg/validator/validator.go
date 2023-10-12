@@ -13,11 +13,6 @@ import (
   "gopkg.in/algolia/okta-openvpn.v2/pkg/utils"
 )
 
-const (
-  ViaFile PluginMode = iota
-  ViaEnv             = iota
-)
-
 var (
   cfgDefaultPaths = [3]string{
     "/etc/openvpn/okta_openvpn.ini",
@@ -44,7 +39,6 @@ type OktaOpenVPNValidator struct {
   controlFile     string
   apiConfig       *OktaAPI
   userConfig      *OktaUserConfig
-  mode            PluginMode
 }
 
 func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
@@ -56,16 +50,12 @@ func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
   }
 }
 
-func (validator *OktaOpenVPNValidator) Username() string {
-  return validator.userConfig.Username
-}
-
 func (validator *OktaOpenVPNValidator) IsUserValid() bool {
   return validator.isUserValid
 }
 
-func (validator *OktaOpenVPNValidator) Mode() PluginMode {
-  return validator.mode
+func (validator *OktaOpenVPNValidator) SetControlFile(f string) {
+  validator.controlFile = f
 }
 
 func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
@@ -159,6 +149,12 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
       }
       username := viaFileInfos[0]
       password := viaFileInfos[1]
+
+      if !utils.CheckUsernameFormat(username) {
+        fmt.Println("Username or CN invalid format")
+        return errors.New("Invalid CN or username format")
+      }
+
       validator.usernameTrusted = true
       if validator.apiConfig.UsernameSuffix != ""  && !strings.Contains(username, "@") {
         username = fmt.Sprintf("%s@%s", username, validator.apiConfig.UsernameSuffix)
@@ -168,7 +164,6 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
         Password: password,
         ClientIp: "0.0.0.0",
       }
-      validator.mode = ViaFile
       return nil
     }
   }
@@ -198,6 +193,11 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() error {
     return errors.New("Invalid CN or username")
   }
 
+  if !utils.CheckUsernameFormat(username) {
+    fmt.Println("Username or CN invalid format")
+    return errors.New("Invalid CN or username format")
+  }
+
   if validator.apiConfig.AllowUntrustedUsers {
     validator.usernameTrusted = true
   }
@@ -210,7 +210,6 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() error {
     Password: password,
     ClientIp: clientIp,
   }
-  validator.mode = ViaEnv
   return nil
 }
 
@@ -240,15 +239,15 @@ func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
   }
 
   if !utils.CheckNotWritable(validator.controlFile) {
-    msg := fmt.Sprintf("Refusing to authenticate. The file %s must not be writable by non-owners.",
+    fmt.Printf("Refusing to authenticate. The file %s must not be writable by non-owners.",
       validator.controlFile)
-    return errors.New(msg)
+    return errors.New("control file writable by non-owners")
   }
   dirName := filepath.Dir(validator.controlFile)
   if !utils.CheckNotWritable(dirName) {
-    msg := fmt.Sprintf("Refusing to authenticate. The directory containing the file %s must not be writable by non-owners.",
+    fmt.Printf("Refusing to authenticate. The directory containing the file %s must not be writable by non-owners.",
       validator.controlFile)
-    return errors.New(msg)
+    return errors.New("control file writable by non-owners")
   }
 
   return nil
