@@ -215,7 +215,10 @@ deferred_auth_handler(struct plugin_context *context,
     }
     deferred_argv[string_array_len(argv)] = deferred_param;
     execve(script, (char *const*)deferred_argv, (char *const*)envp);
-    free(deferred_argv);
+    if (deferred_argv)
+    {
+        free(deferred_argv);
+    }
     /*
      * Since we exec'ed we should never get here.  But just in case, exit hard.
      */
