@@ -206,19 +206,7 @@ deferred_auth_handler(struct plugin_context *context,
      */
 
     /* do mighty complicated work that will really take time here... */
-    char **deferred_argv;
-    char *deferred_param = "--deferred";
-    deferred_argv = calloc(string_array_size(argv)+strlen(deferred_param), sizeof(char));
-    for (int i=0; i<string_array_len(argv); i++)
-    {
-        deferred_argv[i] = (char*)argv[i];
-    }
-    deferred_argv[string_array_len(argv)] = deferred_param;
-    execve(script, (char *const*)deferred_argv, (char *const*)envp);
-    if (deferred_argv)
-    {
-        free(deferred_argv);
-    }
+    execve(script, (char *const*)argv, (char *const*)envp);
     /*
      * Since we exec'ed we should never get here.  But just in case, exit hard.
      */
@@ -245,8 +233,8 @@ openvpn_plugin_func_v3(const int v3structver,
     {
         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
             /*
-	     * Let's add the --deferred arg to the script argv
-	     */
+           * Let's add the --deferred arg to the script argv
+           */
             deferred_argv = calloc(string_array_size(argv)+strlen(deferred_param), sizeof(char));
             for (int i=0; i<string_array_len(argv); i++)
             {
@@ -254,7 +242,10 @@ openvpn_plugin_func_v3(const int v3structver,
             }
             deferred_argv[string_array_len(argv)] = deferred_param;
             res = (int)deferred_auth_handler(context, argv, envp);
-	    free(deferred_argv);
+            if (deferred_argv)
+            {
+                free(deferred_argv);
+            }
             return res;
 
         default:
