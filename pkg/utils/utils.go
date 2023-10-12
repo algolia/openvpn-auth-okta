@@ -8,6 +8,7 @@ import (
   "fmt"
   "net/http"
   "net/url"
+  "regexp"
   "slices"
   "time"
   "os"
@@ -21,6 +22,19 @@ func GetEnv(key, fallback string) string {
     return fallback
   }
   return fallback
+}
+
+func CheckUsernameFormat(name string) bool {
+  /* OpenVPN doc says:
+  To protect against a client passing a maliciously formed username or password string,
+  the username string must consist only of these characters:
+  alphanumeric, underbar ('_'), dash ('-'), dot ('.'), or at ('@').
+  */
+  match, err := regexp.MatchString(`^([[:alnum:]]|[_\-\.@])*$`, name);
+  if err != nil || !match {
+    return false
+  }
+  return true
 }
 
 // Check that path is not group or other writable
