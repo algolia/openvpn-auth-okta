@@ -60,6 +60,33 @@ struct plugin_context {
 /* module name for plugin_log() */
 static char *MODULE = "openvpn_defer_auth";
 
+int string_array_len(const char *array[])
+{
+    int i = 0;
+    if (array)
+    {
+        while (array[i])
+        {
+            ++i;
+        }
+    }
+    return i;
+}
+
+int string_array_size(const char *array[])
+{
+    int i = 0;
+    int size = 0;
+    if (array)
+    {
+        while (array[i])
+        {
+	    size += strlen(array[i++]);
+        }
+    }
+    return size;
+}
+
 void handle_sigchld(int sig)
 {
     /*
@@ -179,7 +206,16 @@ deferred_auth_handler(struct plugin_context *context,
      */
 
     /* do mighty complicated work that will really take time here... */
-    execve(script, (char *const*)argv, (char *const*)envp);
+    char **deferred_argv;
+    char *deferred_param = "--deferred";
+    deferred_argv = calloc(string_array_size(argv)+strlen(deferred_param), sizeof(char));
+    for (int i=0; i<string_array_len(argv); i++)
+    {
+        deferred_argv[i] = (char*)argv[i];
+    }
+    deferred_argv[string_array_len(argv)] = deferred_param;
+    execve(script, (char *const*)deferred_argv, (char *const*)envp);
+    free(deferred_argv);
     /*
      * Since we exec'ed we should never get here.  But just in case, exit hard.
      */
@@ -196,13 +232,27 @@ openvpn_plugin_func_v3(const int v3structver,
         fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
+    int res;
     const char **argv = args->argv;
     const char **envp = args->envp;
     struct plugin_context *context = (struct plugin_context *) args->handle;
+    char **deferred_argv;
+    char *deferred_param = "--deferred";
     switch (args->type)
     {
         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
-            return deferred_auth_handler(context, argv, envp);
+            /*
+	     * Let's add the --deferred arg to the script argv
+	     */
+            deferred_argv = calloc(string_array_size(argv)+strlen(deferred_param), sizeof(char));
+            for (int i=0; i<string_array_len(argv); i++)
+            {
+                deferred_argv[i] = (char*)argv[i];
+            }
+            deferred_argv[string_array_len(argv)] = deferred_param;
+            res = (int)deferred_auth_handler(context, argv, envp);
+	    free(deferred_argv);
+            return res;
 
         default:
             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_?");
