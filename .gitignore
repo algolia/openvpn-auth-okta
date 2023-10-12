@@ -12,3 +12,4 @@ okta_openvpn.ini
 # Temporary testing files
 testing/fixtures/validator/valid_control_file
 testing/fixtures/validator/invalid_control_file
+testing/fixtures/validator/control_file
