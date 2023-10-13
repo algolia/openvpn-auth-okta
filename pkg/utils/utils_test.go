@@ -41,12 +41,12 @@ type usernameTest struct {
 func TestCheckUsernameFormat(t *testing.T) {
   tests := []usernameTest{
     {
-      "Test valid username - success",
+      "Valid username - success",
       "dade.murphy@example.com",
       true,
     },
     {
-      "Test invalid username - failure",
+      "Invalid username - failure",
       "dade.*murphy/",
       false,
     },
@@ -57,6 +57,20 @@ func TestCheckUsernameFormat(t *testing.T) {
       assert.Equal(t, test.res, res)
     })
   }
+}
+
+func TestCheckNotWritable(t *testing.T) {
+  t.Run("File does not exist - false", func(t *testing.T) {
+    res := CheckNotWritable("MISSING")
+    assert.False(t, res)
+  })
+}
+
+func TestGetEnv(t *testing.T) {
+  t.Run("Env var does not exist - falback", func(t *testing.T) {
+    res := GetEnv("THIS_ENV_VER_DOES_NOT_EXIST", "value")
+    assert.Equal(t, res, "value")
+  })
 }
 
 func startTLS(t *testing.T) {
