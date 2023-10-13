@@ -32,11 +32,17 @@ echo -n | openssl s_client -connect example.oktapreview.com:443 2>/dev/null |\
 var pin []string = []string{"SE4qe2vdD9tAegPwO79rMnZyhHvqj3i5g1c2HkyGUNE="}
 
 type authTest struct {
-  testName       string
-  mfaRequired    bool
-  passcode       string
-  requests       []authRequest
-  err            error
+  testName    string
+  mfaRequired bool
+  passcode    string
+  requests    []authRequest
+  err         error
+}
+
+type setupTest struct {
+  testName string
+  requests []authRequest
+  err      error
 }
 
 type authRequest struct {
@@ -46,9 +52,79 @@ type authRequest struct {
   jsonResponseFile string
 }
 
-func TestAuth(t *testing.T) {
+func TestOktaReq(t *testing.T) {
   defer gock.Off()
   // Uncomment the following line to see HTTP requests intercepted by gock
+  //gock.Observe(gock.DumpRequest)
+
+  // Lets ensure we wont reach the real okta API
+  gock.DisableNetworking()
+
+  tests := []setupTest{
+    {
+      "invalid json response - success",
+      []authRequest{
+        {
+          "/api/v1/authn",
+          map[string]string{"username": username, "password": password},
+          http.StatusOK,
+          "invalid.json",
+        },
+      },
+      fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+    },
+  }
+
+  for _, test := range tests {
+    t.Run(test.testName, func(t *testing.T) {
+      gock.Clean()
+      gock.Flush()
+
+      apiCfg := &OktaAPI{
+        Url: oktaEndpoint,
+        Token: token,
+        UsernameSuffix: "algolia.com",
+        AssertPin: pin,
+        MFARequired: false,
+        AllowUntrustedUsers: true,
+        MFAPushMaxRetries: 20,
+        MFAPushDelaySeconds: 3,
+      }
+      userCfg := &OktaUserConfig{
+        Username: username,
+        Password: password,
+        Passcode: "",
+        ClientIp: ip,
+      }
+
+      for _, req := range test.requests {
+        reqponseFile := fmt.Sprintf("../../testing/fixtures/oktaApi/%s", req.jsonResponseFile)
+        l := gock.New(oktaEndpoint)
+        l = l.Post(req.path).
+          MatchHeader("Authorization", fmt.Sprintf("SSWS %s", token)).
+          MatchHeader("X-Forwarded-For", ip).
+          MatchType("json").
+          JSON(req.payload)
+        l.Reply(http.StatusOK).
+          File(reqponseFile)
+      }
+
+      a, err := NewOktaApiAuth(apiCfg, userCfg)
+      assert.Nil(t, err)
+      gock.InterceptClient(a.pool)
+      _, err = a.oktaReq(test.requests[0].path, test.requests[0].payload)
+      if test.err == nil {
+        assert.Nil(t, err)
+      } else {
+        assert.Equal(t, err.Error(), test.err.Error())
+      }
+    })
+  }
+}
+
+
+func TestAuth(t *testing.T) {
+  defer gock.Off()
   //gock.Observe(gock.DumpRequest)
   gock.DisableNetworking()
 
