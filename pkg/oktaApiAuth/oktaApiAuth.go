@@ -68,12 +68,7 @@ func NewOktaApiAuth(apiConfig *OktaAPI, userConfig *OktaUserConfig) (auth *oktaA
 
 // Do a POST http request to the Okta API using the path and payload provided
 func (auth *oktaApiAuth) oktaReq(path string, data map[string]string) (a map[string]interface{}, err error) {
-  u, err := url.ParseRequestURI(auth.apiConfig.Url)
-  if err != nil {
-    fmt.Printf("Error validating url: %s\n", err)
-    return nil, err
-  }
-
+  u, _ := url.ParseRequestURI(auth.apiConfig.Url)
   u.Path = fmt.Sprintf("/api/v1%s", path)
 
   ssws := fmt.Sprintf("SSWS %s", auth.apiConfig.Token)
