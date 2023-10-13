@@ -149,13 +149,6 @@ func (auth *oktaApiAuth) cancelAuth(stateToken string) (map[string]interface{}, 
 
 func (auth *oktaApiAuth) Auth() (error) {
   var status string
-  if auth.userConfig.Username == "" && auth.userConfig.Password == "" {
-    fmt.Printf("Missing username or password for user: %s (%s) - %s\n",
-      auth.userConfig.Username,
-      auth.userConfig.ClientIp,
-      "Reported username may be 'None' due to this")
-    return errors.New("Missing username or password")
-  }
   fmt.Printf("[%s] Authenticating\n", auth.userConfig.Username)
   retp, err := auth.preAuth()
   if err != nil {
