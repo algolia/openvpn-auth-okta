@@ -237,7 +237,12 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() error {
   // if username is empty, there is an issue somewhere
   if username == "" {
     fmt.Println("No username or CN provided")
-    return errors.New("Invalid CN or username")
+    return errors.New("No CN or username")
+  }
+
+  if password == "" {
+    fmt.Println("No password provided")
+    return errors.New("No password")
   }
 
   if !utils.CheckUsernameFormat(username) {
