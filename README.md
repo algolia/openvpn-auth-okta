@@ -1,3 +1,7 @@
+![Coverage](https://img.shields.io/badge/Coverage-78.5%25-brightgreen)
+![Go version](https://img.shields.io/github/go-mod/go-version/algolia/okta-openvpn.svg)
+![CI status](https://circleci.com/gh/algolia/okta-openvpn/tree/v2.svg?style=shield)
+
 # Introduction
 
 This is a plugin/binary for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA (TOTP or PUSH only).
