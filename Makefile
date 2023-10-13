@@ -1,4 +1,5 @@
 SHELL := bash
+USERNAME := $(shell echo $$USER)
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
@@ -12,6 +13,10 @@ INSTALL := install
 DESTDIR := /
 PREFIX := /usr
 
+GOVENDOR_FLAG :=
+ifeq ($(USERNAME), abuild)
+GOVENDOR_FLAG := -mod=vendor
+endif
 GOLDFLAGS := '-extldflags "-static"'
 
 all: script plugin
@@ -21,7 +26,10 @@ plugin: defer_simple.c openvpn-plugin.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-soname,defer_simple.so -o defer_simple.so defer_simple.o
 
 script: cmd/okta-openvpn/main.go
-	CGO_ENABLED=0 go build -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
+ifeq ($(USERNAME), abuild)
+	tar xf ../SOURCES/vendor.tar.gz
+endif
+	CGO_ENABLED=0 go build $(GOVENDOR_FLAG) -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
 
 test:
 	# Ensure tests wont fail because of crappy permissions during OBS build
