@@ -4,6 +4,7 @@ import (
   "fmt"
   "io/fs"
   "os"
+  "path/filepath"
   "slices"
   "testing"
 
@@ -357,6 +358,10 @@ func TestCheckControlFilePerm(t *testing.T) {
       if test.path != "" {
         v.controlFile = test.path
         _, _ = os.Create(test.path)
+        // This is crapy but git does not group write bit ...
+       if dirName := filepath.Base(filepath.Dir(test.path)); dirName == "invalid_ctrlfile_dir_perm" {
+         _ = os.Chmod(filepath.Dir(test.path), 0770)
+       }
         defer func() { _ = os.Remove(test.path) }()
         _ = os.Chmod(test.path, test.mode)
       }
