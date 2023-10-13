@@ -30,7 +30,13 @@ func main() {
   }
 
   oktaValidator := validator.NewOktaOpenVPNValidator()
-  oktaValidator.Setup(*deferred, args)
+  if res := oktaValidator.Setup(*deferred, args); !res {
+    if *deferred {
+      os.Exit(0)
+    } else {
+      os.Exit(1)
+    }
+  }
   oktaValidator.Authenticate()
   if *deferred {
     oktaValidator.WriteControlFile()
