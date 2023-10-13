@@ -4,6 +4,7 @@ import (
   "crypto/tls"
   "fmt"
   "net/http"
+  "os"
   "testing"
   "time"
 
@@ -69,6 +70,12 @@ func TestCheckNotWritable(t *testing.T) {
 func TestGetEnv(t *testing.T) {
   t.Run("Env var does not exist - falback", func(t *testing.T) {
     res := GetEnv("THIS_ENV_VER_DOES_NOT_EXIST", "value")
+    assert.Equal(t, res, "value")
+  })
+  t.Run("Env var is empty - falback", func(t *testing.T) {
+    _ = os.Setenv("THIS_ENV_VAR_IS_EMPTY", "")
+    res := GetEnv("THIS_ENV_VAR_IS_EMPTY", "value")
+    _ = os.Unsetenv("THIS_ENV_VAR_IS_EMPTY")
     assert.Equal(t, res, "value")
   })
 }
