@@ -24,6 +24,8 @@ script: cmd/okta-openvpn/main.go
 	CGO_ENABLED=0 go build -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
 
 test:
+	# Ensure tests wont fail because of crappy permissions during OBS build
+	chmod -R g-w,o-w testing/fixtures
 	go test ./pkg/... -v -cover -coverprofile=cover.out -covermode=atomic -coverpkg=./pkg/...
 
 coverage.html: cover.out
