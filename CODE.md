@@ -1,174 +1,138 @@
-- [An overview of how okta-openvpn works](#org835b848)
-  - [Instantiate an OktaOpenVPNValidator object](#org3ac730b)
-  - [Load in configuration file and environment variables](#org5d7701b)
-  - [Authenticate the user](#org3312102)
-  - [Write result to the control file](#orgab0ed37)
-- [Learn more](#org9c0edcb)
+- [An overview of how okta-openvpn works](#overview)
+  - [Instantiate an OktaOpenVPNValidator struct](#instantiate)
+  - [Load in configuration file and environment variables](#setup)
+  - [Authenticate the user](#authenticate)
+  - [Write result to the control file (`Shared Object Plugin` mode)](#write_to_control_file)
+- [Learn more](#more)
 
 
-<a id="org835b848"></a>
+<a id="overview"></a>
 
 # An overview of how okta-openvpn works
 
 This is a plugin for OpenVPN Community Edition that allows OpenVPN to authenticate directly against Okta, with support for TOTP and Okta Verify Push factors.
 
-At a high level, OpenVPN communicates with this plugin via a "control file", a temporary file that OpenVPN creates and polls periodicly. If the plugin writes the ASCII character "1" into the control file, the user in question is allowed to log in to OpenVPN, if we write the ASCII character "0" into the file, the user is denied.
+At a high level, when configured in `Shared Object Plugin` mode, OpenVPN communicates with this plugin via a "control file", a temporary file that OpenVPN creates and polls periodicly. If the plugin writes the ASCII character "1" into the control file, the user in question is allowed to log in to OpenVPN, if we write the ASCII character "0" into the file, the user is denied. Exit code is expected to always be 0. The `defer_simple.so` shared lib is in charge to call the binary and trnsfer it's env, providing this way the user login information to the binary.
 
-Below are the key parts of the code for `okta_openvpn.py`:
+In `Script Plugin` mode, OpenVPN expects the exit code of the binary to be 0 if the user is allowed, 1 otherwise. OpenVPN trnasfers the user informations to the binary using:
+- a local file when configured with `via-file` method
+- environment variables when configured with `via-env` method
 
-1.  Instantiate an OktaOpenVPNValidator object
-2.  Load in configuration file and environment variables
+Below are the key parts of the code for `okta_openvpn` binary:
+
+1.  Instantiate an OktaOpenVPNValidator struct
+2.  Load in configuration file and (environment variables or via-file)
 3.  Authenticate the user
-4.  Write result to the control file
+4.  Write result to the control file or exit with code reflecting user allowance
 
 
-<a id="org3ac730b"></a>
+<a id="instantiate"></a>
 
-## Instantiate an OktaOpenVPNValidator object
+## Instantiate an OktaOpenVPNValidator struct
 
 The code flow for authenticating a user is as follows:
 
-Here is how we instantiate an OktaOpenVPNValidator object:
+Here is how we instantiate an OktaOpenVPNValidator struct:
 
-```python
+```go
 # This is tested by test_command.sh via tests/test_command.py
-if __name__ == "__main__":  # pragma: no cover
-    validator = OktaOpenVPNValidator()
-    validator.run()
-    return_error_code_for(validator)
+func main() {
+    validator := validator.NewOktaOpenVPNValidator()
 ```
 
 
-<a id="org5d7701b"></a>
+<a id="setup"></a>
 
 ## Load in configuration file and environment variables
 
-Here is the `run()` method of the OktaOpenVPNValidator class, this is what calls the methods which load the configuration file and environment variables, then calls the `authenticate()` method.
+Here is the `Setup(...)` method of the OktaOpenVPNValidator package, this is what calls the methods which load the configuration file and environment variables.
 
-```python
-def run(self):
-    self.read_configuration_file()
-    self.load_environment_variables()
-    self.authenticate()
-    self.write_result_to_control_file()
+```go
+func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) {
+  if err := validator.ReadConfigFile(); err != nil {
+    if deferred {
+      validator.SetControlFile(os.Getenv("auth_control_file"))
+      validator.WriteControlFile()
+      os.Exit(0)
+    }
+    os.Exit(1)
+  }
+  if !deferred {
+    if len(args) > 0 {
+      if err := validator.LoadViaFile(args[0]); err != nil {
+        os.Exit(1)
+      }
+    } else {
+      if err := validator.LoadEnvVars(); err != nil {
+        os.Exit(1)
+      }
+    }
+  } else {
+    if err := validator.LoadEnvVars(); err != nil {
+      validator.WriteControlFile()
+      os.Exit(0)
+    }
+  }
+
+  if err := validator.LoadPinset(); err != nil {
+    if deferred {
+      validator.WriteControlFile()
+      os.Exit(0)
+    }
+    os.Exit(1)
+  }
+}
 ```
 
 
-<a id="org3312102"></a>
+<a id="authenticate"></a>
 
 ## Authenticate the user
 
-Here is the `authenticate()` method:
+Here is the `Authenticate()` method:
 
-```python
-def authenticate(self):
-    if not self.username_trusted:
-        log.warning("Username %s is not trusted - failing",
-                    self.okta_config['username'])
-        return False
-    try:
-        okta = self.cls(**self.okta_config)
-        self.user_valid = okta.auth()
-        return self.user_valid
-    except Exception as exception:
-        log.error(
-            "User %s (%s) authentication failed, "
-            "because %s() failed unexpectedly - %s",
-            self.okta_config['username'],
-            self.okta_config['client_ipaddr'],
-            self.cls.__name__,
-            exception
-        )
-    return False
+```go
+func (validator *OktaOpenVPNValidator) Authenticate() {
+  if !validator.usernameTrusted {
+    fmt.Printf("[%s] User is not trusted - failing\n", validator.userConfig.Username)
+    validator.isUserValid = false
+    return
+  }
+  okta, err := oktaApiAuth.NewOktaApiAuth(validator.apiConfig, validator.userConfig)
+  if err != nil {
+    validator.isUserValid = false
+    return
+  }
+
+  if err := okta.Auth(); err != nil {
+    validator.isUserValid = false
+  } else {
+    validator.isUserValid = true
+  }
+}
 ```
 
-This code in turns calls the `auth()` method in the `OktaAPIAuth` class, which does the following:
+This code in turns calls the `Auth()` method in the `OktaAPIAuth` struct, which does the following:
 
 -   Makes an authentication request to Okta, using the `preauth()` method.
 -   Checks for errors
 -   Log the user in if the reply was `SUCCESS`
--   Deny the user if the reply is `MFA_ENROLL` or `MFA_ENROLL_ACTIVATE`
+-   Deny the user if the reply is `LOCKED_OUT`, `MFA_ENROLL` or `MFA_ENROLL_ACTIVATE`
 
 If the response is `MFA_REQUIRED` or `MFA_CHALLENGE` then we do the following, for each factor that the user has registered:
 
 -   Skip the factor if this code doesn't support that factor type.
--   Call `doauth()`, the second phase authentication, using the passcode (if we have one) and the `stateToken`.
-    -   Keep running `doauth()` if the response type is `MFA_CHALLENGE` or `WAITING`.
--   If there response from `doauth()` is `SUCCESS` then log the user in.
+-   Call `doAuth()`, the second phase authentication, using the passcode (if we have one) and the `stateToken`.
+    -   Keep running `doAuth()` if the response type is or `WAITING`.
+-   If there response from `doAuth()` is `SUCCESS` then log the user in.
 -   Fail otherwise.
 
 When returning errors, we prefer the summary strings in `errorCauses`, over those in `errorSummary` because the strings in `errorCauses` tend to be mroe descriptive. For more information, see the documentation for [Verify Security Question Factor](http://developer.okta.com/docs/api/resources/authn.html#verify-security-question-factor).
 
-```python
-try:
-    rv = self.preauth()
-except Exception as s:
-    log.error('Error connecting to the Okta API: %s', s)
-    return False
-# Check for erros from Okta
-if 'errorCauses' in rv:
-    msg = rv['errorSummary']
-    log.info('User %s pre-authentication failed: %s',
-             self.username,
-             msg)
-    return False
-elif 'status' in rv:
-    status = rv['status']
-# Check authentication status from Okta
-if status == "SUCCESS":
-    log.info('User %s authenticated without MFA', self.username)
-    return True
-elif status == "MFA_ENROLL" or status == "MFA_ENROLL_ACTIVATE":
-    log.info('User %s needs to enroll first', self.username)
-    return False
-elif status == "MFA_REQUIRED" or status == "MFA_CHALLENGE":
-    log.debug("User %s password validates, checking second factor",
-              self.username)
-    res = None
-    for factor in rv['_embedded']['factors']:
-        supported_factor_types = ["token:software:totp", "push"]
-        if factor['factorType'] not in supported_factor_types:
-            continue
-        fid = factor['id']
-        state_token = rv['stateToken']
-        try:
-            res = self.doauth(fid, state_token)
-            check_count = 0
-            fctr_rslt = 'factorResult'
-            while fctr_rslt in res and res[fctr_rslt] == 'WAITING':
-                print("Sleeping for {}".format(
-                    self.mfa_push_delay_secs))
-                time.sleep(self.mfa_push_delay_secs)
-                res = self.doauth(fid, state_token)
-                check_count += 1
-                if check_count > self.mfa_push_max_retries:
-                    log.info('User %s MFA push timed out' %
-                             self.username)
-                    return False
-        except Exception as e:
-            log.error('Unexpected error with the Okta API: %s', e)
-            return False
-        if 'status' in res and res['status'] == 'SUCCESS':
-            log.info("User %s is now authenticated "
-                     "with MFA via Okta API", self.username)
-            return True
-    if 'errorCauses' in res:
-        msg = res['errorCauses'][0]['errorSummary']
-        log.debug('User %s MFA token authentication failed: %s',
-                  self.username,
-                  msg)
-    return False
-else:
-    log.info("User %s is not allowed to authenticate: %s",
-             self.username,
-             status)
-    return False
-```
 
+<a id="write_to_control_file"></a>
 
-<a id="orgab0ed37"></a>
-
-## Write result to the control file
+## Write result to the control file (`Shared Object Plugin` mode)
 
 **Important:** The key thing to know about OpenVPN plugins (like this one) are that they communicate with OpenVPN through a **control file**. When OpenVPN calls a plugin, it first creates a temporary file, passes the name of the temporary file to the plugin, then waits for the temporary file to be written.
 
@@ -180,29 +144,27 @@ Because of how critical this control file is, we take the precaution of checking
 
 If the user authentication that happened previously was a success, we write a **1** to the file. Otherwise, we write a **0** to the file, denying the user by default.
 
-```python
-def write_result_to_control_file(self):
-    self.check_control_file_permissions()
-    try:
-        with open(self.control_file, 'w') as f:
-            if self.user_valid:
-                f.write('1')
-            else:
-                f.write('0')
-    except IOError:
-        log.critical("Failed to write to OpenVPN control file '{}'".format(
-            self.control_file
-        ))
+```go
+func (validator *OktaOpenVPNValidator) WriteControlFile() {
+  if err := validator.checkControlFilePerm(); err != nil {
+    return
+  }
+  if validator.isUserValid {
+    if err := os.WriteFile(validator.controlFile, []byte("1"), 0600); err !=nil {
+      fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
+    }
+  } else {
+    if err := os.WriteFile(validator.controlFile, []byte("0"), 0600); err !=nil {
+      fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
+    }
+  }
+}
 ```
 
 
-<a id="org9c0edcb"></a>
+<a id="more"></a>
 
 # Learn more
 
-Read the source on GitHub: <https://github.com/okta/okta-openvpn>
-
-Key files to read:
-
--   <https://github.com/okta/okta-openvpn/blob/master/tests/test_OktaOpenVPNValidator.py>
--   <https://github.com/okta/okta-openvpn/blob/master/okta_openvpn.py>
+Read the source on GitHub: <https://github.com/algolia/okta-openvpn>
+See the [Useful links](https://github.com/algolia/okta-openvpn#useful-links) in the [README](https://github.com/algolia/okta-openvpn#readme).
