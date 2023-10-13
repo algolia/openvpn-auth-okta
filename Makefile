@@ -41,5 +41,9 @@ clean:
 	rm -f *.o
 	rm -f *.so
 	rm -f okta_openvpn
+	rm -f cover.out coverage.html
+	rm -f testing/fixtures/validator/valid_control_file
+	rm -f testing/fixtures/validator/invalid_control_file
+	rm -f testing/fixtures/validator/control_file
 
 .PHONY: clean plugin install test
