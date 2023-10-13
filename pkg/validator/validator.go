@@ -58,7 +58,7 @@ func (validator *OktaOpenVPNValidator) SetControlFile(f string) {
   validator.controlFile = f
 }
 
-func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) {
+func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) bool {
   if err := validator.ReadConfigFile(); err != nil {
     if deferred {
       /*
@@ -68,9 +68,8 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) {
       */
       validator.SetControlFile(os.Getenv("auth_control_file"))
       validator.WriteControlFile()
-      os.Exit(0)
     }
-    os.Exit(1)
+    return false
   }
 
   if !deferred {
@@ -80,12 +79,12 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) {
     if len(args) > 0 {
       // via-file" method
       if err := validator.LoadViaFile(args[0]); err != nil {
-        os.Exit(1)
+        return false
       }
     } else {
       // "via-env" method
       if err := validator.LoadEnvVars(); err != nil {
-        os.Exit(1)
+        return false
       }
     }
   } else {
@@ -93,17 +92,17 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) {
     // see https://openvpn.net/community-resources/using-alternative-authentication-methods/
     if err := validator.LoadEnvVars(); err != nil {
       validator.WriteControlFile()
-      os.Exit(0)
+      return false
     }
   }
 
   if err := validator.LoadPinset(); err != nil {
     if deferred {
       validator.WriteControlFile()
-      os.Exit(0)
     }
-    os.Exit(1)
+    return false
   }
+  return true
 }
 
 func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
