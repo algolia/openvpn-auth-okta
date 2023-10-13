@@ -58,6 +58,54 @@ func (validator *OktaOpenVPNValidator) SetControlFile(f string) {
   validator.controlFile = f
 }
 
+func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) {
+  if err := validator.ReadConfigFile(); err != nil {
+    if deferred {
+      /*
+      * if invoked as a deferred plugin, we should always exit 0 and write result
+      * in the control file.
+      * here the validator control may not have been yet set, force it
+      */
+      validator.SetControlFile(os.Getenv("auth_control_file"))
+      validator.WriteControlFile()
+      os.Exit(0)
+    }
+    os.Exit(1)
+  }
+
+  if !deferred {
+    // We're running in "Script Plugins" mode with "via-env" method
+    // see "--auth-user-pass-verify cmd method" in
+    //   https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/
+    if len(args) > 0 {
+      // via-file" method
+      if err := validator.LoadViaFile(args[0]); err != nil {
+        os.Exit(1)
+      }
+    } else {
+      // "via-env" method
+      if err := validator.LoadEnvVars(); err != nil {
+        os.Exit(1)
+      }
+    }
+  } else {
+    // We're running in "Shared Object Plugin" mode
+    // see https://openvpn.net/community-resources/using-alternative-authentication-methods/
+    if err := validator.LoadEnvVars(); err != nil {
+      validator.WriteControlFile()
+      os.Exit(0)
+    }
+  }
+
+  if err := validator.LoadPinset(); err != nil {
+    if deferred {
+      validator.WriteControlFile()
+      os.Exit(0)
+    }
+    os.Exit(1)
+  }
+}
+
 func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
   var cfgPaths []string
   if validator.configFile == "" {
