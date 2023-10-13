@@ -57,6 +57,153 @@ type testWriteFile struct {
   expected  string
 }
 
+type testSetup struct {
+  testName   string
+  cfgFile    string
+  pinsetFile string
+  deferred   bool
+  env        map[string]string
+  args       []string
+  ret        bool
+}
+
+var setupEnv = map[string]string{
+  "username": "dade.murphy",
+  "common_name": "",
+  "password": "password",
+  "untrusted_ip": "1.2.3.4",
+  "auth_control_file": controlFile,
+}
+
+
+func TestSetup(t *testing.T) {
+  tests := []testSetup{
+    {
+      "Invalid config file / deferred - false",
+      "../../testing/fixtures/validator/invalid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      true,
+      setupEnv,
+      nil,
+      false,
+    },
+    {
+      "Valid config file / valid env / deferred - true",
+      "../../testing/fixtures/validator/valid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      true,
+      setupEnv,
+      nil,
+      true,
+    },
+    {
+      "Invalid env / deferred - false",
+      "../../testing/fixtures/validator/valid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      true,
+      map[string]string{"auth_control_file": controlFile},
+      nil,
+      false,
+    },
+    {
+      "Invalid pinset / deferred - false",
+      "../../testing/fixtures/validator/valid.ini",
+      "MISSING",
+      true,
+      setupEnv,
+      nil,
+      false,
+    },
+    {
+      "Invalid config file / via-env - false",
+      "../../testing/fixtures/validator/invalid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      false,
+      setupEnv,
+      nil,
+      false,
+    },
+    {
+      "Valid config file / valid env / via-env - true",
+      "../../testing/fixtures/validator/valid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      false,
+      setupEnv,
+      nil,
+      true,
+    },
+    {
+      "Invalid env / via-env - false",
+      "../../testing/fixtures/validator/valid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      false,
+      map[string]string{"auth_control_file": controlFile},
+      nil,
+      false,
+    },
+    {
+      "Invalid pinset / via-env - false",
+      "../../testing/fixtures/validator/valid.ini",
+      "MISSING",
+      true,
+      setupEnv,
+      nil,
+      false,
+    },
+    {
+      "Invalid config file / via-file - false",
+      "../../testing/fixtures/validator/invalid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      false,
+      nil,
+      []string{"../../testing/fixtures/validator/valid_viafile.cfg"},
+      false,
+    },
+    {
+      "Valid config file / valid via-file / via-env - true",
+      "../../testing/fixtures/validator/valid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      false,
+      nil,
+      []string{"../../testing/fixtures/validator/valid_viafile.cfg"},
+      true,
+    },
+    {
+      "Invalid via-file / via-file - false",
+      "../../testing/fixtures/validator/valid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      false,
+      nil,
+      []string{"../../testing/fixtures/validator/invalid_viafile.cfg"},
+      false,
+    },
+    {
+      "Invalid pinset / via-env - false",
+      "../../testing/fixtures/validator/valid.ini",
+      "MISSING",
+      true,
+      nil,
+      []string{"../../testing/fixtures/validator/valid_viafile.cfg"},
+      false,
+    },
+  }
+
+  _, _ = os.Create(controlFile)
+  defer func() { _ = os.Remove(controlFile) }()
+
+  for _, test := range tests {
+    t.Run(test.testName, func(t *testing.T) {
+      setEnv(test.env)
+      v := NewOktaOpenVPNValidator()
+      v.configFile = test.cfgFile
+      v.pinsetFile = test.pinsetFile
+      ret := v.Setup(test.deferred, test.args)
+      unsetEnv(test.env)
+      assert.Equal(t, test.ret, ret)
+     })
+   }
+}
+
 func TestReadConfigFile(t *testing.T) {
   tests := []testCfgFile{
     {
@@ -230,6 +377,20 @@ func TestLoadEnvVars(t *testing.T) {
       nil,
     },
     {
+      "Test username/no password - failure",
+      "example.com",
+      true,
+      false,
+      "dade.murphy@example.com",
+      map[string]string{
+        "username": "dade.murphy",
+        "common_name": "",
+        "password": "",
+        "untrusted_ip": "1.2.3.4",
+      },
+      fmt.Errorf("No password"),
+    },
+    {
       "Test username/!allowUntrustedUsers/usernameSuffix - success",
       "example.com",
       false,
@@ -283,7 +444,7 @@ func TestLoadEnvVars(t *testing.T) {
         "password": "password",
         "untrusted_ip": "1.2.3.4",
       },
-      fmt.Errorf("Invalid CN or username"),
+      fmt.Errorf("No CN or username"),
     },
     {
       "Test invalid username/common_name - failure",
@@ -358,11 +519,11 @@ func TestCheckControlFilePerm(t *testing.T) {
       if test.path != "" {
         v.controlFile = test.path
         _, _ = os.Create(test.path)
+        defer func() { _ = os.Remove(test.path) }()
         // This is crapy but git does not group write bit ...
        if dirName := filepath.Base(filepath.Dir(test.path)); dirName == "invalid_ctrlfile_dir_perm" {
          _ = os.Chmod(filepath.Dir(test.path), 0770)
        }
-        defer func() { _ = os.Remove(test.path) }()
         _ = os.Chmod(test.path, test.mode)
       }
       err := v.checkControlFilePerm()
