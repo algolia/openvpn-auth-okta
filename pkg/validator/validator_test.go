@@ -59,18 +59,23 @@ type testWriteFile struct {
 func TestReadConfigFile(t *testing.T) {
   tests := []testCfgFile{
     {
-      "Test valid config file - success",
+      "Valid config file - success",
       "../../testing/fixtures/validator/valid.ini",
       nil,
     },
     {
-      "Test invalid config file - failure",
+      "Invalid config file - failure",
       "../../testing/fixtures/validator/invalid.ini",
       fmt.Errorf("Missing param Url or Token"),
     },
     {
-      "Test missing config file - failure",
+      "Missing config file - failure",
       "MISSING",
+      fmt.Errorf("No ini file found"),
+    },
+    {
+      "Config file is a dir - failure",
+      "../../testing/fixtures/validator/",
       fmt.Errorf("No ini file found"),
     },
   }
@@ -92,13 +97,18 @@ func TestReadConfigFile(t *testing.T) {
 func TestLoadPinset(t *testing.T) {
   tests := []testCfgFile{
     {
-      "Test pinset file - success",
+      "Pinset file - success",
       "../../testing/fixtures/validator/valid.cfg",
       nil,
     },
     {
-      "Test missing file - failure",
+      "Missing pinset file - failure",
       "MISSING",
+      fmt.Errorf("No pinset file found"),
+    },
+    {
+      "Pinset file is a dir - failure",
+      "../../testing/fixtures/validator/",
       fmt.Errorf("No pinset file found"),
     },
   }
@@ -123,7 +133,7 @@ func TestLoadPinset(t *testing.T) {
 func TestLoadViaFile(t *testing.T) {
   tests := []testViaFile{
     {
-      "Test valid via file with suffix - success",
+      "Valid via file with suffix - success",
       "../../testing/fixtures/validator/valid_viafile.cfg",
       "example.com",
       "dade.murphy@example.com",
@@ -131,7 +141,7 @@ func TestLoadViaFile(t *testing.T) {
       nil,
     },
     {
-      "Test valid via file without suffix - success",
+      "Valid via file without suffix - success",
       "../../testing/fixtures/validator/valid_viafile.cfg",
       "",
       "dade.murphy",
@@ -139,23 +149,37 @@ func TestLoadViaFile(t *testing.T) {
       nil,
     },
     {
-      "Test invalid via file - failure",
+      "Invalid via file - failure",
       "../../testing/fixtures/validator/invalid_viafile.cfg",
       "",
       "dade.murphy",
       "password",
       fmt.Errorf("Invalid via-file"),
     },
-
     {
-      "Test missing via file - failure",
+      "Invalid username in via file - failure",
+      "../../testing/fixtures/validator/invalid_username_viafile.cfg",
+      "",
+      "dade.murphy*",
+      "password",
+      fmt.Errorf("Invalid CN or username format"),
+    },
+    {
+      "Missing via file - failure",
       "MISSING",
       "",
       "dade.murphy",
       "password",
       fmt.Errorf("stat MISSING: no such file or directory"),
     },
-
+    {
+      "Via file is a dir - failure",
+      "../../testing/fixtures/validator/",
+      "",
+      "dade.murphy",
+      "password",
+      fmt.Errorf("read ../../testing/fixtures/validator/: is a directory"),
+    },
   }
   for _, test := range tests {
     t.Run(test.testName, func(t *testing.T) {
@@ -320,6 +344,12 @@ func TestCheckControlFilePerm(t *testing.T) {
       0660,
       fmt.Errorf("control file writable by non-owners"),
     },
+    {
+      "Test invalid control file dir permissions - success",
+      "../../testing/fixtures/validator/invalid_ctrlfile_dir_perm/ctrl",
+      0600,
+      fmt.Errorf("control file dir writable by non-owners"),
+    },
   }
   for _, test := range tests {
     t.Run(test.testName, func(t *testing.T) {
@@ -352,18 +382,35 @@ func TestWriteControlFile(t *testing.T) {
       false,
       "0",
     },
+    {
+      "Test non writable control file - success",
+      false,
+      "",
+    },
   }
+  var mode fs.FileMode
   for _, test := range tests {
     _, _ = os.Create(controlFile)
     defer func() { _ = os.Remove(controlFile) }()
-    _ = os.Chmod(controlFile, 0600)
+    if test.expected == "" {
+      mode = 0660
+    } else {
+      mode = 0600
+    }
+    _ = os.Chmod(controlFile, mode)
     t.Run(test.testName, func(t *testing.T) {
       v := NewOktaOpenVPNValidator()
       v.controlFile = controlFile
       v.isUserValid = test.userValid
       v.WriteControlFile()
       ctrlValue, _ := os.ReadFile(controlFile)
-      assert.Equal(t, test.expected, string(ctrlValue))
+      if test.expected == "" {
+        i, _ := os.Stat(controlFile)
+        size := i.Size()
+        assert.Equal(t, size, int64(0))
+      } else {
+        assert.Equal(t, test.expected, string(ctrlValue))
+      }
     })
   }
 }
