@@ -295,7 +295,7 @@ func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
   if !utils.CheckNotWritable(dirName) {
     fmt.Printf("Refusing to authenticate. The directory containing the file %s must not be writable by non-owners.",
       validator.controlFile)
-    return errors.New("control file writable by non-owners")
+    return errors.New("control file dir writable by non-owners")
   }
 
   return nil
