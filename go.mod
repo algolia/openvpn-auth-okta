@@ -1,6 +1,6 @@
 module gopkg.in/algolia/okta-openvpn.v2
 
-go 1.21.1
+go 1.21
 
 require (
 	gopkg.in/h2non/gock.v1 v1.1.2
