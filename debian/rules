@@ -3,5 +3,20 @@
 #
 export DH_VERBOSE=1
 
+USERNAME := $(shell echo $$USER)
+
+GOFLAGS := -buildmode=pie  -mod=vendor
+
 %:
 	dh $@
+
+ifeq ($(USERNAME), abuild)
+override_dh_auto_configure:
+	tar xf ../SOURCES/vendor.tar.gz
+
+override_dh_auto_build:
+	CGO_ENABLED=0 go build $(GOFLAGS) -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
+	make plugin
+
+override_dh_auto_test:
+endif
