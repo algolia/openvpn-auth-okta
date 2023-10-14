@@ -36,9 +36,10 @@ endif
 endif
 	CGO_ENABLED=0 go build -buildmode=pie $(GOVENDOR_FLAG) -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
 
+# Disable tests on OBS as we have no network (especially for tls.Dial)
 ifneq ($(USERNAME), abuild)
 test:
-	# Ensure tests wont fail because of crappy permissions during OBS build
+	# Ensure tests wont fail because of crappy permissions
 	chmod -R g-w,o-w testing/fixtures
 	go test ./pkg/... -v -cover -coverprofile=cover.out -covermode=atomic -coverpkg=./pkg/...
 
