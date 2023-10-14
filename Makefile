@@ -1,5 +1,6 @@
 SHELL := bash
 USERNAME := $(shell echo $$USER)
+OS_FAMILY := $(shell . /etc/os-release && echo $$ID_LIKE)
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
@@ -27,7 +28,11 @@ plugin: defer_simple.c openvpn-plugin.h
 
 script: cmd/okta-openvpn/main.go
 ifeq ($(USERNAME), abuild)
+ifeq ($(OS_FAMILY), debian)
 	tar xf ../SOURCES/vendor.tar.gz
+else
+	tar xf ../../SOURCES/vendor.tar.gz
+endif
 endif
 	CGO_ENABLED=0 go build $(GOVENDOR_FLAG) -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
 
