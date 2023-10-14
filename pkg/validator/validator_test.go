@@ -67,6 +67,14 @@ type testSetup struct {
   ret        bool
 }
 
+type testAuthenticate struct {
+  testName    string
+  cfgFile     string
+  pinsetFile  string
+  userTrusted bool
+  ret         bool
+}
+
 var setupEnv = map[string]string{
   "username": "dade.murphy",
   "common_name": "",
@@ -75,6 +83,38 @@ var setupEnv = map[string]string{
   "auth_control_file": controlFile,
 }
 
+func TestAuthenticate(t *testing.T) {
+  tests := []testAuthenticate{
+    {
+      "Untrusted user - false",
+      "../../testing/fixtures/validator/valid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      false,
+      false,
+    },
+    {
+      "Invalid pinset/ConnectionPool err - false",
+      "../../testing/fixtures/validator/valid.ini",
+      "../../testing/fixtures/validator/invalid.cfg",
+      true,
+      false,
+    },
+  }
+  for _, test := range tests {
+    t.Run(test.testName, func(t *testing.T) {
+      setEnv(setupEnv)
+      v := NewOktaOpenVPNValidator()
+      v.configFile = test.cfgFile
+      v.pinsetFile = test.pinsetFile
+      _ = v.Setup(true, nil)
+      unsetEnv(setupEnv)
+      v.usernameTrusted = test.userTrusted
+      v.apiConfig.MFARequired = false
+      v.Authenticate()
+      assert.Equal(t, test.ret, v.isUserValid)
+     })
+   }
+}
 
 func TestSetup(t *testing.T) {
   tests := []testSetup{
