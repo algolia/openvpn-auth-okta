@@ -34,7 +34,7 @@ else
 	tar xf ../../SOURCES/vendor.tar.gz
 endif
 endif
-	CGO_ENABLED=0 go build $(GOVENDOR_FLAG) -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
+	CGO_ENABLED=0 go build -buildmode=pie $(GOVENDOR_FLAG) -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
 
 ifneq ($(USERNAME), abuild)
 test:
