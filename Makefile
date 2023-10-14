@@ -12,7 +12,8 @@ INSTALL := install
 DESTDIR := /
 PREFIX := /usr
 
-GOLDFLAGS := '-extldflags "-static"'
+GOLDFLAGS := -ldflags '-extldflags "-static"'
+GOFLAGS := -buildmode=pie -a $(GOLDFLAGS)
 
 all: script plugin
 
@@ -21,7 +22,7 @@ plugin: defer_simple.c openvpn-plugin.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-soname,defer_simple.so -o defer_simple.so defer_simple.o
 
 script: cmd/okta-openvpn/main.go
-	CGO_ENABLED=0 go build -buildmode=pie -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
+	CGO_ENABLED=0 go build $(GOFLAGS) -o okta_openvpn cmd/okta-openvpn/main.go
 
 # Disable tests on OBS as we have no network (especially for tls.Dial)
 test:

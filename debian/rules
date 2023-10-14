@@ -4,8 +4,8 @@
 export DH_VERBOSE=1
 
 USERNAME := $(shell echo $$USER)
-
-GOFLAGS := -buildmode=pie  -mod=vendor
+GOLDFLAGS := -ldflags '-extldflags "-static"'
+GOFLAGS := -buildmode=pie  -mod=vendor -a $(GOLDFLAGS)
 
 %:
 	dh $@
@@ -15,7 +15,7 @@ override_dh_auto_configure:
 	tar xf ../SOURCES/vendor.tar.gz
 
 override_dh_auto_build:
-	CGO_ENABLED=0 go build $(GOFLAGS) -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
+	CGO_ENABLED=0 go build $(GOFLAGS) -o okta_openvpn cmd/okta-openvpn/main.go
 	make plugin
 
 override_dh_auto_test:
