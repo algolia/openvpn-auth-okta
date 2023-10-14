@@ -9,6 +9,7 @@ cover/
 .coverage
 okta_openvpn.ini
 cover.out
+cover-badge.out
 coverage.html
 .dccache
 
