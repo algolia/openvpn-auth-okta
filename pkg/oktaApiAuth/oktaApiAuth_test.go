@@ -111,12 +111,13 @@ func TestOktaReq(t *testing.T) {
 
       a, err := NewOktaApiAuth(apiCfg, userCfg)
       assert.Nil(t, err)
+      assert.NotNil(t, a)
       gock.InterceptClient(a.pool)
       _, err = a.oktaReq(test.requests[0].path, test.requests[0].payload)
       if test.err == nil {
         assert.Nil(t, err)
       } else {
-        assert.Equal(t, err.Error(), test.err.Error())
+        assert.Equal(t, test.err.Error(), err.Error())
       }
     })
   }
@@ -359,6 +360,7 @@ func TestAuth(t *testing.T) {
 
       a, err := NewOktaApiAuth(apiCfg, userCfg)
       assert.Nil(t, err)
+      assert.NotNil(t, a)
       gock.InterceptClient(a.pool)
       err2 := a.Auth()
       if test.err == nil {

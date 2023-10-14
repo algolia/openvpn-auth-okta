@@ -236,7 +236,7 @@ func TestReadConfigFile(t *testing.T) {
       if test.err == nil {
         assert.Nil(t, err)
       } else {
-        assert.Equal(t, err.Error(), test.err.Error())
+        assert.Equal(t, test.err.Error(), err.Error())
       }
     })
   }
@@ -272,7 +272,7 @@ func TestLoadPinset(t *testing.T) {
         assert.Nil(t, err)
         assert.True(t, slices.Contains(v.apiConfig.AssertPin, pin))
       } else {
-        assert.Equal(t, err.Error(), test.err.Error())
+        assert.Equal(t, test.err.Error(), err.Error())
       }
     })
   }
@@ -339,10 +339,10 @@ func TestLoadViaFile(t *testing.T) {
       if test.err == nil {
         assert.Nil(t, err)
         assert.NotNil(t, v.userConfig)
-        assert.Equal(t, v.userConfig.Username, test.expectedUsername)
-        assert.Equal(t, v.userConfig.Password, test.expectedPassword)
+        assert.Equal(t, test.expectedUsername, v.userConfig.Username)
+        assert.Equal(t, test.expectedPassword, v.userConfig.Password)
       } else {
-        assert.Equal(t, err.Error(), test.err.Error())
+        assert.Equal(t, test.err.Error(), err.Error())
       }
     })
   }
