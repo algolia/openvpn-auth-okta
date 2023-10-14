@@ -1,6 +1,4 @@
 SHELL := bash
-USERNAME := $(shell echo $$USER)
-OS_FAMILY := $(shell . /etc/os-release && echo $$ID_LIKE)
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
@@ -14,10 +12,6 @@ INSTALL := install
 DESTDIR := /
 PREFIX := /usr
 
-GOVENDOR_FLAG :=
-ifeq ($(USERNAME), abuild)
-GOVENDOR_FLAG := -mod=vendor
-endif
 GOLDFLAGS := '-extldflags "-static"'
 
 all: script plugin
@@ -27,17 +21,9 @@ plugin: defer_simple.c openvpn-plugin.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-soname,defer_simple.so -o defer_simple.so defer_simple.o
 
 script: cmd/okta-openvpn/main.go
-ifeq ($(USERNAME), abuild)
-ifeq ($(OS_FAMILY), debian)
-	tar xf ../SOURCES/vendor.tar.gz
-else
-	tar xf ../../SOURCES/vendor.tar.gz
-endif
-endif
-	CGO_ENABLED=0 go build -buildmode=pie $(GOVENDOR_FLAG) -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
+	CGO_ENABLED=0 go build -buildmode=pie -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
 
 # Disable tests on OBS as we have no network (especially for tls.Dial)
-ifneq ($(USERNAME), abuild)
 test:
 	# Ensure tests wont fail because of crappy permissions
 	chmod -R g-w,o-w testing/fixtures
@@ -52,7 +38,6 @@ badge: test
 	fi
 	go tool cover -func=cover.out -o=cover.out
 	/tmp/gobadge -filename=cover.out
-endif
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
