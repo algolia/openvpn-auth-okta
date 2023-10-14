@@ -37,8 +37,8 @@ badge: test
 	if [ ! -f /tmp/gobadge ]; then \
 		curl -sf https://gobinaries.com/github.com/AlexBeauchemin/gobadge@v0.3.0 | PREFIX=/tmp sh; \
 	fi
-	go tool cover -func=cover.out -o=cover.out
-	/tmp/gobadge -filename=cover.out
+	go tool cover -func=cover.out -o=cover-badge.out
+	/tmp/gobadge -filename=cover-badge.out
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
@@ -52,7 +52,7 @@ clean:
 	rm -f *.o
 	rm -f *.so
 	rm -f okta_openvpn
-	rm -f cover.out coverage.html
+	rm -f cover.out coverage.html cover-badge.out
 	rm -f testing/fixtures/validator/valid_control_file
 	rm -f testing/fixtures/validator/invalid_control_file
 	rm -f testing/fixtures/validator/control_file
