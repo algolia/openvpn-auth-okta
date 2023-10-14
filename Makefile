@@ -31,6 +31,7 @@ ifeq ($(USERNAME), abuild)
 endif
 	CGO_ENABLED=0 go build $(GOVENDOR_FLAG) -o okta_openvpn -a -ldflags $(GOLDFLAGS) cmd/okta-openvpn/main.go
 
+ifneq ($(USERNAME), abuild)
 test:
 	# Ensure tests wont fail because of crappy permissions during OBS build
 	chmod -R g-w,o-w testing/fixtures
@@ -38,6 +39,7 @@ test:
 
 coverage.html: cover.out
 	go tool cover -html=cover.out -o coverage.html
+endif
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
