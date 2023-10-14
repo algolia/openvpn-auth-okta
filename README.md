@@ -1,4 +1,4 @@
-![Coverage](https://img.shields.io/badge/Coverage-82.1%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-90.9%25-brightgreen)
 ![Go version](https://img.shields.io/github/go-mod/go-version/algolia/okta-openvpn.svg)
 ![CI status](https://circleci.com/gh/algolia/okta-openvpn/tree/v2.svg?style=shield)
 
