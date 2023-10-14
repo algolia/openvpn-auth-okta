@@ -1,3 +1,9 @@
+okta-openvpn (2.2.3-algolia) stable; urgency=medium
+  * Version 2.2.3:
+    Fix makefile and debian files
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Sat, 14 Oct 2023 14:"1:41 +0200
+
 okta-openvpn (2.2.2-algolia) stable; urgency=medium
   * Version 2.2.2:
     Handle all OpenVPN auth plugin modes and methods
