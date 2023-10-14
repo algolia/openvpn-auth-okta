@@ -44,6 +44,13 @@ test:
 
 coverage.html: cover.out
 	go tool cover -html=cover.out -o coverage.html
+
+badge: test
+	if [ ! -f /tmp/gobadge ]; then \
+		curl -sf https://gobinaries.com/github.com/AlexBeauchemin/gobadge@v0.3.0 | PREFIX=/tmp sh; \
+	fi
+	go tool cover -func=cover.out -o=cover.out
+	/tmp/gobadge -filename=cover.out
 endif
 
 install: all
