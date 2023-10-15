@@ -10,21 +10,29 @@ CFLAGS :=
 LDFLAGS := -fPIC -shared
 INSTALL := install
 DESTDIR := /
-PREFIX := /usr
+PLUGIN_PREFIX := /usr/lib/openvpn/plugins
+BUILDDIR := build
 
 GOLDFLAGS := -ldflags '-extldflags "-static"'
 GOFLAGS := -buildmode=pie -a $(GOLDFLAGS)
 
-all: script plugin
+all: script plugin libs
 
-plugin: defer_simple.c openvpn-plugin.h
-	$(CC) $(CFLAGS) $(LDFLAGS) -I. -c defer_simple.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-soname,defer_simple.so -o defer_simple.so defer_simple.o
+$(BUILDDIR):
+	mkdir $(BUILDDIR)
 
-script: cmd/okta-openvpn/main.go
-	CGO_ENABLED=0 go build $(GOFLAGS) -o okta_openvpn cmd/okta-openvpn/main.go
+plugin: $(BUILDDIR) defer_simple.c openvpn-plugin.h
+	$(CC) $(CFLAGS) $(LDFLAGS) -I. -c defer_simple.c -o $(BUILDDIR)/defer_simple.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-soname,defer_simple.so -o $(BUILDDIR)/defer_simple.so $(BUILDDIR)/defer_simple.o
 
-# Disable tests on OBS as we have no network (especially for tls.Dial)
+script: $(BUILDDIR) cmd/okta-openvpn/main.go
+	CGO_ENABLED=0 go build $(GOFLAGS) -o $(BUILDDIR)/okta_openvpn cmd/okta-openvpn/main.go
+
+libs: $(BUILDDIR) defer_okta_openvpn.c openvpn-plugin.h lib/libokta-openvpn.go
+	go build -buildmode=c-shared -o $(BUILDDIR)/libokta-openvpn.so lib/libokta-openvpn.go
+	$(CC) $(CFLAGS) $(LDFLAGS) -I. -c defer_okta_openvpn.c -o $(BUILDDIR)/defer_okta_openvpn.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-soname,defer_okta_openvpn.so -o $(BUILDDIR)/defer_okta_openvpn.so $(BUILDDIR)/defer_okta_openvpn.o
+
 test:
 	# Ensure tests wont fail because of crappy permissions
 	chmod -R g-w,o-w testing/fixtures
@@ -40,21 +48,25 @@ badge: test
 	go tool cover -func=cover.out -o=cover-badge.out
 	/tmp/gobadge -filename=cover-badge.out
 
+lint:
+	golangci-lint run
+	cppcheck --enable=all *.c
+
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
 	mkdir -p $(DESTDIR)/etc/openvpn/
-	$(INSTALL) -m755 defer_simple.so $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
-	$(INSTALL) -m755 okta_openvpn $(DESTDIR)$(PREFIX)/lib/openvpn/plugins/
+	$(INSTALL) -m644 $(BUILDDIR)/defer_simple.so $(DESTDIR)$(PLUGIN_PREFIX)/
+	$(INSTALL) -m755 $(BUILDDIR)/okta_openvpn $(DESTDIR)$(PLUGIN_PREFIX)/
+	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.so $(DESTDIR)$(PLUGIN_PREFIX)/
+	$(INSTALL) -m644 $(BUILDDIR)/defer_okta_openvpn.so $(DESTDIR)$(PLUGIN_PREFIX)/
 	$(INSTALL) -m644 okta_pinset.cfg $(DESTDIR)/etc/openvpn/okta_pinset.cfg
 	$(INSTALL) -m640 okta_openvpn.ini.inc $(DESTDIR)/etc/openvpn/okta_openvpn.ini
 
 clean:
-	rm -f *.o
-	rm -f *.so
-	rm -f okta_openvpn
+	rm -Rf $(BUILDDIR)
 	rm -f cover.out coverage.html cover-badge.out
 	rm -f testing/fixtures/validator/valid_control_file
 	rm -f testing/fixtures/validator/invalid_control_file
 	rm -f testing/fixtures/validator/control_file
 
-.PHONY: clean plugin install test
+.PHONY: clean plugin install test badge lint libs
