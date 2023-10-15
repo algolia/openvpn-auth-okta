@@ -75,10 +75,10 @@ int string_array_len(const char *array[])
 
 int string_array_size(const char *array[])
 {
-    int i = 0;
     int size = 0;
     if (array)
     {
+        int i = 0;
         while (array[i])
         {
 	    size += strlen(array[i++]);
@@ -158,7 +158,6 @@ static int
 deferred_auth_handler(struct plugin_context *context,
                       const char *argv[], const char *envp[])
 {
-    pid_t pid;
     struct sigaction sa;
     char *script = context->script_path;
 
@@ -242,10 +241,7 @@ openvpn_plugin_func_v3(const int v3structver,
             }
             deferred_argv[string_array_len(argv)] = deferred_param;
             res = (int)deferred_auth_handler(context, argv, envp);
-            if (deferred_argv)
-            {
-                free(deferred_argv);
-            }
+            free(deferred_argv);
             return res;
 
         default:
