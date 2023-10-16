@@ -75,6 +75,7 @@ lint:
 install: all
 	mkdir -p $(DESTDIR)$(PLUGIN_PREFIX)/
 	mkdir -p $(DESTDIR)/etc/openvpn/
+	mkdir -p $(DESTDIR)/usr/include
 	$(INSTALL) -m755 $(BUILDDIR)/okta_openvpn $(DESTDIR)$(PLUGIN_PREFIX)/
 	$(INSTALL) -m644 $(BUILDDIR)/defer_simple.so $(DESTDIR)$(PLUGIN_PREFIX)/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.so $(DESTDIR)$(PLUGIN_PREFIX)/
