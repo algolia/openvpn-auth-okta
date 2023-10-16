@@ -29,9 +29,10 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <dlfcn.h>
+//#include <dlfcn.h>
 
 #include "openvpn-plugin.h"
+#include "build/libokta-openvpn.h"
 
 /* Pointers to functions exported from openvpn */
 static plugin_log_t plugin_log = NULL;
@@ -141,7 +142,8 @@ deferred_auth_handler(const char *argv[], const char *envp[])
      */
 
     /* do mighty complicated work that will really take time here... */
-    //execve(script, (char *const*)argv, (char *const*)envp);
+    /*
+    execve(script, (char *const*)argv, (char *const*)envp);
     void (*fn)();
     void *h = dlopen("libokta-openvpn.so", RTLD_NOW|RTLD_GLOBAL);
     if (!h) {
@@ -156,6 +158,8 @@ deferred_auth_handler(const char *argv[], const char *envp[])
     }
     fn();
     dlclose(h);
+    */
+    Run();
     /*
      * Since we exec'ed we should never get here.  But just in case, exit hard.
      */
