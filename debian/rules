@@ -7,6 +7,8 @@ USERNAME := $(shell echo $$USER)
 GOLDFLAGS := -ldflags '-extldflags "-static"'
 GOFLAGS := -buildmode=pie  -mod=vendor -a $(GOLDFLAGS)
 
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
 %:
 	dh $@
 
@@ -15,8 +17,10 @@ override_dh_auto_configure:
 	tar xf ../SOURCES/vendor.tar.gz
 
 override_dh_auto_build:
-	CGO_ENABLED=0 go build $(GOFLAGS) -o okta_openvpn cmd/okta-openvpn/main.go
-	make plugin
+	make all
+
+override_dh_auto_install:
+	make install PLUGIN_PREFIX=/usr/lib/$(DEB_HOST_MULTIARCH)/openvpn
 
 override_dh_auto_test:
 endif
