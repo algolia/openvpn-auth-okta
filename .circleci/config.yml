@@ -48,7 +48,7 @@ jobs:
           name: Coverage report
           command: make coverage
       - store_artifacts:
-          path: coverage.html
+          path: build/coverage.html
       - save_cache:
           <<: *save-cache
   snyk-open-source:
