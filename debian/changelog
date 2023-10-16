@@ -1,8 +1,14 @@
+okta-openvpn (2.3.0-algolia) stable; urgency=medium
+  * Version 2.3.0:
+    Implement "full" shared lib plugin
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Mon, 13 Oct 2023 04:04:41 +0200
+
 okta-openvpn (2.2.3-algolia) stable; urgency=medium
   * Version 2.2.3:
     Fix makefile and debian files
 
- -- Jeremy Jacque <jeremy.jacque@algolia.com>  Sat, 14 Oct 2023 14:"1:41 +0200
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Sat, 14 Oct 2023 14:31:41 +0200
 
 okta-openvpn (2.2.2-algolia) stable; urgency=medium
   * Version 2.2.2:
