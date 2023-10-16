@@ -25,8 +25,14 @@ all: script libs
 $(BUILDDIR):
 	mkdir $(BUILDDIR)
 
+
+$(BUILDDIR)/%.o: %.c | $(BUILDDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ $(LIBS)
+
+
 script: cmd/okta-openvpn/main.go | $(BUILDDIR)
 	CGO_ENABLED=0 go build $(GOFLAGS) -o $(BUILDDIR)/okta_openvpn cmd/okta-openvpn/main.go
+
 
 $(BUILDDIR)/defer_simple.so: $(BUILDDIR)/defer_simple.o openvpn-plugin.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-soname,defer_simple.so -o $(BUILDDIR)/defer_simple.so $(BUILDDIR)/defer_simple.o
@@ -37,12 +43,18 @@ $(BUILDDIR)/openvpn-plugin-okta.so: $(BUILDDIR)/libokta-openvpn.so $(BUILDDIR)/d
 $(BUILDDIR)/libokta-openvpn.so: lib/libokta-openvpn.go | $(BUILDDIR)
 	go build -buildmode=c-shared -o $(BUILDDIR)/libokta-openvpn.so lib/libokta-openvpn.go
 
-$(BUILDDIR)/%.o: %.c | $(BUILDDIR)
-	$(CC) $(CFLAGS) -c $< -o $@ $(LIBS)
-
 libs: $(LIBRARIES)
 
+
 test: $(BUILDDIR)/cover.out
+
+coverage: $(BUILDDIR)/coverage.html
+
+badge: $(BUILDDIR)/cover-badge.out
+	if [ ! -f /tmp/gobadge ]; then \
+		curl -sf https://gobinaries.com/github.com/AlexBeauchemin/gobadge@v0.3.0 | PREFIX=/tmp sh; \
+	fi
+	/tmp/gobadge -filename=$(BUILDDIR)/cover-badge.out
 
 $(BUILDDIR)/cover.out: | $(BUILDDIR)
 	# Ensure tests wont fail because of crappy permissions
@@ -55,11 +67,6 @@ $(BUILDDIR)/coverage.html: $(BUILDDIR)/cover.out
 $(BUILDDIR)/cover-badge.out: $(BUILDDIR)/cover.out
 	go tool cover -func=$(BUILDDIR)/cover.out -o=$(BUILDDIR)/cover-badge.out
 
-badge: $(BUILDDIR)/cover-badge.out
-	if [ ! -f /tmp/gobadge ]; then \
-		curl -sf https://gobinaries.com/github.com/AlexBeauchemin/gobadge@v0.3.0 | PREFIX=/tmp sh; \
-	fi
-	/tmp/gobadge -filename=$(BUILDDIR)/cover-badge.out
 
 lint:
 	golangci-lint run

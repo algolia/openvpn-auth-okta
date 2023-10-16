@@ -46,7 +46,7 @@ jobs:
           command: make test
       - run:
           name: Coverage report
-          command: make coverage.html
+          command: make coverage
       - store_artifacts:
           path: coverage.html
       - save_cache:
