@@ -44,8 +44,8 @@ $(BUILDDIR)/defer_simple.so: $(BUILDDIR)/defer_simple.o openvpn-plugin.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-soname,defer_simple.so -o $(BUILDDIR)/defer_simple.so $(BUILDDIR)/defer_simple.o
 
 # Build the openvpn-plugin-okta plugin (linked against the Go c-shared lib)
-$(BUILDDIR)/openvpn-plugin-okta.so: $(BUILDDIR)/libokta-openvpn.so $(BUILDDIR)/defer_okta_openvpn.o openvpn-plugin.h
-	$(CC)  $(LDFLAGS) -Wl,-soname,openvpn-plugin-okta.so -o $(BUILDDIR)/openvpn-plugin-okta.so $(BUILDDIR)/defer_okta_openvpn.o
+$(BUILDDIR)/openvpn-plugin-okta.so: $(BUILDDIR)/libokta-openvpn.so $(BUILDDIR)/openvpn-plugin-okta.o openvpn-plugin.h
+	$(CC)  $(LDFLAGS) -Wl,-soname,openvpn-plugin-okta.so -o $(BUILDDIR)/openvpn-plugin-okta.so $(BUILDDIR)/openvpn-plugin-okta.o
 
 # Build the okta-openvpn shared lib (Golang c-shared)
 $(BUILDDIR)/libokta-openvpn.so: lib/libokta-openvpn.go | $(BUILDDIR)
