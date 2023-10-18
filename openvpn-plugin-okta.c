@@ -32,7 +32,7 @@
 #include <dlfcn.h>
 
 #include "openvpn-plugin.h"
-#include "build/libokta-openvpn.h"
+#include "build/libokta-auth-validator.h"
 
 /* Pointers to functions exported from openvpn */
 static plugin_log_t plugin_log = NULL;
@@ -206,7 +206,7 @@ deferred_auth_handler(const char *argv[], const char *envp[])
   char *error;
   // Load the Golang c-shared lib
   // dlopen is needed here, otherwise Go runtime wont respect alredy set signal handlers
-  handle = dlopen ("libokta-openvpn.so", RTLD_LAZY);
+  handle = dlopen ("libokta-auth-validator.so", RTLD_LAZY);
   if (!handle) {
     plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Can not load libokta-openvpn.so");
     exit(127);
