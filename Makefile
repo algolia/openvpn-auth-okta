@@ -12,7 +12,8 @@ LDFLAGS := -shared -fPIC
 LIBS := -Lbuild -lokta-openvpn
 
 DESTDIR := /
-PLUGIN_PREFIX := /usr/lib/openvpn/plugins
+LIB_PREFIX := /usr/lib
+PLUGIN_DIR := openvpn/plugins
 BUILDDIR := build
 
 GOLDFLAGS := -ldflags '-extldflags "-static"'
@@ -27,7 +28,7 @@ $(BUILDDIR):
 
 
 $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
-	$(CC) $(CFLAGS) -c $< -o $@ $(LIBS)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 
 # Build the plugin as a standalone binary
@@ -41,17 +42,22 @@ $(BUILDDIR)/defer_simple.so: $(BUILDDIR)/defer_simple.o openvpn-plugin.h
 
 # Build the openvpn-plugin-okta plugin (linked against the Go c-shared lib)
 $(BUILDDIR)/openvpn-plugin-okta.so: $(BUILDDIR)/libokta-openvpn.so $(BUILDDIR)/defer_okta_openvpn.o openvpn-plugin.h
-	$(CC)  $(LDFLAGS) -Wl,-soname,openvpn-plugin-okta.so -o $(BUILDDIR)/openvpn-plugin-okta.so $(BUILDDIR)/defer_okta_openvpn.o $(LIBS)
+	$(CC)  $(LDFLAGS) -Wl,-soname,openvpn-plugin-okta.so -o $(BUILDDIR)/openvpn-plugin-okta.so $(BUILDDIR)/defer_okta_openvpn.o
 
 # Build the okta-openvpn shared lib (Golang c-shared)
 $(BUILDDIR)/libokta-openvpn.so: lib/libokta-openvpn.go | $(BUILDDIR)
 	go build -buildmode=c-shared -o $(BUILDDIR)/libokta-openvpn.so lib/libokta-openvpn.go
 
+$(BUILDDIR)/test_direct_load: $(BUILDDIR)/libokta-openvpn.so
+	gcc $(CFLAGS) -ggdb -o build/test_direct_load testing/test_direct_load.c $(LIBS)
+
 # Build all shared libraries
 libs: $(LIBRARIES)
 
-
 test: $(BUILDDIR)/cover.out
+
+test-c: $(BUILDDIR)/test_direct_load $(BUILDDIR)/test_defer_plugin
+	$(BUILDDIR)/test_direct_load
 
 coverage: $(BUILDDIR)/coverage.html
 
@@ -81,20 +87,24 @@ lint:
 	cppcheck --enable=all *.c
 
 install: all
-	mkdir -p $(DESTDIR)$(PLUGIN_PREFIX)/
+	mkdir -p $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)
 	mkdir -p $(DESTDIR)/etc/openvpn/
 	mkdir -p $(DESTDIR)/usr/include
-	$(INSTALL) -m755 $(BUILDDIR)/okta_openvpn $(DESTDIR)$(PLUGIN_PREFIX)/
-	$(INSTALL) -m644 $(BUILDDIR)/defer_simple.so $(DESTDIR)$(PLUGIN_PREFIX)/
-	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.so $(DESTDIR)$(PLUGIN_PREFIX)/
+	$(INSTALL) -m755 $(BUILDDIR)/okta_openvpn $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
+	$(INSTALL) -m644 $(BUILDDIR)/defer_simple.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
+	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.so $(DESTDIR)/$(LIB_PREFIX)/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.h $(DESTDIR)/usr/include/
-	$(INSTALL) -m644 $(BUILDDIR)/openvpn-plugin-okta.so $(DESTDIR)$(PLUGIN_PREFIX)/
-	$(INSTALL) -m644 okta_pinset.cfg $(DESTDIR)/etc/openvpn/okta_pinset.cfg
-	$(INSTALL) -m640 okta_openvpn.ini.inc $(DESTDIR)/etc/openvpn/okta_openvpn.ini
+	$(INSTALL) -m644 $(BUILDDIR)/openvpn-plugin-okta.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
+	ln -fs $(PLUGIN_DIR)/libokta-openvpn.so $(DESTDIR)/$(LIB_PREFIX)/libokta-openvpn.so
+	if [ ! -f $(DESTDIR)/etc/openvpn/okta_pinset.cfg ]; then \
+		$(INSTALL) -m644 okta_pinset.cfg $(DESTDIR)/etc/openvpn/okta_pinset.cfg; \
+	fi
+	if [ ! -f $(DESTDIR)/etc/openvpn/okta_openvpn.ini ]; then \
+		$(INSTALL) -m640 okta_openvpn.ini.inc $(DESTDIR)/etc/openvpn/okta_openvpn.ini; \
+	fi
 
 clean:
 	rm -Rf $(BUILDDIR)
-	rm -f cover.out coverage.html cover-badge.out
 	rm -f testing/fixtures/validator/valid_control_file
 	rm -f testing/fixtures/validator/invalid_control_file
 	rm -f testing/fixtures/validator/control_file
