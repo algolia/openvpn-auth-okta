@@ -30,7 +30,7 @@ func main() {
   }
 
   oktaValidator := validator.NewOktaOpenVPNValidator()
-  if res := oktaValidator.Setup(*deferred, args); !res {
+  if res := oktaValidator.Setup(*deferred, args, nil); !res {
     if *deferred {
       os.Exit(0)
     } else {
