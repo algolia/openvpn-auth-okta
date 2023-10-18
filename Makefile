@@ -11,7 +11,7 @@ CFLAGS := -fPIC -I.
 LDFLAGS := -shared -fPIC
 LIBS := -Lbuild -lokta-openvpn
 
-DESTDIR := /
+DESTDIR :=
 LIB_PREFIX := /usr/lib
 PLUGIN_DIR := openvpn/plugins
 BUILDDIR := build
