@@ -1,3 +1,14 @@
+okta-openvpn (2.3.2) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * chore(Makefile): symlink is not needed as dlopen follows ld.so
+  * chore(Makefile): add missing soname to shared lib
+  * chore(Makefile): binary should bo to /usr/bin
+  * chore(dist): add files needed to build packages
+  * chore(dist): add script to manage versions
+
+ -- root <jeremy.jacque@algolia.com>  Wed, 18 Oct 2023 08:32:24 +0000
+
 okta-openvpn (2.3.1-algolia) stable; urgency=medium
   * Version 2.3.1:
     Fix loading of Golang c-shared in plugin (use dlopen)
