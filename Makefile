@@ -19,6 +19,9 @@ BUILDDIR := build
 GOLDFLAGS := -ldflags '-extldflags "-static"'
 GOFLAGS := -buildmode=pie -a $(GOLDFLAGS)
 
+LIBOKTA_LDFLAGS := -ldflags '-extldflags -Wl,-soname,libokta-openvpn.so'
+LIBOKTA_FLAGS := -buildmode=c-shared $(LIBOKTA_LDFLAGS)
+
 LIBRARIES := $(BUILDDIR)/libokta-openvpn.so $(BUILDDIR)/defer_simple.so $(BUILDDIR)/openvpn-plugin-okta.so
 
 all: $(BUILDDIR)/okta_openvpn libs
@@ -46,7 +49,7 @@ $(BUILDDIR)/openvpn-plugin-okta.so: $(BUILDDIR)/libokta-openvpn.so $(BUILDDIR)/d
 
 # Build the okta-openvpn shared lib (Golang c-shared)
 $(BUILDDIR)/libokta-openvpn.so: lib/libokta-openvpn.go | $(BUILDDIR)
-	go build -buildmode=c-shared -o $(BUILDDIR)/libokta-openvpn.so lib/libokta-openvpn.go
+	go build $(LIBOKTA_FLAGS) -o $(BUILDDIR)/libokta-openvpn.so lib/libokta-openvpn.go
 
 $(BUILDDIR)/test_direct_load: $(BUILDDIR)/libokta-openvpn.so
 	gcc $(CFLAGS) -ggdb -o build/test_direct_load testing/test_direct_load.c $(LIBS)
