@@ -9,7 +9,7 @@ import (
 
 type PluginEnv = types.PluginEnv
 
-//export Run
+//export OktaAuthValidator
 func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
 
   pluginEnv := &PluginEnv{
