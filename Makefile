@@ -95,7 +95,6 @@ install: all
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.so $(DESTDIR)/$(LIB_PREFIX)/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.h $(DESTDIR)/usr/include/
 	$(INSTALL) -m644 $(BUILDDIR)/openvpn-plugin-okta.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
-	ln -fs $(PLUGIN_DIR)/libokta-openvpn.so $(DESTDIR)/$(LIB_PREFIX)/libokta-openvpn.so
 	if [ ! -f $(DESTDIR)/etc/openvpn/okta_pinset.cfg ]; then \
 		$(INSTALL) -m644 okta_pinset.cfg $(DESTDIR)/etc/openvpn/okta_pinset.cfg; \
 	fi
