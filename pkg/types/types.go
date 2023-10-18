@@ -21,3 +21,10 @@ type OktaUserConfig struct {
   ClientIp  string
 }
 
+type PluginEnv struct {
+  ControlFile string
+  ClientIp    string
+  CommonName  string
+  Username    string
+  Password    string
+}

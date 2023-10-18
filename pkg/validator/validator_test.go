@@ -106,7 +106,7 @@ func TestAuthenticate(t *testing.T) {
       v := NewOktaOpenVPNValidator()
       v.configFile = test.cfgFile
       v.pinsetFile = test.pinsetFile
-      _ = v.Setup(true, nil)
+      _ = v.Setup(true, nil, nil)
       unsetEnv(setupEnv)
       v.usernameTrusted = test.userTrusted
       v.apiConfig.MFARequired = false
@@ -237,7 +237,7 @@ func TestSetup(t *testing.T) {
       v := NewOktaOpenVPNValidator()
       v.configFile = test.cfgFile
       v.pinsetFile = test.pinsetFile
-      ret := v.Setup(test.deferred, test.args)
+      ret := v.Setup(test.deferred, test.args, nil)
       unsetEnv(test.env)
       assert.Equal(t, test.ret, ret)
      })
@@ -509,7 +509,7 @@ func TestLoadEnvVars(t *testing.T) {
           UsernameSuffix: test.usernameSuffix,
           AllowUntrustedUsers: test.allowUntrustedUsers,
         }
-      err := v.LoadEnvVars()
+      err := v.LoadEnvVars(nil)
       unsetEnv(test.env)
       assert.Equal(t, v.usernameTrusted, test.expectedTrusted)
       if v.userConfig != nil {

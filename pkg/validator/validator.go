@@ -28,6 +28,7 @@ var (
 
 type OktaAPI = types.OktaAPI
 type OktaUserConfig = types.OktaUserConfig
+type PluginEnv = types.PluginEnv
 
 type PluginMode uint8
 
@@ -58,7 +59,7 @@ func (validator *OktaOpenVPNValidator) SetControlFile(f string) {
   validator.controlFile = f
 }
 
-func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) bool {
+func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, pluginEnv *PluginEnv) bool {
   if err := validator.ReadConfigFile(); err != nil {
     if deferred {
       /*
@@ -83,14 +84,14 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) bool 
       }
     } else {
       // "via-env" method
-      if err := validator.LoadEnvVars(); err != nil {
+      if err := validator.LoadEnvVars(nil); err != nil {
         return false
       }
     }
   } else {
     // We're running in "Shared Object Plugin" mode
     // see https://openvpn.net/community-resources/using-alternative-authentication-methods/
-    if err := validator.LoadEnvVars(); err != nil {
+    if err := validator.LoadEnvVars(pluginEnv); err != nil {
       validator.WriteControlFile()
       return false
     }
@@ -216,12 +217,17 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
   }
 }
 
-func (validator *OktaOpenVPNValidator) LoadEnvVars() error {
-  username := os.Getenv("username")
-  commonName := os.Getenv("common_name")
-  password := os.Getenv("password")
-  clientIp := utils.GetEnv("untrusted_ip", "0.0.0.0")
-  validator.controlFile = os.Getenv("auth_control_file")
+func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
+  if pluginEnv == nil {
+    pluginEnv = &PluginEnv{
+      Username: os.Getenv("username"),
+      CommonName: os.Getenv("common_name"),
+      Password: os.Getenv("password"),
+      ClientIp: utils.GetEnv("untrusted_ip", "0.0.0.0"),
+      ControlFile: os.Getenv("auth_control_file"),
+    }
+  }
+  validator.controlFile = pluginEnv.ControlFile
 
   if validator.controlFile == "" {
     fmt.Println("No control file found, if using a deferred plugin auth will stall and fail.")
@@ -229,23 +235,23 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() error {
   // if the username comes from a certificate and AllowUntrustedUsers is false:
   // user is trusted
   // otherwise BE CAREFUL, username from OpenVPN credentials will be used !
-  if commonName != "" && !validator.apiConfig.AllowUntrustedUsers {
+  if pluginEnv.CommonName != "" && !validator.apiConfig.AllowUntrustedUsers {
     validator.usernameTrusted = true
-    username = commonName
+    pluginEnv.Username = pluginEnv.CommonName
   }
 
   // if username is empty, there is an issue somewhere
-  if username == "" {
+  if pluginEnv.Username == "" {
     fmt.Println("No username or CN provided")
     return errors.New("No CN or username")
   }
 
-  if password == "" {
+  if pluginEnv.Password == "" {
     fmt.Println("No password provided")
     return errors.New("No password")
   }
 
-  if !utils.CheckUsernameFormat(username) {
+  if !utils.CheckUsernameFormat(pluginEnv.Username) {
     fmt.Println("Username or CN invalid format")
     return errors.New("Invalid CN or username format")
   }
@@ -253,14 +259,14 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars() error {
   if validator.apiConfig.AllowUntrustedUsers {
     validator.usernameTrusted = true
   }
-  if validator.apiConfig.UsernameSuffix != ""  && !strings.Contains(username, "@") {
-    username = fmt.Sprintf("%s@%s", username, validator.apiConfig.UsernameSuffix)
+  if validator.apiConfig.UsernameSuffix != ""  && !strings.Contains(pluginEnv.Username, "@") {
+    pluginEnv.Username = fmt.Sprintf("%s@%s", pluginEnv.Username, validator.apiConfig.UsernameSuffix)
   }
 
   validator.userConfig = &OktaUserConfig{
-    Username: username,
-    Password: password,
-    ClientIp: clientIp,
+    Username: pluginEnv.Username,
+    Password: pluginEnv.Password,
+    ClientIp: pluginEnv.ClientIp,
   }
   return nil
 }
