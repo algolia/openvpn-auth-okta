@@ -1,0 +1,1 @@
+addFilter("statically-linked-binary .*/usr/lib/openvpn/plugins/okta_openvpn")
