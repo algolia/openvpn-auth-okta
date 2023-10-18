@@ -42,6 +42,14 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Wed Oct 18 2023 vagrant <jeremy.jacque@algolia.com> 2.3.4-1
+- chore(tools): fix distro name in changelog creation
+- fix(Makefile): wrong soname for golang c-shared lib
+- chore: remove unneeded defer_simple source code
+- chore(doc): add section about package installation
+- chore(dist): remove refs to defer_simple in spec file
+- chore(dist): bump version
+
 * Wed Oct 18 2023 root <root@default-ubuntu-2004.vagrantup.com> 2.3.3-1
 - chore(Makefile): refacto to handle properly dlopened libokta-openvpn.so
 - chore(debian): adapt rules after Makefile refacto
