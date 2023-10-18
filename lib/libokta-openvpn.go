@@ -10,7 +10,7 @@ import (
 type PluginEnv = types.PluginEnv
 
 //export Run
-func Run(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
+func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
 
   pluginEnv := &PluginEnv{
     Username: C.GoString(user),

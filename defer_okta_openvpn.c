@@ -212,10 +212,10 @@ deferred_auth_handler(const char *argv[], const char *envp[])
     exit(127);
   }
 
-  void (*OktaAuthValidator)(char*, char*, char*, char*, char*) = dlsym(handle, "Run");
+  void (*OktaAuthValidator)(char*, char*, char*, char*, char*) = dlsym(handle, "OktaAuthValidator");
   if ((error = dlerror()) != NULL)
   {
-    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error run Run from lib: %s", error);
+    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error loading OktaAuthValidator symbol from lib: %s", error);
     exit(127);
   }
 
