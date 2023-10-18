@@ -29,7 +29,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
-//#include <dlfcn.h>
+#include <dlfcn.h>
 
 #include "openvpn-plugin.h"
 #include "build/libokta-openvpn.h"
@@ -51,8 +51,44 @@ static plugin_log_t plugin_log = NULL;
 #define OPENVPN_PLUGIN_VERSION_MIN 3
 #define OPENVPN_PLUGIN_STRUCTVER_MIN 5
 
+/*
+ * Our context, where we keep our state.
+ */
+
+struct plugin_context {
+    char *script_path;
+};
+
 /* module name for plugin_log() */
-static char *MODULE = "openvpn_defer_auth";
+static char *MODULE = "openvpn-plugin-okta";
+
+/*
+ * Given an environmental variable name, search
+ * the envp array for its value, returning it
+ * if found or NULL otherwise.
+ * From https://github.com/OpenVPN/openvpn/blob/master/sample/sample-plugins/log/log_v3.c
+ */
+static const char *
+get_env(const char *name, const char *envp[])
+{
+    if (envp)
+    {
+        int i;
+        const int namelen = strlen(name);
+        for (i = 0; envp[i]; ++i)
+        {
+            if (!strncmp(envp[i], name, namelen))
+            {
+                const char *cp = envp[i] + namelen;
+                if (*cp == '=')
+                {
+                    return cp + 1;
+                }
+            }
+        }
+    }
+    return NULL;
+}
 
 void handle_sigchld(int sig)
 {
@@ -75,6 +111,8 @@ openvpn_plugin_open_v3(const int v3structver,
                        struct openvpn_plugin_args_open_in const *args,
                        struct openvpn_plugin_args_open_return *ret)
 {
+    struct plugin_context *context;
+
     if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
     {
         fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
@@ -85,12 +123,30 @@ openvpn_plugin_open_v3(const int v3structver,
     plugin_log = args->callbacks->plugin_log;
 
     /*
+     * Allocate our context
+     */
+    context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
+    if (!context)
+    {
+        goto error;
+    }
+
+    /*
      * Which callbacks to intercept.
      */
     ret->type_mask =
         OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
 
+    ret->handle = (openvpn_plugin_handle_t *) context;
     return OPENVPN_PLUGIN_FUNC_SUCCESS;
+
+error:
+    if (context)
+    {
+        free(context);
+    }
+    plugin_log(PLOG_NOTE, MODULE, "initialization failed");
+    return OPENVPN_PLUGIN_FUNC_ERROR;
 }
 
 static int
@@ -142,27 +198,30 @@ deferred_auth_handler(const char *argv[], const char *envp[])
      */
 
     /* do mighty complicated work that will really take time here... */
-    /*
-    execve(script, (char *const*)argv, (char *const*)envp);
-    void (*fn)();
-    void *h = dlopen("libokta-openvpn.so", RTLD_NOW|RTLD_GLOBAL);
-    if (!h) {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Failed to load libokta-openvp.so");
+    const char *ctrF = get_env("auth_control_file", envp);
+    const char *ip = get_env("untrusted_ip", envp);
+    const char *cn = get_env("common_name", envp);
+    const char *user = get_env("username", envp);
+    const char *pass = get_env("password", envp);
+
+    void *handle;
+    char *error;
+    // Load the Golang c-shared lib
+    // dlopen is needed here, otherwise Go runtime wont respect alredy set signal handlers
+    handle = dlopen ("libokta-openvpn.so", RTLD_LAZY);
+    if (!handle) {
+        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Can not load libokta-openvpn.so");
         exit(127);
     }
-    *(void**)(&fn) = dlsym(h, "Run");
-    if (!fn) {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Can not find function Run in libokta-openvp.so");
-        dlclose(h);
-        exit(127);
+
+    void (*Run)(char*, char*, char*, char*, char*) = dlsym(handle, "Run");
+    if ((error = dlerror()) != NULL)
+    {
+        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error run Run from lib: %s", error);
+        exit(1);
     }
-    fn();
-    dlclose(h);
-    */
-    Run();
-    /*
-     * Since we exec'ed we should never get here.  But just in case, exit hard.
-     */
+    // Call the Golang c-shared lib function
+    (*Run)((char*)ctrF, (char*)ip, (char*)cn, (char*)user, (char*)pass);
     exit(0);
 }
 
@@ -178,13 +237,11 @@ openvpn_plugin_func_v3(const int v3structver,
     }
     const char **argv = args->argv;
     const char **envp = args->envp;
+    struct plugin_context *context = (struct plugin_context *) args->handle;
     switch (args->type)
     {
         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
-            /*
-           * Let's add the --deferred arg to the script argv
-           */
-            return deferred_auth_handler(argv, envp);
+           return deferred_auth_handler(argv, envp);
 
         default:
             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_?");
@@ -194,4 +251,7 @@ openvpn_plugin_func_v3(const int v3structver,
 
 OPENVPN_EXPORT void
 openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
-{}
+{
+    struct plugin_context *context = (struct plugin_context *) handle;
+    free(context);
+}
