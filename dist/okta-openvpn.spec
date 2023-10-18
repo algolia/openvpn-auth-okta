@@ -1,5 +1,5 @@
 Name: okta-openvpn
-Version: 2.3.1
+Version: 2.3.2
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -43,3 +43,9 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Wed Oct 18 2023 root <jeremy.jacque@algolia.com> 2.3.2-1
+- chore(Makefile): add missing soname to shared lib
+- chore(Makefile): binary should bo to /usr/bin
+- chore(dist): add files needed to build packages
+- chore(dist): add script to manage versions
+
