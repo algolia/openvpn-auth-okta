@@ -1,12 +1,13 @@
-![Coverage](https://img.shields.io/badge/Coverage-90.8%25-brightgreen)
+![Release](https://img.shields.io/github/v/release/algolia/okta-openvpn.svg)
 ![Go version](https://img.shields.io/github/go-mod/go-version/algolia/okta-openvpn.svg)
 ![CI status](https://circleci.com/gh/algolia/okta-openvpn/tree/v2.svg?style=shield)
+![Coverage](https://img.shields.io/badge/Coverage-90.8%25-brightgreen)
 
 # Introduction
 
 This is a plugin/binary for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA (TOTP or PUSH only).
 
-    Note: This plugin does not work with OpenVPN Access Server (OpenVPN-AS)
+> :exclamation: Note: This plugin does not work with OpenVPN Access Server (OpenVPN-AS)
 
 
 # Requirements
@@ -15,14 +16,20 @@ This plugin requires that OpenVPN Community Edition be configured or used in one
 
 1.  OpenVPN can be configured to call plugins via a deferred call (aka `Shared Object Plugin` mode) or call the binary directly (aka `Script Plugin` mode).
 2.  By default, OpenVPN clients *must* authenticate using client SSL certificates.
-3.  If authenticating using MFA, the end user will authenticate by appending their six-digit MFA TOTP to the end of their password or by validating Push notifications.
+3.  If authenticating requires MFA, the end user will authenticate by appending their six-digit MFA TOTP to the end of their password or by validating Push notifications.
 
 For TOTP, if a user's password is `correcthorsebatterystaple` and their six-digit MFA TOTP is `123456`, they would use `correcthorsebatterystaple123456` as the password for their OpenVPN client
 
 
 # Installation
 
+
 ## Compile the C plugin
+
+Build requirements:
+  - gcc
+  - golang (>= 1.21)
+  - make
 
 Compile the C plugin from this directory using this command:
 
@@ -33,16 +40,15 @@ $ make plugin
 Compile the Golang binary plugin from this directory using this command:
 
 ```shell
-$ make script
+$ make binary
 ```
 
 
 ## Install the Okta OpenVPN plugin
 
-You have two options to install the Okta OpenVPN plugin:
+You have three options to install the Okta OpenVPN plugin:
 
-1.  For default setups, use `make install` to run the install for you.
-2.  For custom setups, follow the manual installation instructions below.
+### 1.  For default setups, use `sudo make install` to run the install for you.
 
 If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openvpn/plugins` and configuration files are stored in `/etc/openvpn`, then you can use the `make install` command to install the Okta OpenVPN plugin:
 
@@ -50,20 +56,78 @@ If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openv
 $ sudo make install
 ```
 
+### 2.  Use pre-built packages from repositories
 
-## Manually installing the Okta OpenVPN plugin
+Thanks to the [OpenSUSE Build Service](https://build.opensuse.org/) packages are available for multiple distros: CentOS, Debian, Fedora, openSUSE, Ubuntu.
+
+##### Debian, Ubuntu:
+```shell
+# supports Debian 11, 12 and Ubuntu 20.04, 22.04, 23.04, 23.10
+. /etc/os-release
+if [ "${Name}" = "Ubuntu" ]
+then
+  DIST="xUbuntu"
+else
+  DIST="Debian"
+fi
+
+echo "deb [arch=amd64 trusted=yes] \"https://download.opensuse.org/repositories/home:/Algolia:/OSS/${DIST}_${VERSION_ID}\" ./" | sudo tee /etc/apt/sources.list.d/algolia-oss.list
+
+wget https://download.opensuse.org/repositories/home:/Algolia:/OSS/${DIST}_${VERSION_ID}/Release.key -O- | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install okta-openvpn
+```
+
+##### openSUSE
+
+```shell
+# supports openSUSE 15.4, 15.5
+. /etc/os-release
+
+wget -q  https://download.opensuse.org/repositories/home:/Algolia:/OSS/${VERSION_ID}/home:Algolia:OSS.repo -O- | sudo tee /etc/zypp/repos.d/algolia-oss.repo
+
+sudo zypper ref
+sudo zypper install okta-openvpn
+```
+
+##### CentOS
+
+```shell
+# supports CentOS 8, 8-stream, 9
+. /etc/os-release
+
+wget -q  https://download.opensuse.org/repositories/home:/Algolia:/OSS/CentOS_${VERSION_ID}/home:Algolia:OSS.repo -O- | sudo tee /etc/yum.repos.d/algolia-oss.repo
+
+sudo yum install -y okta-openvpn
+```
+
+##### Fedora
+
+```shell
+# supports Fedora 38, 39
+. /etc/os-release
+
+wget -q  https://download.opensuse.org/repositories/home:/Algolia:/OSS/Fedora_${VERSION_ID}/home:Algolia:OSS.repo -O- | sudo tee /etc/yum.repos.d/algolia-oss.repo
+
+sudo yum install -y okta-openvpn
+```
+
+
+### 3.  For custom setups, follow the manual installation instructions below.
+
+#### Manually installing the Okta OpenVPN plugin
 
 If you have a custom setup, follow the instructions below to install the C plugin and Golang binary that constitute the Okta OpenVPN plugin.
 
 
-### Manually installing the C Plugin
+#### Manually installing the C Plugin
 
-To manually install the C plugin, copy the `defer\_simple.so` file to the location where your OpenVPN plugins are stored.
+To manually install the C plugin, copy the `build/openvpn-plugin-okta.so` file to the location where your OpenVPN plugins are stored and the `libokta-auth-validator.so`file to your system libdir.
 
 
-### Manually installing the Golang binary
+#### Manually installing the Golang binary
 
-To manually install the binary, copy the `okta\_openvpn`, `okta\_pinset.cfg`, and `okta\_openvpn.ini` files to the location where your OpenVPN plugin scripts are stored.
+To manually install the binary, copy the `okta-auth-validator` to your system bin dir; the `okta\_pinset.cfg`, and `okta\_openvpn.ini` files to the location where your OpenVPN plugin scripts are stored.
 
 
 ## Make sure that OpenVPN has a tempory directory
@@ -88,18 +152,22 @@ If you installed the Okta OpenVPN plugin to the default location, run this comma
 ```shell
 $ sudo $EDITOR /etc/openvpn/okta_openvpn.ini
 ```
+> :warning: As this file contains your Okta token, please ensure it has limited permissions (should only be readable by root or the user running OpenVPN) !
+
+See [okta_openvpn.ini](https://github.com/algolia/okta-openvpn/blob/v2/okta_openvpn.ini.inc) for configuration options.
 
 
-## Configure OpenVPN to use the C Shared Plugin
+## Configure OpenVPN to use the C `Shared Object Plugin`
 
 Set up OpenVPN to call the Okta plugin by adding the following lines to your OpenVPN `server.conf` configuration file:
 
 ```ini
-plugin /usr/lib/openvpn/plugins/defer_simple.so /usr/lib/openvpn/plugins/okta_openvpn
+plugin openvpn-plugin-okta.so
 tmp-dir "/etc/openvpn/tmp"
 ```
 
-The default location for OpenVPN configuration files is `/etc/openvpn/server.conf`
+The default location for OpenVPN configuration files is `/etc/openvpn/server.conf`.  
+This method is considered the safest as no credential is exported to a process environment or written to disk.
 
 
 ## Configure OpenVPN to use the binary in `Script Plugin` mode
@@ -108,13 +176,13 @@ Set up OpenVPN to call the Okta Golang binary by adding the following lines to y
 
 ```ini
 # "via-file" method
-auth-user-pass-verify /usr/lib/openvpn/plugins/okta_openvpn via-file
+auth-user-pass-verify /usr/bin/okta-auth-validator via-file
 tmp-dir "/etc/openvpn/tmp"
 ```
 
 ```ini
 # "via-env" method
-auth-user-pass-verify /usr/lib/openvpn/plugins/okta_openvpn via-env
+auth-user-pass-verify /usr/bin/okta-auth-validator via-env
 tmp-dir "/etc/openvpn/tmp"
 ```
 
@@ -127,7 +195,7 @@ The default location for OpenVPN configuration files is `/etc/openvpn/server.con
 
 - [OpenVPN: Using alternative authentication methods](https://openvpn.net/community-resources/using-alternative-authentication-methods/)
 - [OpenVPN 2.4 manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/)
-- [Openvpn auth-pam plugin code](https://github.com/OpenVPN/openvpn/tree/master/src/plugins/auth-pam)
+- [Openvpn multi-auth sample plugin code](https://github.com/OpenVPN/openvpn/blob/master/sample/sample-plugins/defer/multi-auth.c)
 - [Okta API - PreAuth](https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application)
 - [Okta API - Auth with TOTP MFA](https://developer.okta.com/docs/reference/api/authn/#verify-totp-factor)
 - [Okta API - Auth with Push MFA](https://developer.okta.com/docs/reference/api/authn/#verify-push-factor)
