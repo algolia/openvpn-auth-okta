@@ -1,5 +1,5 @@
 Name: okta-openvpn
-Version: 2.3.3
+Version: 2.3.4
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
