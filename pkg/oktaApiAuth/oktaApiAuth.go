@@ -211,9 +211,6 @@ func (auth *oktaApiAuth) Auth() (error) {
         }
         checkCount := 0
         for res["factorResult"] == "WAITING" {
-          fmt.Printf("[%s] sleeping for %d secondes ...\n",
-            auth.userConfig.Username, auth.
-            apiConfig.MFAPushDelaySeconds)
           time.Sleep(time.Duration(auth.apiConfig.MFAPushDelaySeconds)  * time.Second)
           res, err = auth.doAuth(fid, stateToken)
           if err != nil {
