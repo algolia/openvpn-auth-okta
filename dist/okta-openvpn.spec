@@ -33,7 +33,7 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 %dir %{_libdir}/openvpn
 %dir %{plugin_dir}/
 %dir /etc/openvpn/
-%attr(0755,root,root) /usr/bin/okta_openvpn
+%attr(0755,root,root) /usr/bin/okta-auth-validator
 %attr(0644,root,root) %{plugin_dir}/defer_simple.so
 %attr(0644,root,root) %{plugin_dir}/openvpn-plugin-okta.so
 %attr(0644,root,root) %{_libdir}/libokta-openvpn.so

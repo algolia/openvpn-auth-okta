@@ -24,7 +24,7 @@ LIBOKTA_FLAGS := -buildmode=c-shared $(LIBOKTA_LDFLAGS)
 
 LIBRARIES := $(BUILDDIR)/libokta-openvpn.so $(BUILDDIR)/defer_simple.so $(BUILDDIR)/openvpn-plugin-okta.so
 
-all: $(BUILDDIR)/okta_openvpn libs
+all: $(BUILDDIR)/okta-auth-validator libs
 
 $(BUILDDIR):
 	mkdir $(BUILDDIR)
@@ -35,8 +35,8 @@ $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
 
 
 # Build the plugin as a standalone binary
-$(BUILDDIR)/okta_openvpn: cmd/okta-openvpn/main.go | $(BUILDDIR)
-	CGO_ENABLED=0 go build $(GOFLAGS) -o $(BUILDDIR)/okta_openvpn cmd/okta-openvpn/main.go
+$(BUILDDIR)/okta-auth-validator: cmd/okta-auth-validator/main.go | $(BUILDDIR)
+	CGO_ENABLED=0 go build $(GOFLAGS) -o $(BUILDDIR)/okta-auth-validator cmd/okta-auth-validator/main.go
 
 
 # Build the defer_simple plugin (used as a wrapper for the standalone binary)
@@ -94,7 +94,7 @@ install: all
 	mkdir -p $(DESTDIR)/etc/openvpn/
 	mkdir -p $(DESTDIR)/usr/include
 	mkdir -p $(DESTDIR)/usr/bin
-	$(INSTALL) -m755 $(BUILDDIR)/okta_openvpn $(DESTDIR)/usr/bin/
+	$(INSTALL) -m755 $(BUILDDIR)/okta-auth-validator $(DESTDIR)/usr/bin/
 	$(INSTALL) -m644 $(BUILDDIR)/defer_simple.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.so $(DESTDIR)/$(LIB_PREFIX)/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.h $(DESTDIR)/usr/include/
