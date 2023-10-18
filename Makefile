@@ -19,7 +19,7 @@ BUILDDIR := build
 GOLDFLAGS := -ldflags '-extldflags "-static"'
 GOFLAGS := -buildmode=pie -a $(GOLDFLAGS)
 
-LIBOKTA_LDFLAGS := -ldflags '-extldflags -Wl,-soname,libokta-openvpn.so'
+LIBOKTA_LDFLAGS := -ldflags '-extldflags -Wl,-soname,libokta-auth-validator.so'
 LIBOKTA_FLAGS := -buildmode=c-shared $(LIBOKTA_LDFLAGS)
 
 LIBRARIES := $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/defer_simple.so $(BUILDDIR)/openvpn-plugin-okta.so
