@@ -21,6 +21,7 @@ gbp dch --debian-branch=v2 \
   -c --commit-msg="chore(debian): Update changelog for %(version)s release" \
   --release \
   --git-author \
+  --distribution=stable --force-distribution \
   --spawn-editor=no \
   --debian-tag="v%(version)s" \
   -N "${version}"
