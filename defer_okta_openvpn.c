@@ -1,10 +1,10 @@
 //go:build ignore
 /*
  *  OpenVPN -- An application to securely tunnel IP networks
- *             over a single TCP/UDP port, with support for SSL/TLS-based
- *             session authentication and key exchange,
- *             packet encryption, packet authentication, and
- *             packet compression.
+ *       over a single TCP/UDP port, with support for SSL/TLS-based
+ *       session authentication and key exchange,
+ *       packet encryption, packet authentication, and
+ *       packet compression.
  *
  *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
@@ -55,9 +55,7 @@ static plugin_log_t plugin_log = NULL;
  * Our context, where we keep our state.
  */
 
-struct plugin_context {
-    char *script_path;
-};
+struct plugin_context {};
 
 /* module name for plugin_log() */
 static char *MODULE = "openvpn-plugin-okta";
@@ -71,187 +69,188 @@ static char *MODULE = "openvpn-plugin-okta";
 static const char *
 get_env(const char *name, const char *envp[])
 {
-    if (envp)
+  if (envp)
+  {
+    int i;
+    const int namelen = strlen(name);
+    for (i = 0; envp[i]; ++i)
     {
-        int i;
-        const int namelen = strlen(name);
-        for (i = 0; envp[i]; ++i)
+      if (!strncmp(envp[i], name, namelen))
+      {
+        const char *cp = envp[i] + namelen;
+        if (*cp == '=')
         {
-            if (!strncmp(envp[i], name, namelen))
-            {
-                const char *cp = envp[i] + namelen;
-                if (*cp == '=')
-                {
-                    return cp + 1;
-                }
-            }
+          return cp + 1;
         }
+      }
     }
-    return NULL;
+  }
+  // Return an empty string here (as expected by the Golang c-shared lib
+  return "";
 }
 
 void handle_sigchld(int sig)
 {
-    /*
-     * nonblocking wait (WNOHANG) for any child (-1) to come back
-     */
-    while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
+  /*
+   * nonblocking wait (WNOHANG) for any child (-1) to come back
+   */
+  while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
 }
 
 /* Require a minimum OpenVPN Plugin API */
 OPENVPN_EXPORT int
 openvpn_plugin_min_version_required_v1()
 {
-    return OPENVPN_PLUGIN_VERSION_MIN;
+  return OPENVPN_PLUGIN_VERSION_MIN;
 }
 
 /* use v3 functions so we can use openvpn's logging and base64 etc. */
 OPENVPN_EXPORT int
 openvpn_plugin_open_v3(const int v3structver,
-                       struct openvpn_plugin_args_open_in const *args,
-                       struct openvpn_plugin_args_open_return *ret)
+    struct openvpn_plugin_args_open_in const *args,
+    struct openvpn_plugin_args_open_return *ret)
 {
-    struct plugin_context *context;
+  struct plugin_context *context;
 
-    if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
-    {
-        fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
-        return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
+  if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
+  {
+    fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
+    return OPENVPN_PLUGIN_FUNC_ERROR;
+  }
 
-    /* Save global pointers to functions exported from openvpn */
-    plugin_log = args->callbacks->plugin_log;
+  /* Save global pointers to functions exported from openvpn */
+  plugin_log = args->callbacks->plugin_log;
 
-    /*
-     * Allocate our context
-     */
-    context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
-    if (!context)
-    {
-        goto error;
-    }
+  /*
+   * Allocate our context
+   */
+  context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
+  if (!context)
+  {
+    goto error;
+  }
 
-    /*
-     * Which callbacks to intercept.
-     */
-    ret->type_mask =
-        OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
+  /*
+   * Which callbacks to intercept.
+   */
+  ret->type_mask = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
 
-    ret->handle = (openvpn_plugin_handle_t *) context;
-    return OPENVPN_PLUGIN_FUNC_SUCCESS;
+  ret->handle = (openvpn_plugin_handle_t *) context;
+  return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
 error:
-    if (context)
-    {
-        free(context);
-    }
-    plugin_log(PLOG_NOTE, MODULE, "initialization failed");
-    return OPENVPN_PLUGIN_FUNC_ERROR;
+  if (context)
+  {
+    free(context);
+  }
+  plugin_log(PLOG_NOTE, MODULE, "initialization failed");
+  return OPENVPN_PLUGIN_FUNC_ERROR;
 }
 
 static int
 deferred_auth_handler(const char *argv[], const char *envp[])
 {
-    struct sigaction sa;
+  struct sigaction sa;
 
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-    sa.sa_handler = &handle_sigchld;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+  sa.sa_handler = &handle_sigchld;
 
-    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-        return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
+  if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+    return OPENVPN_PLUGIN_FUNC_ERROR;
+  }
 
-    /* we do not want to complicate our lives with having to wait()
-     * for child processes (so they are not zombiefied) *and* we MUST NOT
-     * fiddle with signal handlers (= shared with openvpn main), so
-     * we use double-fork() trick.
-     */
+  /* we do not want to complicate our lives with having to wait()
+   * for child processes (so they are not zombiefied) *and* we MUST NOT
+   * fiddle with signal handlers (= shared with openvpn main), so
+   * we use double-fork() trick.
+   */
 
-    /* fork, sleep, succeed (no "real" auth done = always succeed) */
-    pid_t p1 = fork();
-    if (p1 < 0)                 /* Fork failed */
-    {
-        return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
-    if (p1 > 0)                 /* parent process */
-    {
-        waitpid(p1, NULL, 0);
-        return OPENVPN_PLUGIN_FUNC_DEFERRED;
-    }
+  /* fork, sleep, succeed (no "real" auth done = always succeed) */
+  pid_t p1 = fork();
+  if (p1 < 0)         /* Fork failed */
+  {
+    return OPENVPN_PLUGIN_FUNC_ERROR;
+  }
+  if (p1 > 0)         /* parent process */
+  {
+    waitpid(p1, NULL, 0);
+    return OPENVPN_PLUGIN_FUNC_DEFERRED;
+  }
 
-    /* first gen child process, fork() again and exit() right away */
-    pid_t p2 = fork();
-    if (p2 < 0)
-    {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "BACKGROUND: fork(2) failed");
-        exit(1);
-    }
+  /* first gen child process, fork() again and exit() right away */
+  pid_t p2 = fork();
+  if (p2 < 0)
+  {
+    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "BACKGROUND: fork(2) failed");
+    exit(1);
+  }
 
-    if (p2 != 0)                            /* new parent: exit right away */
-    {
-        exit(0);
-    }
-
-    /* (grand-)child process
-     *  - return status is communicated by file which we pass as an env
-     */
-
-    /* do mighty complicated work that will really take time here... */
-    const char *ctrF = get_env("auth_control_file", envp);
-    const char *ip = get_env("untrusted_ip", envp);
-    const char *cn = get_env("common_name", envp);
-    const char *user = get_env("username", envp);
-    const char *pass = get_env("password", envp);
-
-    void *handle;
-    char *error;
-    // Load the Golang c-shared lib
-    // dlopen is needed here, otherwise Go runtime wont respect alredy set signal handlers
-    handle = dlopen ("libokta-openvpn.so", RTLD_LAZY);
-    if (!handle) {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Can not load libokta-openvpn.so");
-        exit(127);
-    }
-
-    void (*Run)(char*, char*, char*, char*, char*) = dlsym(handle, "Run");
-    if ((error = dlerror()) != NULL)
-    {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error run Run from lib: %s", error);
-        exit(1);
-    }
-    // Call the Golang c-shared lib function
-    (*Run)((char*)ctrF, (char*)ip, (char*)cn, (char*)user, (char*)pass);
+  if (p2 != 0)              /* new parent: exit right away */
+  {
     exit(0);
+  }
+
+  /* (grand-)child process
+   *  - return status is communicated by file
+   */
+
+  /* do mighty complicated work that will really take time here... */
+  const char *ctrF = get_env("auth_control_file", envp);
+  const char *ip = get_env("untrusted_ip", envp);
+  const char *cn = get_env("common_name", envp);
+  const char *user = get_env("username", envp);
+  const char *pass = get_env("password", envp);
+
+  void *handle;
+  char *error;
+  // Load the Golang c-shared lib
+  // dlopen is needed here, otherwise Go runtime wont respect alredy set signal handlers
+  handle = dlopen ("libokta-openvpn.so", RTLD_LAZY);
+  if (!handle) {
+    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Can not load libokta-openvpn.so");
+    exit(127);
+  }
+
+  void (*OktaAuthValidator)(char*, char*, char*, char*, char*) = dlsym(handle, "Run");
+  if ((error = dlerror()) != NULL)
+  {
+    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error run Run from lib: %s", error);
+    exit(127);
+  }
+
+  // Call the Golang c-shared lib function
+  (*OktaAuthValidator)((char*)ctrF, (char*)ip, (char*)cn, (char*)user, (char*)pass);
+  exit(0);
 }
 
 OPENVPN_EXPORT int
 openvpn_plugin_func_v3(const int v3structver,
-                       struct openvpn_plugin_args_func_in const *args,
-                       struct openvpn_plugin_args_func_return *ret)
+    struct openvpn_plugin_args_func_in const *args,
+    struct openvpn_plugin_args_func_return *ret)
 {
-    if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
-    {
-        fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
-        return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
-    const char **argv = args->argv;
-    const char **envp = args->envp;
-    struct plugin_context *context = (struct plugin_context *) args->handle;
-    switch (args->type)
-    {
-        case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
-           return deferred_auth_handler(argv, envp);
+  if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
+  {
+    fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
+    return OPENVPN_PLUGIN_FUNC_ERROR;
+  }
+  const char **argv = args->argv;
+  const char **envp = args->envp;
+  struct plugin_context *context = (struct plugin_context *) args->handle;
+  switch (args->type)
+  {
+    case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
+      return deferred_auth_handler(argv, envp);
 
-        default:
-            plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_?");
-            return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
+    default:
+      plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_?");
+      return OPENVPN_PLUGIN_FUNC_ERROR;
+  }
 }
 
 OPENVPN_EXPORT void
 openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
-    free(context);
+  struct plugin_context *context = (struct plugin_context *) handle;
+  free(context);
 }
