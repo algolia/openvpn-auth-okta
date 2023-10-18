@@ -1,3 +1,26 @@
+okta-openvpn (2.3.3) stable; urgency=medium
+
+  * chore(Makefile): add missing soname to shared lib
+  * chore(Makefile): binary should bo to /usr/bin
+  * chore(dist): add files needed to build packages
+  * chore(dist): add script to manage versions
+  * chore(debian): Update changelog for 2.3.2 release
+  * chore(dist): Update changelog for 2.3.2 release
+  * chore(debian): add source format
+  * fix(Makefile): create bin dir before install
+  * fix(debian): wrong package format
+  * chore(defer_okta_openvpn): fix indent, do not store useless pointer in context
+  * chore: rename function for clarity
+  * chore(Makefile): DESTDIR should be empty by default
+  * chore: rename okta_openvpn to okta-auth-validator to be more generic
+  * fix(lib): wrong (previous) export function name
+  * chore: rename C source file
+  * chore: rename lib to be more generic
+  * chore(oktaApiAuth): do not flood openvpn logs with useless messages
+  * chore(dist): Update changelog for 2.3.3 release
+
+ -- Jeremy JACQUE <jeremy.jacque@algolia.com>  Wed, 18 Oct 2023 14:01:30 +0000
+
 okta-openvpn (2.3.2) stable; urgency=medium
 
   [ Jeremy JACQUE ]
