@@ -1,3 +1,11 @@
+okta-openvpn (2.3.1-algolia) stable; urgency=medium
+  * Version 2.3.1:
+    Fix loading of Golang c-shared in plugin (use dlopen)
+    Use a dedicated struct instead of exporting to env user infos when using
+      shared plugin for security reasons
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Mon, 13 Oct 2023 04:04:41 +0200
+
 okta-openvpn (2.3.0-algolia) stable; urgency=medium
   * Version 2.3.0:
     Implement "full" shared lib plugin
