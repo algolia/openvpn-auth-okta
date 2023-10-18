@@ -60,6 +60,7 @@ struct plugin_context {
 /* module name for plugin_log() */
 static char *MODULE = "openvpn_defer_auth";
 
+// From https://github.com/OpenVPN/openvpn/blob/master/src/plugins/auth-pam/utils.c
 int string_array_len(const char *array[])
 {
     int i = 0;
@@ -240,7 +241,7 @@ openvpn_plugin_func_v3(const int v3structver,
                 deferred_argv[i] = (char*)argv[i];
             }
             deferred_argv[string_array_len(argv)] = deferred_param;
-            res = (int)deferred_auth_handler(context, argv, envp);
+            res = (int)deferred_auth_handler(context, (const char **)deferred_argv, envp);
             free(deferred_argv);
             return res;
 
