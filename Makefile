@@ -93,7 +93,7 @@ install: all
 	mkdir -p $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)
 	mkdir -p $(DESTDIR)/etc/openvpn/
 	mkdir -p $(DESTDIR)/usr/include
-	$(INSTALL) -m755 $(BUILDDIR)/okta_openvpn $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
+	$(INSTALL) -m755 $(BUILDDIR)/okta_openvpn $(DESTDIR)/usr/bin
 	$(INSTALL) -m644 $(BUILDDIR)/defer_simple.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.so $(DESTDIR)/$(LIB_PREFIX)/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-openvpn.h $(DESTDIR)/usr/include/
