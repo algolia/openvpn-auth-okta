@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.4.0
+Version: 2.4.1
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -73,6 +73,14 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Thu Oct 19 2023 vagrant <jeremy.jacque@algolia.com> 2.4.1-1
+- chore: renamed repo and packages
+- chore(github): add code owners and PR template
+- chore(Makefile): change config files location
+- chore(doc): change config files location
+- chore(dist): change config files location
+- chore(validator): change default config files location
+
 * Thu Oct 19 2023 vagrant <jeremy.jacque@algolia.com> 2.4.0-1
 - chore(debian): split package
 - chore(dist): split package
