@@ -1,4 +1,4 @@
-Name: okta-openvpn
+Name: openvpn-auth-okta
 Version: 2.3.4
 Release: 1%{?dist}
 Summary: Go programming language
@@ -11,12 +11,38 @@ Source99: %{name}.rpmlintrc
 
 BuildRequires: golang-1.21
 BuildRequires: gcc
+BuildRequires: make
+
+Requires: libokta-auth-validator = %{version}
+
 BuildRoot: %{_tmppath}/%{name}-%{version}-build
 
 %define plugin_dir %{_libdir}/openvpn/plugins
 
 %description
-This is a plugin/binary for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA (TOTP or PUSH only).
+This is a plugin for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA.
+
+%package -n okta-auth-validator
+Summary: Command line tool to authenticate against Okta.
+
+%description -n okta-auth-validator
+This is a command line tool that authenticates users directly against Okta, with support for MFA.
+
+
+%package -n libokta-auth-validator
+Summary: Shared library to authenticate against Okta.
+
+%description -n libokta-auth-validator
+Shared library that allows to authenticates user directly against Okta, with support for MFA.
+
+
+%package -n libokta-auth-validator-devel
+Summary: Development files for libokta-auth-validator.
+Requires: libokta-auth-validator = %{version}
+
+%description -n libokta-auth-validator-devel
+Development files for libokta-auth-validator, a shared library that allows to authenticates user directly against Okta, with support for MFA.
+
 
 %prep
 %setup -q
@@ -29,16 +55,21 @@ make
 make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 %files
-%defattr(-,root,root)
 %dir %{_libdir}/openvpn
 %dir %{plugin_dir}/
 %dir /etc/openvpn/
-%attr(0755,root,root) /usr/bin/okta-auth-validator
 %attr(0644,root,root) %{plugin_dir}/openvpn-plugin-okta.so
-%attr(0644,root,root) %{_libdir}/libokta-auth-validator.so
-%attr(0644,root,root) %{_includedir}/libokta-auth-validator.h
 %attr(0644,root,root) %config(noreplace) /etc/openvpn/okta_pinset.cfg
 %attr(0640,root,root) %config(noreplace) /etc/openvpn/okta_openvpn.ini
+
+%files -n okta-auth-validator
+%attr(0755,root,root) /usr/bin/okta-auth-validator
+
+%files -n libokta-auth-validator
+%attr(0644,root,root) %{_libdir}/libokta-auth-validator.so
+
+%files -n libokta-auth-validator-devel
+%attr(0644,root,root) %{_includedir}/libokta-auth-validator.h
 
 
 %changelog
