@@ -91,18 +91,18 @@ lint:
 
 install: all
 	mkdir -p $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)
-	mkdir -p $(DESTDIR)/etc/openvpn/
+	mkdir -p $(DESTDIR)/etc/okta-auth-validator/
 	mkdir -p $(DESTDIR)/usr/include
 	mkdir -p $(DESTDIR)/usr/bin
 	$(INSTALL) -m755 $(BUILDDIR)/okta-auth-validator $(DESTDIR)/usr/bin/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-auth-validator.so $(DESTDIR)/$(LIB_PREFIX)/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-auth-validator.h $(DESTDIR)/usr/include/
 	$(INSTALL) -m644 $(BUILDDIR)/openvpn-plugin-okta.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
-	if [ ! -f $(DESTDIR)/etc/openvpn/okta_pinset.cfg ]; then \
-		$(INSTALL) -m644 okta_pinset.cfg $(DESTDIR)/etc/openvpn/okta_pinset.cfg; \
+	if [ ! -f $(DESTDIR)/etc/okta-auth-validator/okta_pinset.cfg ]; then \
+		$(INSTALL) -m644 okta_pinset.cfg $(DESTDIR)/etc/okta-auth-validator/okta_pinset.cfg; \
 	fi
-	if [ ! -f $(DESTDIR)/etc/openvpn/okta_openvpn.ini ]; then \
-		$(INSTALL) -m640 okta_openvpn.ini.inc $(DESTDIR)/etc/openvpn/okta_openvpn.ini; \
+	if [ ! -f $(DESTDIR)/etc/okta-auth-validator/okta_openvpn.ini ]; then \
+		$(INSTALL) -m640 okta_openvpn.ini.inc $(DESTDIR)/etc/okta-auth-validator/okta_openvpn.ini; \
 	fi
 
 clean:
