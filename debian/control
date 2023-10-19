@@ -6,8 +6,27 @@ Build-Depends: debhelper (>=10), make, gcc, golang-1.21
 Standards-Version: 0.1
 Homepage: https://github.com/algolia/okta-openvpn
 
-Package: okta-openvpn
+Package: openvpn-auth-okta
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}, libokta-auth-validator (>= ${source:Version})
+Description: This is a plugin for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA.
+
+Package: okta-auth-validator
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}, libokta-auth-validator (>= ${source:Version})
+Description: This is a command line tool that authenticates users directly against Okta, with support for MFA.
+
+Package: libokta-auth-validator
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: This is a plugin for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA.
+Suggests: libokta-auth-validator-dev
+Description: Shared library that allows to authenticates user directly against Okta, with support for MFA.
+
+Package: libokta-auth-validator-dev
+Architecture: all
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Development files for libokta-auth-validator.
