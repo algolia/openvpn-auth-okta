@@ -1,3 +1,5 @@
+%define source_name okta-openvpn
+
 Name: openvpn-auth-okta
 Version: 2.4.0
 Release: 1%{?dist}
@@ -5,14 +7,13 @@ Summary: Go programming language
 Group: Productivity/Networking/Security
 License: MPL-2.0
 URL: https://github.com/algolia/okta-openvpn
-Source0: %{name}-%{version}.tar.xz
+Source0: %{source_name}-%{version}.tar.xz
 Source1: vendor.tar.gz
-Source99: %{name}.rpmlintrc
+Source99: %{source_name}.rpmlintrc
 
 BuildRequires: golang-1.21
 BuildRequires: gcc
 BuildRequires: make
-
 Requires: libokta-auth-validator = %{version}
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-build
@@ -21,6 +22,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-build
 
 %description
 This is a plugin for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA.
+
 
 %package -n okta-auth-validator
 Summary: Command line tool to authenticate against Okta.
@@ -45,7 +47,7 @@ Development files for libokta-auth-validator, a shared library that allows to au
 
 
 %prep
-%setup -q
+%setup -q -n %{source_name}-%{version}
 tar xf ../../SOURCES/vendor.tar.gz
 
 %build
