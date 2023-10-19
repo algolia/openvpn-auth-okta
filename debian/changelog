@@ -1,3 +1,15 @@
+openvpn-auth-okta (2.4.1) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * chore: renamed repo and packages
+  * chore(github): add code owners and PR template
+  * chore(Makefile): change config files location
+  * chore(doc): change config files location
+  * chore(dist): change config files location
+  * chore(validator): change default config files location
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Thu, 19 Oct 2023 14:19:03 +0000
+
 openvpn-auth-okta (2.4.0) stable; urgency=medium
 
   [ Jeremy JACQUE ]
