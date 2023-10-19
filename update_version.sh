@@ -4,10 +4,12 @@
 
 version=$1
 
+branch=$(git rev-parse --abbrev-ref HEAD)
+
 git tag -f -a "v${version}" -m "v${version}"
 
 sed -i'' -e "s/^\(Version: \).*/\1${version}/" dist/okta-openvpn.spec
-gbp rpm-ch --packaging-branch=v2 \
+gbp rpm-ch --packaging-branch="${branch}" \
   --packaging-tag="v%(version)s" \
   --spec-file=dist/okta-openvpn.spec \
   --git-author \
@@ -17,7 +19,7 @@ git add dist/okta-openvpn.spec
 git commit -m "chore(dist): Update changelog for ${version} release"
 
 sed -i'' -e "s/^\(DEBTRANSFORM-TAR: okta-openvpn-\).*\(\.tar\.xz\)$/\1${version}\2/" dist/okta-openvpn.dsc
-gbp dch --debian-branch=v2 \
+gbp dch --debian-branch="${branch}" \
   -c --commit-msg="chore(debian): Update changelog for %(version)s release" \
   --release \
   --git-author \
