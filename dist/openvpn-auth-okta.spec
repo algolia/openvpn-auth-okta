@@ -57,10 +57,10 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 %files
 %dir %{_libdir}/openvpn
 %dir %{plugin_dir}/
-%dir /etc/openvpn/
+%dir /etc/okta-auth-validator/
 %attr(0644,root,root) %{plugin_dir}/openvpn-plugin-okta.so
-%attr(0644,root,root) %config(noreplace) /etc/openvpn/okta_pinset.cfg
-%attr(0640,root,root) %config(noreplace) /etc/openvpn/okta_openvpn.ini
+%attr(0644,root,root) %config(noreplace) /etc/okta-auth-validator/okta_pinset.cfg
+%attr(0640,root,root) %config(noreplace) /etc/okta-auth-validator/okta_openvpn.ini
 
 %files -n okta-auth-validator
 %attr(0755,root,root) /usr/bin/okta-auth-validator
