@@ -13,8 +13,8 @@ import (
   "strconv"
   "time"
 
-  "gopkg.in/algolia/okta-openvpn.v2/pkg/types"
-  "gopkg.in/algolia/okta-openvpn.v2/pkg/utils"
+  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/types"
+  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/utils"
 )
 
 const userAgent string = "Mozilla/5.0 (Linux; x86_64) OktaOpenVPN/2.1.0"

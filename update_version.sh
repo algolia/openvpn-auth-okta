@@ -8,17 +8,17 @@ branch=$(git rev-parse --abbrev-ref HEAD)
 
 git tag -f -a "v${version}" -m "v${version}"
 
-sed -i'' -e "s/^\(Version: \).*/\1${version}/" dist/okta-openvpn.spec
+sed -i'' -e "s/^\(Version: \).*/\1${version}/" dist/openvpn-auth-okta.spec
 gbp rpm-ch --packaging-branch="${branch}" \
   --packaging-tag="v%(version)s" \
-  --spec-file=dist/okta-openvpn.spec \
+  --spec-file=dist/openvpn-auth-okta.spec \
   --git-author \
   --spawn-editor=no
 
-git add dist/okta-openvpn.spec
+git add dist/openvpn-auth-okta.spec
 git commit -m "chore(dist): Update changelog for ${version} release"
 
-sed -i'' -e "s/^\(DEBTRANSFORM-TAR: okta-openvpn-\).*\(\.tar\.xz\)$/\1${version}\2/" dist/okta-openvpn.dsc
+sed -i'' -e "s/^\(DEBTRANSFORM-TAR: openvpn-auth-okta-\).*\(\.tar\.xz\)$/\1${version}\2/" dist/openvpn-auth-okta.dsc
 gbp dch --debian-branch="${branch}" \
   -c --commit-msg="chore(debian): Update changelog for %(version)s release" \
   --release \
@@ -28,6 +28,6 @@ gbp dch --debian-branch="${branch}" \
   --debian-tag="v%(version)s" \
   -N "${version}"
 
-sed -i'' -e "s/^\(Version: \).*/\1${version}/" dist/okta-openvpn.dsc
+sed -i'' -e "s/^\(Version: \).*/\1${version}/" dist/openvpn-auth-okta.dsc
 
 git tag -f -a "v${version}" -m "v${version}"

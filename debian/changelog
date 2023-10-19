@@ -1,4 +1,4 @@
-okta-openvpn (2.4.0) stable; urgency=medium
+openvpn-auth-okta (2.4.0) stable; urgency=medium
 
   [ Jeremy JACQUE ]
   * chore(debian): split package
@@ -6,18 +6,18 @@ okta-openvpn (2.4.0) stable; urgency=medium
   * chore(dist): update rpmlintrc filters
   * fix(tools): work on current branch to generate changelogs
 
- -- vagrant <jeremy.jacque@algolia.com>  Thu, 19 Oct 2023 07:47:08 +0000
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Thu, 19 Oct 2023 07:47:08 +0000
 
-okta-openvpn (2.3.4) stable; urgency=medium
+openvpn-auth-okta (2.3.4) stable; urgency=medium
 
   [ Jeremy JACQUE ]
   * chore: remove unneeded defer_simple source code
   * chore(doc): add section about package installation
   * chore(dist): remove refs to defer_simple in spec file
 
- -- vagrant <jeremy.jacque@algolia.com>  Wed, 18 Oct 2023 22:16:12 +0000
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Wed, 18 Oct 2023 22:16:12 +0000
 
-okta-openvpn (2.3.3) stable; urgency=medium
+openvpn-auth-okta (2.3.3) stable; urgency=medium
 
   * chore(Makefile): add missing soname to shared lib
   * chore(Makefile): binary should bo to /usr/bin
@@ -40,7 +40,7 @@ okta-openvpn (2.3.3) stable; urgency=medium
 
  -- Jeremy JACQUE <jeremy.jacque@algolia.com>  Wed, 18 Oct 2023 14:01:30 +0000
 
-okta-openvpn (2.3.2) stable; urgency=medium
+openvpn-auth-okta (2.3.2) stable; urgency=medium
 
   [ Jeremy JACQUE ]
   * chore(Makefile): symlink is not needed as dlopen follows ld.so
@@ -49,9 +49,9 @@ okta-openvpn (2.3.2) stable; urgency=medium
   * chore(dist): add files needed to build packages
   * chore(dist): add script to manage versions
 
- -- root <jeremy.jacque@algolia.com>  Wed, 18 Oct 2023 08:32:24 +0000
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Wed, 18 Oct 2023 08:32:24 +0000
 
-okta-openvpn (2.3.1-algolia) stable; urgency=medium
+openvpn-auth-okta (2.3.1-algolia) stable; urgency=medium
   * Version 2.3.1:
     Fix loading of Golang c-shared in plugin (use dlopen)
     Use a dedicated struct instead of exporting to env user infos when using
@@ -59,19 +59,19 @@ okta-openvpn (2.3.1-algolia) stable; urgency=medium
 
  -- Jeremy Jacque <jeremy.jacque@algolia.com>  Mon, 13 Oct 2023 04:04:41 +0200
 
-okta-openvpn (2.3.0-algolia) stable; urgency=medium
+openvpn-auth-okta (2.3.0-algolia) stable; urgency=medium
   * Version 2.3.0:
     Implement "full" shared lib plugin
 
  -- Jeremy Jacque <jeremy.jacque@algolia.com>  Mon, 13 Oct 2023 04:04:41 +0200
 
-okta-openvpn (2.2.3-algolia) stable; urgency=medium
+openvpn-auth-okta (2.2.3-algolia) stable; urgency=medium
   * Version 2.2.3:
     Fix makefile and debian files
 
  -- Jeremy Jacque <jeremy.jacque@algolia.com>  Sat, 14 Oct 2023 14:31:41 +0200
 
-okta-openvpn (2.2.2-algolia) stable; urgency=medium
+openvpn-auth-okta (2.2.2-algolia) stable; urgency=medium
   * Version 2.2.2:
     Handle all OpenVPN auth plugin modes and methods
     Add testing for almost all packages functions
@@ -79,7 +79,7 @@ okta-openvpn (2.2.2-algolia) stable; urgency=medium
 
  -- Jeremy Jacque <jeremy.jacque@algolia.com>  Fri, 13 Oct 2023 22:51:41 +0200
 
-okta-openvpn (2.1.1-algolia) stable; urgency=medium
+openvpn-auth-okta (2.1.1-algolia) stable; urgency=medium
 
   * Version 2.1.1:
     First Golang implementation
@@ -87,24 +87,3 @@ okta-openvpn (2.1.1-algolia) stable; urgency=medium
     Updated Makefile and debian files
 
  -- Jeremy Jacque <jeremy.jacque@algolia.com>  Mon,  9 Oct 2023 05:30:41 +0200
-
-okta-openvpn (1.0.0-algolia) stable; urgency=medium
-
-  * Version 1.0.0:
-    fix pylint / flake8 issues
-    Do not allow users without MFA
-    Update Openvpn plugin API used in defer_simple.so
-
- -- Foundation Squad <foundation@algolia.com>  Tue, 25 Jan 2022 10:20:41 +0200
-
-okta-openvpn (0.2~focal) stable; urgency=medium
-
-  * Version 0.2
-
- -- Foundation Squad <foundation@algolia.com>  Fri, 21 Jan 2022 14:20:41 +0200
-
-okta-openvpn (0.1~focal) stable; urgency=medium
-
-  * Version 0.1
-
- -- Foundation Squad <foundation@algolia.com>  Mon,  7 Sep 2020 15:30:41 +0200

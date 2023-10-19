@@ -3,8 +3,8 @@ package main
 import "C"
 
 import (
-  "gopkg.in/algolia/okta-openvpn.v2/pkg/validator"
-  "gopkg.in/algolia/okta-openvpn.v2/pkg/types"
+  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
+  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/types"
 )
 
 type PluginEnv = types.PluginEnv

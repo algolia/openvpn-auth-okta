@@ -1,4 +1,4 @@
-- [An overview of how okta-openvpn works](#overview)
+- [An overview of how openvpn-auth-okta works](#overview)
   - [Instantiate an OktaOpenVPNValidator struct](#instantiate)
   - [Load in configuration file and environment variables](#setup)
   - [Authenticate the user](#authenticate)
@@ -8,7 +8,7 @@
 
 <a id="overview"></a>
 
-# An overview of how okta-openvpn works
+# An overview of how openvpn-auth-okta works
 
 This is a plugin for OpenVPN Community Edition that allows OpenVPN to authenticate directly against Okta, with support for TOTP and Okta Verify Push factors.
 
@@ -166,5 +166,5 @@ func (validator *OktaOpenVPNValidator) WriteControlFile() {
 
 # Learn more
 
-Read the source on GitHub: <https://github.com/algolia/okta-openvpn>
-See the [Useful links](https://github.com/algolia/okta-openvpn#useful-links) in the [README](https://github.com/algolia/okta-openvpn#readme).
+Read the source on GitHub: <https://github.com/algolia/openvpn-auth-okta>
+See the [Useful links](https://github.com/algolia/openvpn-auth-okta#useful-links) in the [README](https://github.com/algolia/openvpn-auth-okta#readme).

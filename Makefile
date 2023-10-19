@@ -9,7 +9,7 @@ INSTALL := install
 CC := gcc
 CFLAGS := -fPIC -I.
 LDFLAGS := -shared -fPIC
-LIBS := -Lbuild -lokta-openvpn
+LIBS := -Lbuild -lokta-auth-validator
 
 DESTDIR :=
 LIB_PREFIX := /usr/lib
@@ -43,7 +43,7 @@ $(BUILDDIR)/okta-auth-validator: cmd/okta-auth-validator/main.go | $(BUILDDIR)
 $(BUILDDIR)/openvpn-plugin-okta.so: $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-okta.o openvpn-plugin.h
 	$(CC)  $(LDFLAGS) -Wl,-soname,openvpn-plugin-okta.so -o $(BUILDDIR)/openvpn-plugin-okta.so $(BUILDDIR)/openvpn-plugin-okta.o
 
-# Build the okta-openvpn shared lib (Golang c-shared)
+# Build the okta-auth-validator shared lib (Golang c-shared)
 $(BUILDDIR)/libokta-auth-validator.so: lib/libokta-auth-validator.go | $(BUILDDIR)
 	go build $(LIBOKTA_FLAGS) -o $(BUILDDIR)/libokta-auth-validator.so lib/libokta-auth-validator.go
 
