@@ -73,6 +73,12 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Thu Oct 19 2023 vagrant <jeremy.jacque@algolia.com> 2.4.0-1
+- chore(debian): split package
+- chore(dist): split package
+- chore(dist): update rpmlintrc filters
+- fix(tools): work on current branch to generate changelogs
+
 * Wed Oct 18 2023 vagrant <jeremy.jacque@algolia.com> 2.3.4-1
 - chore(tools): fix distro name in changelog creation
 - fix(Makefile): wrong soname for golang c-shared lib
