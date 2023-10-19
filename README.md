@@ -50,7 +50,7 @@ You have three options to install the Okta OpenVPN plugin:
 
 ### 1.  For default setups, use `sudo make install` to run the install for you.
 
-If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openvpn/plugins` and configuration files are stored in `/etc/openvpn`, then you can use the `make install` command to install the Okta OpenVPN plugin:
+If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openvpn/plugins` and configuration files are stored in `/etc/okta-auth-validator`, then you can use the `make install` command to install the Okta OpenVPN plugin:
 
 ```shell
 $ sudo make install
@@ -150,7 +150,7 @@ The Okta OpenVPN plugin is configured via the `okta\_openvpn.ini` file. You **mu
 If you installed the Okta OpenVPN plugin to the default location, run this command to edit your configuration file.
 
 ```shell
-$ sudo $EDITOR /etc/openvpn/okta_openvpn.ini
+$ sudo $EDITOR /etc/okta-auth-validator/okta_openvpn.ini
 ```
 > :warning: As this file contains your Okta token, please ensure it has limited permissions (should only be readable by root or the user running OpenVPN) !
 
