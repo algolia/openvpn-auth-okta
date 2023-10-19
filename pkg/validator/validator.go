@@ -14,12 +14,14 @@ import (
 )
 
 var (
-  cfgDefaultPaths = [3]string{
+  cfgDefaultPaths = [4]string{
+    "/etc/okta-auth-validator/okta_openvpn.ini",
     "/etc/openvpn/okta_openvpn.ini",
     "/etc/okta_openvpn.ini",
     "okta_openvpn.ini",
   }
-  pinsetDefaultPaths = [3]string{
+  pinsetDefaultPaths = [4]string{
+    "/etc/okta-auth-validator/okta_pinset.cfg",
     "/etc/openvpn/okta_pinset.cfg",
     "/etc/okta_pinset.cfg",
     "okta_pinset.cfg",
