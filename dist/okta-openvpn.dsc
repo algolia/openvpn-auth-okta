@@ -3,8 +3,8 @@ DEBTRANSFORM-RELEASE: 1
 Source: okta-openvpn
 Binary: okta-openvpn
 Architecture: any
-Version: 2.3.4
-DEBTRANSFORM-TAR: okta-openvpn-2.3.4.tar.xz
+Version: 2.4.0
+DEBTRANSFORM-TAR: okta-openvpn-2.4.0.tar.xz
 Maintainer: Foundation Squad <foundation@algolia.com>
 Homepage: https://github.com/algolia/okta-openvpn
 Standards-Version: 4.5.10
