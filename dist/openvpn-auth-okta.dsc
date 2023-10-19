@@ -1,13 +1,13 @@
 Format: 3.0 (native)
 DEBTRANSFORM-RELEASE: 1
-Source: okta-openvpn
-Binary: okta-openvpn
+Source: openvpn-auth-okta
+Binary: openvpn-auth-okta
 Architecture: any
 Version: 2.4.0
-DEBTRANSFORM-TAR: okta-openvpn-2.4.0.tar.xz
+DEBTRANSFORM-TAR: openvpn-auth-okta-2.4.0.tar.xz
 Maintainer: Foundation Squad <foundation@algolia.com>
-Homepage: https://github.com/algolia/okta-openvpn
+Homepage: https://github.com/algolia/openvpn-auth-okta
 Standards-Version: 4.5.10
 Build-Depends: debhelper, make, gcc, golang-1.21
 Package-List:
- okta-openvpn deb base optional arch=any
+ openvpn-auth-okta deb base optional arch=any

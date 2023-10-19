@@ -208,7 +208,7 @@ deferred_auth_handler(const char *argv[], const char *envp[])
   // dlopen is needed here, otherwise Go runtime wont respect alredy set signal handlers
   handle = dlopen ("libokta-auth-validator.so", RTLD_LAZY);
   if (!handle) {
-    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Can not load libokta-openvpn.so");
+    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Can not load libopenvpn-auth-okta.so");
     exit(127);
   }
 

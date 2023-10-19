@@ -8,9 +8,9 @@ import (
   "strings"
   "gopkg.in/ini.v1"
 
-  "gopkg.in/algolia/okta-openvpn.v2/pkg/oktaApiAuth"
-  "gopkg.in/algolia/okta-openvpn.v2/pkg/types"
-  "gopkg.in/algolia/okta-openvpn.v2/pkg/utils"
+  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
+  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/types"
+  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/utils"
 )
 
 var (

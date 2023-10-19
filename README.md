@@ -1,6 +1,6 @@
-![Release](https://img.shields.io/github/v/release/algolia/okta-openvpn.svg)
-![Go version](https://img.shields.io/github/go-mod/go-version/algolia/okta-openvpn.svg)
-![CI status](https://circleci.com/gh/algolia/okta-openvpn/tree/v2.svg?style=shield)
+![Release](https://img.shields.io/github/v/release/algolia/openvpn-auth-okta.svg)
+![Go version](https://img.shields.io/github/go-mod/go-version/algolia/openvpn-auth-okta.svg)
+![CI status](https://circleci.com/gh/algolia/openvpn-auth-okta/tree/v2.svg?style=shield)
 ![Coverage](https://img.shields.io/badge/Coverage-90.8%25-brightgreen)
 
 # Introduction
@@ -75,7 +75,7 @@ echo "deb [arch=amd64 trusted=yes] \"https://download.opensuse.org/repositories/
 
 wget https://download.opensuse.org/repositories/home:/Algolia:/OSS/${DIST}_${VERSION_ID}/Release.key -O- | sudo apt-key add -
 sudo apt-get update
-sudo apt-get install okta-openvpn
+sudo apt-get install openvpn-auth-okta
 ```
 
 ##### openSUSE
@@ -87,7 +87,7 @@ sudo apt-get install okta-openvpn
 wget -q  https://download.opensuse.org/repositories/home:/Algolia:/OSS/${VERSION_ID}/home:Algolia:OSS.repo -O- | sudo tee /etc/zypp/repos.d/algolia-oss.repo
 
 sudo zypper ref
-sudo zypper install okta-openvpn
+sudo zypper install openvpn-auth-okta
 ```
 
 ##### CentOS
@@ -98,7 +98,7 @@ sudo zypper install okta-openvpn
 
 wget -q  https://download.opensuse.org/repositories/home:/Algolia:/OSS/CentOS_${VERSION_ID}/home:Algolia:OSS.repo -O- | sudo tee /etc/yum.repos.d/algolia-oss.repo
 
-sudo yum install -y okta-openvpn
+sudo yum install -y openvpn-auth-okta
 ```
 
 ##### Fedora
@@ -109,7 +109,7 @@ sudo yum install -y okta-openvpn
 
 wget -q  https://download.opensuse.org/repositories/home:/Algolia:/OSS/Fedora_${VERSION_ID}/home:Algolia:OSS.repo -O- | sudo tee /etc/yum.repos.d/algolia-oss.repo
 
-sudo yum install -y okta-openvpn
+sudo yum install -y openvpn-auth-okta
 ```
 
 
@@ -154,7 +154,7 @@ $ sudo $EDITOR /etc/openvpn/okta_openvpn.ini
 ```
 > :warning: As this file contains your Okta token, please ensure it has limited permissions (should only be readable by root or the user running OpenVPN) !
 
-See [okta_openvpn.ini](https://github.com/algolia/okta-openvpn/blob/v2/okta_openvpn.ini.inc) for configuration options.
+See [okta_openvpn.ini](https://github.com/algolia/openvpn-auth-okta/blob/v2/okta_openvpn.ini.inc) for configuration options.
 
 
 ## Configure OpenVPN to use the C `Shared Object Plugin`

@@ -1,15 +1,13 @@
-%define source_name okta-openvpn
-
 Name: openvpn-auth-okta
 Version: 2.4.0
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
 License: MPL-2.0
-URL: https://github.com/algolia/okta-openvpn
-Source0: %{source_name}-%{version}.tar.xz
+URL: https://github.com/algolia/openvpn-auth-okta
+Source0: %{name}-%{version}.tar.xz
 Source1: vendor.tar.gz
-Source99: %{source_name}.rpmlintrc
+Source99: %{name}.rpmlintrc
 
 BuildRequires: golang-1.21
 BuildRequires: gcc
@@ -47,7 +45,7 @@ Development files for libokta-auth-validator, a shared library that allows to au
 
 
 %prep
-%setup -q -n %{source_name}-%{version}
+%setup -q -n %{name}-%{version}
 tar xf ../../SOURCES/vendor.tar.gz
 
 %build
