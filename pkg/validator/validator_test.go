@@ -115,7 +115,11 @@ func TestAuthenticate(t *testing.T) {
       v.apiConfig.MFARequired = false
       err := v.Authenticate()
       assert.Equal(t, test.ret, v.isUserValid)
-      assert.Equal(t, test.err, err)
+      if test.err == nil {
+        assert.Nil(t, err)
+      } else {
+        assert.Equal(t, test.err.Error(), err.Error())
+      }
      })
    }
 }
