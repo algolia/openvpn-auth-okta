@@ -1,3 +1,18 @@
+openvpn-auth-okta (2.4.2) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * chore(validator): refacto to remove useless functions and better err control on Authenticate
+  * chore(cmd/okta-auth-validator): adapt to new Authenticate return type
+  * chore(lib): adapt to new Authenticate return type
+  * chore(validator/test): test new Authenticate err returned
+  * chore(oktaApiAuth/test): test the case where we need to sort the offered MFAs
+  * fix(validator/test): handle possible nil error
+  * chore(oktaApiAuth/test): test the case where preAuth fails (connection issue)
+  * chore(fixtures): add preauth_mfa_required_multi used by oktaApiAuth/TestAuth
+  * chore(doc): update coverage badge after new tests implem
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Fri, 20 Oct 2023 02:28:46 +0000
+
 openvpn-auth-okta (2.4.1) stable; urgency=medium
 
   [ Jeremy JACQUE ]
