@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.4.2
+Version: 2.4.3
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -73,6 +73,13 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Fri Oct 20 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.4.3-1
+- chore: change plugin file name to be aligned with other OpenVPN plugins
+- chore(doc): fix typo in install section and add info about OpenVPN tmp dir
+- chore(plugin): rename source according to new plugin file name
+- chore(doc): update with new plugin name
+- chore(git): now all produced files are in a dedicated dir, so ignore this dir
+
 * Fri Oct 20 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.4.2-1
 - chore(validator): refacto to remove useless functions and better err control on Authenticate
 - chore(cmd/okta-auth-validator): adapt to new Authenticate return type
