@@ -24,7 +24,7 @@ func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass 
   if res := v.Setup(true, nil, pluginEnv); !res {
     return
   }
-  v.Authenticate()
+  _ = v.Authenticate()
   v.WriteControlFile()
 }
 
