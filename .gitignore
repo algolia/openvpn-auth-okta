@@ -5,12 +5,8 @@
 okta_openvpn
 venv/
 .DS_Store
-cover/
-.coverage
+build/
 okta_openvpn.ini
-cover.out
-cover-badge.out
-coverage.html
 .dccache
 
 # Temporary testing files
