@@ -22,7 +22,7 @@ GOFLAGS := -buildmode=pie -a $(GOLDFLAGS)
 LIBOKTA_LDFLAGS := -ldflags '-extldflags -Wl,-soname,libokta-auth-validator.so'
 LIBOKTA_FLAGS := -buildmode=c-shared $(LIBOKTA_LDFLAGS)
 
-LIBRARIES := $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-okta.so
+LIBRARIES := $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.so
 
 all: $(BUILDDIR)/okta-auth-validator plugin
 
@@ -39,9 +39,9 @@ binary: $(BUILDDIR)/okta-auth-validator
 $(BUILDDIR)/okta-auth-validator: cmd/okta-auth-validator/main.go | $(BUILDDIR)
 	CGO_ENABLED=0 go build $(GOFLAGS) -o $(BUILDDIR)/okta-auth-validator cmd/okta-auth-validator/main.go
 
-# Build the openvpn-plugin-okta plugin (linked against the Go c-shared lib)
-$(BUILDDIR)/openvpn-plugin-okta.so: $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-okta.o openvpn-plugin.h
-	$(CC)  $(LDFLAGS) -Wl,-soname,openvpn-plugin-okta.so -o $(BUILDDIR)/openvpn-plugin-okta.so $(BUILDDIR)/openvpn-plugin-okta.o
+# Build the openvpn-plugin-auth-okta plugin (linked against the Go c-shared lib)
+$(BUILDDIR)/openvpn-plugin-auth-okta.so: $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.o openvpn-plugin.h
+	$(CC)  $(LDFLAGS) -Wl,-soname,openvpn-plugin-auth-okta.so -o $(BUILDDIR)/openvpn-plugin-auth-okta.so $(BUILDDIR)/openvpn-plugin-auth-okta.o
 
 # Build the okta-auth-validator shared lib (Golang c-shared)
 $(BUILDDIR)/libokta-auth-validator.so: lib/libokta-auth-validator.go | $(BUILDDIR)
@@ -97,7 +97,7 @@ install: all
 	$(INSTALL) -m755 $(BUILDDIR)/okta-auth-validator $(DESTDIR)/usr/bin/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-auth-validator.so $(DESTDIR)/$(LIB_PREFIX)/
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-auth-validator.h $(DESTDIR)/usr/include/
-	$(INSTALL) -m644 $(BUILDDIR)/openvpn-plugin-okta.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
+	$(INSTALL) -m644 $(BUILDDIR)/openvpn-plugin-auth-okta.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
 	if [ ! -f $(DESTDIR)/etc/okta-auth-validator/okta_pinset.cfg ]; then \
 		$(INSTALL) -m644 okta_pinset.cfg $(DESTDIR)/etc/okta-auth-validator/okta_pinset.cfg; \
 	fi
