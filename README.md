@@ -64,7 +64,7 @@ Thanks to the [OpenSUSE Build Service](https://build.opensuse.org/) packages are
 ```shell
 # supports Debian 11, 12 and Ubuntu 20.04, 22.04, 23.04, 23.10
 . /etc/os-release
-if [ "${Name}" = "Ubuntu" ]
+if [ "${NAME}" = "Ubuntu" ]
 then
   DIST="xUbuntu"
 else
@@ -179,6 +179,13 @@ Set up OpenVPN to call the Okta Golang binary by adding the following lines to y
 auth-user-pass-verify /usr/bin/okta-auth-validator via-file
 tmp-dir "/etc/openvpn/tmp"
 ```
+> :exclamation: it is strongly advised when using the via file method, that the tmp-dir is located on a tmpfs filesystem (so that the user's credentials never reach the disk). Systemd can help for that:
+
+```shell
+VUSER=openvpn
+echo "d /run/openvpn/tmp 1750 ${VUSER} root" | sudo tee /etc/tmpfiles.d/openvpn-tmp.conf
+sudo systemd-tmpfiles  --create /etc/tmpfiles.d/openvpn-tmp.conf
+```
 
 ```ini
 # "via-env" method
@@ -188,7 +195,7 @@ tmp-dir "/etc/openvpn/tmp"
 
 Please check the OpenVPN [manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-0/#options) for security considerations regarding this mode.
 
-The default location for OpenVPN configuration files is `/etc/openvpn/server.conf`
+The default location for OpenVPN configuration files is usually `/etc/openvpn/server.conf`
 
 
 # Useful links
