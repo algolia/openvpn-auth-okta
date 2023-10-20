@@ -73,6 +73,7 @@ type testAuthenticate struct {
   pinsetFile  string
   userTrusted bool
   ret         bool
+  err         error
 }
 
 var setupEnv = map[string]string{
@@ -91,6 +92,7 @@ func TestAuthenticate(t *testing.T) {
       "../../testing/fixtures/validator/valid.cfg",
       false,
       false,
+      fmt.Errorf("User not trusted"),
     },
     {
       "Invalid pinset/ConnectionPool err - false",
@@ -98,6 +100,7 @@ func TestAuthenticate(t *testing.T) {
       "../../testing/fixtures/validator/invalid.cfg",
       true,
       false,
+      fmt.Errorf("OktaApiAuth initialisation failed"),
     },
   }
   for _, test := range tests {
@@ -110,8 +113,9 @@ func TestAuthenticate(t *testing.T) {
       unsetEnv(setupEnv)
       v.usernameTrusted = test.userTrusted
       v.apiConfig.MFARequired = false
-      v.Authenticate()
+      err := v.Authenticate()
       assert.Equal(t, test.ret, v.isUserValid)
+      assert.Equal(t, test.err, err)
      })
    }
 }
