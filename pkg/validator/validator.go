@@ -53,10 +53,6 @@ func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
   }
 }
 
-func (validator *OktaOpenVPNValidator) IsUserValid() bool {
-  return validator.isUserValid
-}
-
 func (validator *OktaOpenVPNValidator) SetControlFile(f string) {
   validator.controlFile = f
 }
@@ -126,6 +122,7 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
       } else {
         cfg, err := ini.Load(cfgFile)
         if err != nil {
+          // unreachable as err would not nil only if cfgFile is not a string (or a []byte, a Reader)
           fmt.Printf("Error loading ini file: %s\n", err)
           return err
         }
@@ -273,22 +270,21 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
   return nil
 }
 
-func (validator *OktaOpenVPNValidator) Authenticate() {
+func (validator *OktaOpenVPNValidator) Authenticate() error {
   if !validator.usernameTrusted {
     fmt.Printf("[%s] User is not trusted - failing\n", validator.userConfig.Username)
-    validator.isUserValid = false
-    return
+    return errors.New("User not trusted")
   }
   okta, err := oktaApiAuth.NewOktaApiAuth(validator.apiConfig, validator.userConfig)
   if err != nil {
-    validator.isUserValid = false
-    return
+    return errors.New("OktaApiAuth initialisation failed")
   }
 
-  if err := okta.Auth(); err != nil {
-    validator.isUserValid = false
-  } else {
+  if err := okta.Auth(); err == nil {
     validator.isUserValid = true
+    return nil
+  } else {
+    return errors.New("Authentication failed")
   }
 }
 
@@ -317,14 +313,14 @@ func (validator *OktaOpenVPNValidator) WriteControlFile() {
   if err := validator.checkControlFilePerm(); err != nil {
     return
   }
+
+  valToWrite := []byte("0")
   if validator.isUserValid {
-    if err := os.WriteFile(validator.controlFile, []byte("1"), 0600); err !=nil {
-      fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
-    }
-  } else {
-    if err := os.WriteFile(validator.controlFile, []byte("0"), 0600); err !=nil {
-      fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
-    }
+    valToWrite = []byte("1")
   }
+  if err := os.WriteFile(validator.controlFile, valToWrite, 0600); err !=nil {
+    fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
+  }
+
 }
 
