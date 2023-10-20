@@ -1,3 +1,14 @@
+openvpn-auth-okta (2.4.3) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * chore: change plugin file name to be aligned with other OpenVPN plugins
+  * chore(doc): fix typo in install section and add info about OpenVPN tmp dir
+  * chore(plugin): rename source according to new plugin file name
+  * chore(doc): update with new plugin name
+  * chore(git): now all produced files are in a dedicated dir, so ignore this dir
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Fri, 20 Oct 2023 07:36:46 +0000
+
 openvpn-auth-okta (2.4.2) stable; urgency=medium
 
   [ Jeremy JACQUE ]
