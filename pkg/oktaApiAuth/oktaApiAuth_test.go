@@ -415,7 +415,6 @@ func TestAuth(t *testing.T) {
       nil,
     },
 
-
     {
       "Auth with TOTP MFA required, multi MFA allowed to sort - success",
       true,
@@ -438,7 +437,6 @@ func TestAuth(t *testing.T) {
       nil,
     },
 
-
     {
       "Auth with invalid TOTP MFA - failure",
       true,
@@ -459,6 +457,15 @@ func TestAuth(t *testing.T) {
       },
       false,
       fmt.Errorf("Your passcode doesn't match our records. Please try again."),
+    },
+
+    {
+      "PreAuth connection issue - failure",
+      true,
+      passcode,
+      nil,
+      true,
+      fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn\": gock: cannot match any request"),
     },
   }
 
