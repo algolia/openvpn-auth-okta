@@ -122,7 +122,7 @@ If you have a custom setup, follow the instructions below to install the C plugi
 
 #### Manually installing the C Plugin
 
-To manually install the C plugin, copy the `build/openvpn-plugin-okta.so` file to the location where your OpenVPN plugins are stored and the `libokta-auth-validator.so`file to your system libdir.
+To manually install the C plugin, copy the `build/openvpn-plugin-auth-okta.so` file to the location where your OpenVPN plugins are stored and the `libokta-auth-validator.so`file to your system libdir.
 
 
 #### Manually installing the Golang binary
@@ -162,7 +162,7 @@ See [okta_openvpn.ini](https://github.com/algolia/openvpn-auth-okta/blob/v2/okta
 Set up OpenVPN to call the Okta plugin by adding the following lines to your OpenVPN `server.conf` configuration file:
 
 ```ini
-plugin openvpn-plugin-okta.so
+plugin openvpn-plugin-auth-okta.so
 tmp-dir "/etc/openvpn/tmp"
 ```
 
