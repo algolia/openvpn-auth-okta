@@ -58,7 +58,7 @@ static plugin_log_t plugin_log = NULL;
 struct plugin_context {};
 
 /* module name for plugin_log() */
-static char *MODULE = "openvpn-plugin-okta";
+static char *MODULE = "openvpn-plugin-auth-okta";
 
 /*
  * Given an environmental variable name, search
