@@ -415,6 +415,30 @@ func TestAuth(t *testing.T) {
       nil,
     },
 
+
+    {
+      "Auth with TOTP MFA required, multi MFA allowed to sort - success",
+      true,
+      passcode,
+      []authRequest{
+        {
+          "/api/v1/authn",
+          map[string]string{"username": username, "password": password},
+          http.StatusOK,
+          "preauth_mfa_required_multi.json",
+        },
+        {
+          fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
+          map[string]string{"fid": totpFID, "stateToken": stateToken, "passCode": passcode},
+          http.StatusOK,
+          "auth_success.json",
+        },
+      },
+      false,
+      nil,
+    },
+
+
     {
       "Auth with invalid TOTP MFA - failure",
       true,
