@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.4.1
+Version: 2.4.2
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -73,7 +73,18 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
-* Thu Oct 19 2023 vagrant <jeremy.jacque@algolia.com> 2.4.1-1
+* Fri Oct 20 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.4.2-1
+- chore(validator): refacto to remove useless functions and better err control on Authenticate
+- chore(cmd/okta-auth-validator): adapt to new Authenticate return type
+- chore(lib): adapt to new Authenticate return type
+- chore(validator/test): test new Authenticate err returned
+- chore(oktaApiAuth/test): test the case where we need to sort the offered MFAs
+- fix(validator/test): handle possible nil error
+- chore(oktaApiAuth/test): test the case where preAuth fails (connection issue)
+- chore(fixtures): add preauth_mfa_required_multi used by oktaApiAuth/TestAuth
+- chore(doc): update coverage badge after new tests implem
+
+* Thu Oct 19 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.4.1-1
 - chore: renamed repo and packages
 - chore(github): add code owners and PR template
 - chore(Makefile): change config files location
@@ -81,13 +92,13 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 - chore(dist): change config files location
 - chore(validator): change default config files location
 
-* Thu Oct 19 2023 vagrant <jeremy.jacque@algolia.com> 2.4.0-1
+* Thu Oct 19 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.4.0-1
 - chore(debian): split package
 - chore(dist): split package
 - chore(dist): update rpmlintrc filters
 - fix(tools): work on current branch to generate changelogs
 
-* Wed Oct 18 2023 vagrant <jeremy.jacque@algolia.com> 2.3.4-1
+* Wed Oct 18 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.3.4-1
 - chore(tools): fix distro name in changelog creation
 - fix(Makefile): wrong soname for golang c-shared lib
 - chore: remove unneeded defer_simple source code
@@ -95,7 +106,7 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 - chore(dist): remove refs to defer_simple in spec file
 - chore(dist): bump version
 
-* Wed Oct 18 2023 root <root@default-ubuntu-2004.vagrantup.com> 2.3.3-1
+* Wed Oct 18 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.3.3-1
 - chore(Makefile): refacto to handle properly dlopened libokta-openvpn.so
 - chore(debian): adapt rules after Makefile refacto
 - fix(defer_okta_openvpn): context is needed, dlopen is mandatory to respect signals
@@ -123,7 +134,7 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 - chore: rename lib to be more generic
 - chore(oktaApiAuth): do not flood openvpn logs with useless messages
 
-* Wed Oct 18 2023 root <jeremy.jacque@algolia.com> 2.3.2-1
+* Wed Oct 18 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.3.2-1
 - chore(Makefile): add missing soname to shared lib
 - chore(Makefile): binary should bo to /usr/bin
 - chore(dist): add files needed to build packages
