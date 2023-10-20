@@ -37,13 +37,13 @@ func main() {
       os.Exit(1)
     }
   }
-  oktaValidator.Authenticate()
+  err := oktaValidator.Authenticate()
   if *deferred {
     oktaValidator.WriteControlFile()
     os.Exit(0)
   }
   // from here, in "Script Plugins" mode
-  if oktaValidator.IsUserValid() {
+  if err == nil {
     os.Exit(0)
   }
   os.Exit(1)
