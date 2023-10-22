@@ -1,7 +1,7 @@
 ![Release](https://img.shields.io/github/v/release/algolia/openvpn-auth-okta.svg)
 ![Go version](https://img.shields.io/github/go-mod/go-version/algolia/openvpn-auth-okta.svg)
 ![CI status](https://circleci.com/gh/algolia/openvpn-auth-okta/tree/v2.svg?style=shield)
-![Coverage](https://img.shields.io/badge/Coverage-92.1%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-94.2%25-brightgreen)
 
 # Introduction
 
