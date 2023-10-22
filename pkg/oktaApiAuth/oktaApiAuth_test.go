@@ -78,7 +78,7 @@ func TestOktaReq(t *testing.T) {
       gock.Clean()
       gock.Flush()
 
-      apiCfg := &OktaAPI{
+      apiCfg := &OktaAPIConfig{
         Url: oktaEndpoint,
         Token: token,
         UsernameSuffix: "algolia.com",
@@ -103,13 +103,16 @@ func TestOktaReq(t *testing.T) {
           MatchHeader("X-Forwarded-For", ip).
           MatchType("json").
           JSON(req.payload)
-        l.Reply(http.StatusOK).
+        l.Reply(req.httpStatus).
           File(reqponseFile)
       }
 
-      a, err := NewOktaApiAuth(apiCfg, userCfg)
-      assert.Nil(t, err)
+      a := NewOktaApiAuth()
       assert.NotNil(t, a)
+      a.ApiConfig = apiCfg
+      a.UserConfig = userCfg
+      err := a.InitPool()
+      assert.Nil(t, err)
       gock.InterceptClient(a.pool)
       // Lets ensure we wont reach the real okta API
       gock.DisableNetworking()
@@ -121,6 +124,15 @@ func TestOktaReq(t *testing.T) {
       }
     })
   }
+}
+
+func TestInitPool(t *testing.T) {
+  t.Run("Connection pool failure", func(t *testing.T) {
+    a := NewOktaApiAuth()
+    a.ApiConfig.Url = "INVALID"
+    err := a.InitPool()
+    assert.Equal(t, "dial tcp :443: connect: connection refused", err.Error())
+  })
 }
 
 
@@ -160,7 +172,7 @@ func TestAuth(t *testing.T) {
           "/api/v1/authn",
           map[string]string{"username": username, "password": password},
           http.StatusUnauthorized,
-          "preauth_invalid_token.json",
+          "preauth_invalid_credentials.json",
         },
       },
       false,
@@ -475,7 +487,7 @@ func TestAuth(t *testing.T) {
       gock.CleanUnmatchedRequest()
       gock.Flush()
 
-      apiCfg := &OktaAPI{
+      apiCfg := &OktaAPIConfig{
         Url: oktaEndpoint,
         Token: token,
         UsernameSuffix: "algolia.com",
@@ -487,8 +499,8 @@ func TestAuth(t *testing.T) {
       }
       userCfg := &OktaUserConfig{
         Username: username,
-        Password: fmt.Sprintf("%s%s", password, test.passcode),
-        Passcode: "",
+        Password: password,
+        Passcode: test.passcode,
         ClientIp: ip,
       }
 
@@ -504,9 +516,14 @@ func TestAuth(t *testing.T) {
           File(reqponseFile)
       }
 
-      a, err := NewOktaApiAuth(apiCfg, userCfg)
+      a := &OktaApiAuth{
+        ApiConfig: apiCfg,
+        UserConfig: userCfg,
+	userAgent: userAgent,
+      }
+      err := a.InitPool()
       assert.Nil(t, err)
-      assert.NotNil(t, a)
+
       gock.InterceptClient(a.pool)
       gock.DisableNetworking()
       err2 := a.Auth()
