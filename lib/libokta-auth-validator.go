@@ -4,10 +4,9 @@ import "C"
 
 import (
   "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
-  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/types"
 )
 
-type PluginEnv = types.PluginEnv
+type PluginEnv = validator.PluginEnv
 
 //export OktaAuthValidator
 func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
