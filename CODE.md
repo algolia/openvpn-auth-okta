@@ -12,13 +12,13 @@
 
 This is a plugin for OpenVPN Community Edition that allows OpenVPN to authenticate directly against Okta, with support for TOTP and Okta Verify Push factors.
 
-At a high level, when configured in `Shared Object Plugin` mode, OpenVPN communicates with this plugin via a "control file", a temporary file that OpenVPN creates and polls periodicly. If the plugin writes the ASCII character "1" into the control file, the user in question is allowed to log in to OpenVPN, if we write the ASCII character "0" into the file, the user is denied. Exit code is expected to always be 0. The `defer_simple.so` shared lib is in charge to call the binary and trnsfer it's env, providing this way the user login information to the binary.
+At a high level, when configured in `Shared Object Plugin` mode, OpenVPN communicates with this plugin via a "control file", a temporary file that OpenVPN creates and polls periodicly. If the plugin writes the ASCII character "1" into the control file, the user in question is allowed to log in to OpenVPN, if we write the ASCII character "0" into the file, the user is denied. Exit code is expected to always be 0.
 
 In `Script Plugin` mode, OpenVPN expects the exit code of the binary to be 0 if the user is allowed, 1 otherwise. OpenVPN trnasfers the user informations to the binary using:
 - a local file when configured with `via-file` method
 - environment variables when configured with `via-env` method
 
-Below are the key parts of the code for `okta_openvpn` binary:
+Below are the key parts of the code for `okta-auth-validator` binary:
 
 1.  Instantiate an OktaOpenVPNValidator struct
 2.  Load in configuration file and (environment variables or via-file)
@@ -35,7 +35,6 @@ The code flow for authenticating a user is as follows:
 Here is how we instantiate an OktaOpenVPNValidator struct:
 
 ```go
-# This is tested by test_command.sh via tests/test_command.py
 func main() {
     validator := validator.NewOktaOpenVPNValidator()
 ```
@@ -53,34 +52,42 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string) {
     if deferred {
       validator.SetControlFile(os.Getenv("auth_control_file"))
       validator.WriteControlFile()
-      os.Exit(0)
     }
-    os.Exit(1)
+    return false
   }
+
   if !deferred {
+    // We're running in "Script Plugins" mode with "via-env" method
     if len(args) > 0 {
+      // via-file" method
       if err := validator.LoadViaFile(args[0]); err != nil {
-        os.Exit(1)
+        return false
       }
     } else {
-      if err := validator.LoadEnvVars(); err != nil {
-        os.Exit(1)
+      // "via-env" method
+      if err := validator.LoadEnvVars(nil); err != nil {
+        return false
       }
     }
   } else {
-    if err := validator.LoadEnvVars(); err != nil {
+    // We're running in "Shared Object Plugin" mode
+    if err := validator.LoadEnvVars(pluginEnv); err != nil {
       validator.WriteControlFile()
-      os.Exit(0)
+      return false
     }
   }
 
   if err := validator.LoadPinset(); err != nil {
     if deferred {
       validator.WriteControlFile()
-      os.Exit(0)
     }
-    os.Exit(1)
+    return false
   }
+  validator.parsePassword()
+  if err := validator.api.InitPool(); err != nil {
+    return false
+  }
+  return true
 }
 ```
 
@@ -94,27 +101,21 @@ Here is the `Authenticate()` method:
 ```go
 func (validator *OktaOpenVPNValidator) Authenticate() {
   if !validator.usernameTrusted {
-    fmt.Printf("[%s] User is not trusted - failing\n", validator.userConfig.Username)
-    validator.isUserValid = false
-    return
+    fmt.Printf("[%s] User is not trusted - failing\n", validator.api.UserConfig.Username)
+    return errors.New("User not trusted")
   }
-  okta, err := oktaApiAuth.NewOktaApiAuth(validator.apiConfig, validator.userConfig)
-  if err != nil {
-    validator.isUserValid = false
-    return
-  }
-
-  if err := okta.Auth(); err != nil {
-    validator.isUserValid = false
-  } else {
+  if err := validator.api.Auth(); err == nil {
     validator.isUserValid = true
+    return nil
+  } else {
+    return errors.New("Authentication failed")
   }
 }
 ```
 
 This code in turns calls the `Auth()` method in the `OktaAPIAuth` struct, which does the following:
 
--   Makes an authentication request to Okta, using the `preauth()` method.
+-   Makes an authentication request to Okta, using the `preAuth()` method.
 -   Checks for errors
 -   Log the user in if the reply was `SUCCESS`
 -   Deny the user if the reply is `LOCKED_OUT`, `MFA_ENROLL` or `MFA_ENROLL_ACTIVATE`
@@ -149,14 +150,13 @@ func (validator *OktaOpenVPNValidator) WriteControlFile() {
   if err := validator.checkControlFilePerm(); err != nil {
     return
   }
+
+  valToWrite := []byte("0")
   if validator.isUserValid {
-    if err := os.WriteFile(validator.controlFile, []byte("1"), 0600); err !=nil {
-      fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
-    }
-  } else {
-    if err := os.WriteFile(validator.controlFile, []byte("0"), 0600); err !=nil {
-      fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
-    }
+    valToWrite = []byte("1")
+  }
+  if err := os.WriteFile(validator.controlFile, valToWrite, 0600); err !=nil {
+    fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
   }
 }
 ```
