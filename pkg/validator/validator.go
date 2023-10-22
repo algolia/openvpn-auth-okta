@@ -148,12 +148,8 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
       if info.IsDir() {
         continue
       } else {
-        cfg, err := ini.Load(cfgFile)
-        if err != nil {
-          // unreachable as err would not nil only if cfgFile is not a string (or a []byte, a Reader)
-          fmt.Printf("Error loading ini file: %s\n", err)
-          return err
-        }
+        // should never fail as err would be not nil only if cfgFile is not a string (or a []byte, a Reader)
+        cfg, _ := ini.Load(cfgFile)
         apiConfig := validator.api.ApiConfig
         if err := cfg.Section("OktaAPI").MapTo(apiConfig); err != nil {
           fmt.Printf("Error parsing ini file: %s\n", err)
@@ -298,12 +294,6 @@ func (validator *OktaOpenVPNValidator) Authenticate() error {
     fmt.Printf("[%s] User is not trusted - failing\n", validator.api.UserConfig.Username)
     return errors.New("User not trusted")
   }
-  /*
-  okta, err := oktaApiAuth.NewOktaApiAuth(validator.apiConfig, validator.userConfig)
-  if err != nil {
-    return errors.New("OktaApiAuth initialisation failed")
-  }
-*/
   if err := validator.api.Auth(); err == nil {
     validator.isUserValid = true
     return nil
@@ -329,7 +319,6 @@ func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
       validator.controlFile)
     return errors.New("control file dir writable by non-owners")
   }
-
   return nil
 }
 
@@ -345,6 +334,5 @@ func (validator *OktaOpenVPNValidator) WriteControlFile() {
   if err := os.WriteFile(validator.controlFile, valToWrite, 0600); err !=nil {
     fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
   }
-
 }
 
