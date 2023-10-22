@@ -3,12 +3,15 @@ package validator
 import (
   "fmt"
   "io/fs"
+  "net/http"
   "os"
   "path/filepath"
   "slices"
   "testing"
 
   "github.com/stretchr/testify/assert"
+  "gopkg.in/h2non/gock.v1"
+  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
 )
 
 const (
@@ -16,6 +19,8 @@ const (
   pin         string = "SE4qe2vdD9tAegPwO79rMnZyhHvqj3i5g1c2HkyGUNE="
   // used in TestWriteControlFile
   controlFile string = "../../testing/fixtures/validator/control_file"
+  oktaEndpoint string = "https://example.oktapreview.com"
+  token        string = "12345"
 )
 
 // used in TestReadConfigFile, TestLoadPinset
@@ -67,11 +72,19 @@ type testSetup struct {
   ret        bool
 }
 
+type authRequest struct {
+  path             string
+  payload          map[string]string
+  httpStatus       int
+  jsonResponseFile string
+}
+
 type testAuthenticate struct {
   testName    string
   cfgFile     string
   pinsetFile  string
   userTrusted bool
+  requests    []authRequest
   ret         bool
   err         error
 }
@@ -85,40 +98,94 @@ var setupEnv = map[string]string{
 }
 
 func TestAuthenticate(t *testing.T) {
+  defer gock.Off()
+  //gock.Observe(gock.DumpRequest)
   tests := []testAuthenticate{
     {
       "Untrusted user - false",
       "../../testing/fixtures/validator/valid.ini",
       "../../testing/fixtures/validator/valid.cfg",
       false,
+      nil,
       false,
       fmt.Errorf("User not trusted"),
     },
+
     {
-      "Invalid pinset/ConnectionPool err - false",
+      "Valid user - true",
       "../../testing/fixtures/validator/valid.ini",
-      "../../testing/fixtures/validator/invalid.cfg",
+      "../../testing/fixtures/validator/valid.cfg",
       true,
+      []authRequest{
+        {
+          "/api/v1/authn",
+          map[string]string{
+            "username": fmt.Sprintf("%s@example.com", setupEnv["username"]),
+            "password": setupEnv["password"],
+          },
+          http.StatusOK,
+          "preauth_success_without_mfa.json",
+        },
+      },
+      true,
+      nil,
+    },
+
+    {
+      "Invalid user - true",
+      "../../testing/fixtures/validator/valid.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      true,
+      []authRequest{
+        {
+          "/api/v1/authn",
+          map[string]string{
+            "username": fmt.Sprintf("%s@example.com", setupEnv["username"]),
+            "password": setupEnv["password"],
+          },
+          http.StatusUnauthorized,
+          "preauth_invalid_token.json",
+        },
+      },
       false,
-      fmt.Errorf("OktaApiAuth initialisation failed"),
+      fmt.Errorf("Authentication failed"),
     },
   }
+
   for _, test := range tests {
     t.Run(test.testName, func(t *testing.T) {
+      gock.Clean()
+      gock.Flush()
+
+      for _, req := range test.requests {
+        reqponseFile := fmt.Sprintf("../../testing/fixtures/oktaApi/%s", req.jsonResponseFile)
+        l := gock.New(oktaEndpoint)
+        l = l.Post(req.path).
+          MatchHeader("Authorization", fmt.Sprintf("SSWS %s", token)).
+          MatchHeader("X-Forwarded-For", setupEnv["untrusted_ip"]).
+          MatchType("json").
+          JSON(req.payload)
+        l.Reply(req.httpStatus).
+          File(reqponseFile)
+      }
+
       setEnv(setupEnv)
       v := NewOktaOpenVPNValidator()
       v.configFile = test.cfgFile
       v.pinsetFile = test.pinsetFile
-      _ = v.Setup(true, nil, nil)
+      err := v.Setup(true, nil, nil)
       unsetEnv(setupEnv)
+      assert.True(t, err)
       v.usernameTrusted = test.userTrusted
-      v.apiConfig.MFARequired = false
-      err := v.Authenticate()
+      v.api.ApiConfig.MFARequired = false
+      gock.InterceptClient(v.api.Pool())
+      gock.DisableNetworking()
+      err2 := v.Authenticate()
       assert.Equal(t, test.ret, v.isUserValid)
       if test.err == nil {
-        assert.Nil(t, err)
+        assert.Nil(t, err2)
       } else {
-        assert.Equal(t, test.err.Error(), err.Error())
+        assert.Equal(t, test.err.Error(), err2.Error())
       }
      })
    }
@@ -126,6 +193,15 @@ func TestAuthenticate(t *testing.T) {
 
 func TestSetup(t *testing.T) {
   tests := []testSetup{
+    {
+      "Invalid url in config file / deferred - false",
+      "../../testing/fixtures/validator/invalid_url.ini",
+      "../../testing/fixtures/validator/valid.cfg",
+      true,
+      setupEnv,
+      nil,
+      false,
+    },
     {
       "Invalid config file / deferred - false",
       "../../testing/fixtures/validator/invalid.ini",
@@ -252,6 +328,19 @@ func TestSetup(t *testing.T) {
    }
 }
 
+func TestCheckPasscode(t *testing.T) {
+  t.Run("Parse password with passcode", func(t *testing.T) {
+    setEnv(setupEnv)
+    v := NewOktaOpenVPNValidator()
+    _ = v.LoadEnvVars(nil)
+    v.api.UserConfig.Password = "password123456"
+    unsetEnv(setupEnv)
+    v.parsePassword()
+    assert.Equal(t, "password", v.api.UserConfig.Password)
+    assert.Equal(t, "123456", v.api.UserConfig.Passcode)
+  })
+}
+
 func TestReadConfigFile(t *testing.T) {
   tests := []testCfgFile{
     {
@@ -312,13 +401,13 @@ func TestLoadPinset(t *testing.T) {
   for _, test := range tests {
     t.Run(test.testName, func(t *testing.T) {
       v := NewOktaOpenVPNValidator()
-      v.apiConfig = &OktaAPI{}
+      v.api = oktaApiAuth.NewOktaApiAuth()
       v.pinsetFile = test.path
 
       err := v.LoadPinset()
       if test.err == nil {
         assert.Nil(t, err)
-        assert.True(t, slices.Contains(v.apiConfig.AssertPin, pin))
+        assert.True(t, slices.Contains(v.api.ApiConfig.AssertPin, pin))
       } else {
         assert.Equal(t, test.err.Error(), err.Error())
       }
@@ -380,15 +469,14 @@ func TestLoadViaFile(t *testing.T) {
   for _, test := range tests {
     t.Run(test.testName, func(t *testing.T) {
       v := NewOktaOpenVPNValidator()
-      v.apiConfig = &OktaAPI{
-          UsernameSuffix: test.usernameSuffix,
-        }
+      v.api = oktaApiAuth.NewOktaApiAuth()
+      v.api.ApiConfig.UsernameSuffix = test.usernameSuffix
       err := v.LoadViaFile(test.path)
       if test.err == nil {
         assert.Nil(t, err)
-        assert.NotNil(t, v.userConfig)
-        assert.Equal(t, test.expectedUsername, v.userConfig.Username)
-        assert.Equal(t, test.expectedPassword, v.userConfig.Password)
+        assert.NotNil(t, v.api.UserConfig)
+        assert.Equal(t, test.expectedUsername, v.api.UserConfig.Username)
+        assert.Equal(t, test.expectedPassword, v.api.UserConfig.Password)
       } else {
         assert.Equal(t, test.err.Error(), err.Error())
       }
@@ -513,18 +601,14 @@ func TestLoadEnvVars(t *testing.T) {
     t.Run(test.testName, func(t *testing.T) {
       setEnv(test.env)
       v := NewOktaOpenVPNValidator()
-      v.apiConfig = &OktaAPI{
-          UsernameSuffix: test.usernameSuffix,
-          AllowUntrustedUsers: test.allowUntrustedUsers,
-        }
+      v.api.ApiConfig.UsernameSuffix = test.usernameSuffix
+      v.api.ApiConfig.AllowUntrustedUsers = test.allowUntrustedUsers
       err := v.LoadEnvVars(nil)
       unsetEnv(test.env)
-      assert.Equal(t, v.usernameTrusted, test.expectedTrusted)
-      if v.userConfig != nil {
-        assert.Equal(t, v.userConfig.Username, test.expectedUsername)
-      }
+      assert.Equal(t, test.expectedTrusted, v.usernameTrusted)
       if test.err == nil {
         assert.Nil(t, err)
+        assert.Equal(t, test.expectedUsername, v.api.UserConfig.Username)
       } else {
         assert.Equal(t, test.err.Error(), err.Error())
       }
