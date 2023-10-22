@@ -10,28 +10,42 @@ import (
   "net/url"
   "slices"
   "sort"
-  "strconv"
   "time"
 
-  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/types"
   "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/utils"
 )
 
 const userAgent string = "Mozilla/5.0 (Linux; x86_64) OktaOpenVPN/2.1.0"
 
-type OktaAPI = types.OktaAPI
-type OktaUserConfig = types.OktaUserConfig
+// Contains the configuration for the Okta API connection
+// Those configuration options are read from okta_openvpn.ini
+type OktaAPIConfig struct {
+  Url                 string
+  Token               string
+  UsernameSuffix      string
+  AssertPin           []string
+  MFARequired         bool // default: false
+  AllowUntrustedUsers bool // default: false
+  MFAPushMaxRetries   int // default = 20
+  MFAPushDelaySeconds int // default = 3
+}
 
+// User credentials and informations
+type OktaUserConfig struct {
+  Username  string
+  Password  string
+  Passcode  string
+  ClientIp  string
+}
 
-type oktaApiAuth struct {
-  apiConfig  *OktaAPI
-  userConfig *OktaUserConfig
+type OktaApiAuth struct {
+  ApiConfig  *OktaAPIConfig
+  UserConfig *OktaUserConfig
   pool       *http.Client
   userAgent  string
 }
 
-func NewOktaApiAuth(apiConfig *OktaAPI, userConfig *OktaUserConfig) (auth *oktaApiAuth, err error) {
-  passcodeLen := 6
+func NewOktaApiAuth() (*OktaApiAuth) {
   /*
   utsname := unix.Utsname{}
   _ = unix.Uname(&utsname)
@@ -45,41 +59,44 @@ func NewOktaApiAuth(apiConfig *OktaAPI, userConfig *OktaUserConfig) (auth *oktaA
   so for now use a const var
   */
 
-  auth = &oktaApiAuth{apiConfig: apiConfig, userConfig: userConfig, userAgent: userAgent}
-  // If the password provided by the user is longer than a OTP (6 cars)
-  // and the last 6 caracters are digits
-  // then extract the user password (first) and the OTP
-  if len(userConfig.Password) > passcodeLen {
-    last := userConfig.Password[len(userConfig.Password)-passcodeLen:]
-    if _, err := strconv.Atoi(last); err == nil {
-      userConfig.Passcode = last
-      userConfig.Password = userConfig.Password[:len(userConfig.Password)-passcodeLen]
-    } else {
-      fmt.Printf("[%s] No TOTP found in password\n", auth.userConfig.Username)
-    }
+  return &OktaApiAuth{
+    ApiConfig: &OktaAPIConfig{
+      AllowUntrustedUsers: false,
+      MFARequired: false,
+      MFAPushMaxRetries: 20,
+      MFAPushDelaySeconds: 3,
+    },
+    UserConfig: &OktaUserConfig{},
+    userAgent: userAgent,
   }
-  
-  auth.pool, err = utils.ConnectionPool(apiConfig.Url, apiConfig.AssertPin)
+}
+
+func (auth *OktaApiAuth) InitPool() (err error) {
+  auth.pool, err = utils.ConnectionPool(auth.ApiConfig.Url, auth.ApiConfig.AssertPin)
   if err != nil {
-    return nil, err
+    return err
   }
-  return auth, nil
+  return nil
+}
+
+func (auth *OktaApiAuth) Pool() (*http.Client) {
+  return auth.pool
 }
 
 // Do a POST http request to the Okta API using the path and payload provided
-func (auth *oktaApiAuth) oktaReq(path string, data map[string]string) (a map[string]interface{}, err error) {
-  u, _ := url.ParseRequestURI(auth.apiConfig.Url)
+func (auth *OktaApiAuth) oktaReq(path string, data map[string]string) (a map[string]interface{}, err error) {
+  u, _ := url.ParseRequestURI(auth.ApiConfig.Url)
   u.Path = fmt.Sprintf("/api/v1%s", path)
 
-  ssws := fmt.Sprintf("SSWS %s", auth.apiConfig.Token)
+  ssws := fmt.Sprintf("SSWS %s", auth.ApiConfig.Token)
   headers := map[string]string{
     "User-Agent": auth.userAgent,
     "Content-Type": "application/json",
     "Accept": "application/json",
     "Authorization": ssws,
   }
-  if auth.userConfig.ClientIp != "0.0.0.0" {
-    headers["X-Forwarded-For"] = auth.userConfig.ClientIp
+  if auth.UserConfig.ClientIp != "0.0.0.0" {
+    headers["X-Forwarded-For"] = auth.UserConfig.ClientIp
   }
 
   jsonData, err := json.Marshal(data)
@@ -114,45 +131,45 @@ func (auth *oktaApiAuth) oktaReq(path string, data map[string]string) (a map[str
 }
 
 // Call the preauth Okta API endpoint
-func (auth *oktaApiAuth) preAuth() (map[string]interface{}, error) {
+func (auth *OktaApiAuth) preAuth() (map[string]interface{}, error) {
   // https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application
   data := map[string]string{
-    "username": auth.userConfig.Username,
-    "password": auth.userConfig.Password,
+    "username": auth.UserConfig.Username,
+    "password": auth.UserConfig.Password,
   }
   return auth.oktaReq("/authn", data)
 }
 
 // Call the MFA auth Okta API endpoint
-func (auth *oktaApiAuth) doAuth(fid string, stateToken string) (map[string]interface{}, error) {
+func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (map[string]interface{}, error) {
   // https://developer.okta.com/docs/reference/api/authn/#verify-call-factor
   path := fmt.Sprintf("/authn/factors/%s/verify", fid)
   data := map[string]string{
     "fid": fid,
     "stateToken": stateToken,
-    "passCode": auth.userConfig.Passcode,
+    "passCode": auth.UserConfig.Passcode,
   }
   return auth.oktaReq(path, data)
 }
 
-func (auth *oktaApiAuth) cancelAuth(stateToken string) (map[string]interface{}, error) {
+func (auth *OktaApiAuth) cancelAuth(stateToken string) (map[string]interface{}, error) {
   data := map[string]string{
     "stateToken": stateToken,
   }
   return auth.oktaReq("/authn/cancel", data)
 }
 
-func (auth *oktaApiAuth) Auth() (error) {
+func (auth *OktaApiAuth) Auth() (error) {
   var status string
-  fmt.Printf("[%s] Authenticating\n", auth.userConfig.Username)
+  fmt.Printf("[%s] Authenticating\n", auth.UserConfig.Username)
   retp, err := auth.preAuth()
   if err != nil {
-    fmt.Printf("[%s] Error connecting to the Okta API: %s\n", auth.userConfig.Username, err)
+    fmt.Printf("[%s] Error connecting to the Okta API: %s\n", auth.UserConfig.Username, err)
     return err
   }
 
   if _, ok := retp["errorCauses"]; ok {
-    fmt.Printf("[%s] pre-authentication failed: %s\n", auth.userConfig.Username, retp["errorSummary"])
+    fmt.Printf("[%s] pre-authentication failed: %s\n", auth.UserConfig.Username, retp["errorSummary"])
     return errors.New("pre-authentication failed")
   }
   if st, ok := retp["status"]; ok {
@@ -164,24 +181,24 @@ func (auth *oktaApiAuth) Auth() (error) {
 
     switch status {
     case "SUCCESS":
-      if auth.apiConfig.MFARequired {
-        fmt.Printf("[%s] allowed without MFA and MFA is required- refused\n", auth.userConfig.Username)
+      if auth.ApiConfig.MFARequired {
+        fmt.Printf("[%s] allowed without MFA and MFA is required - rejected\n", auth.UserConfig.Username)
         return errors.New("MFA required")
       } else {
         return nil
       }
 
     case "LOCKED_OUT":
-      fmt.Printf("[%s] user is locked out\n", auth.userConfig.Username)
+      fmt.Printf("[%s] user is locked out\n", auth.UserConfig.Username)
       return errors.New("User locked out")
 
     case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
-      fmt.Printf("[%s] user needs to enroll first\n", auth.userConfig.Username)
+      fmt.Printf("[%s] user needs to enroll first\n", auth.UserConfig.Username)
       _, _ = auth.cancelAuth(stateToken)
       return errors.New("Needs to enroll")
 
     case "MFA_REQUIRED", "MFA_CHALLENGE":
-      fmt.Printf("[%s] user password validates, checking second factor\n", auth.userConfig.Username)
+      fmt.Printf("[%s] user password validates, checking second factor\n", auth.UserConfig.Username)
 
       factors := retp["_embedded"].(map[string]interface{})["factors"].([]interface{})
       supportedFactorTypes := []string{"token:software:totp", "push"}
@@ -190,7 +207,7 @@ func (auth *oktaApiAuth) Auth() (error) {
       // When a TOTP is provided ensure that the proper Okta factor id used first, fallback to push
       // use first push when TOTP is empty
       var preferedFactor string = "push"
-      if auth.userConfig.Passcode != "" {
+      if auth.UserConfig.Passcode != "" {
         preferedFactor = "token:software:totp"
       }
       sort.Slice(factors, func(i, j int) bool {
@@ -211,24 +228,24 @@ func (auth *oktaApiAuth) Auth() (error) {
         }
         checkCount := 0
         for res["factorResult"] == "WAITING" {
-          time.Sleep(time.Duration(auth.apiConfig.MFAPushDelaySeconds)  * time.Second)
+          time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds)  * time.Second)
           res, err = auth.doAuth(fid, stateToken)
           if err != nil {
             _, _ = auth.cancelAuth(stateToken)
             return err
           }
-          if checkCount++; checkCount > auth.apiConfig.MFAPushMaxRetries {
-            fmt.Printf("[%s] User MFA push timed out\n", auth.userConfig.Username)
+          if checkCount++; checkCount > auth.ApiConfig.MFAPushMaxRetries {
+            fmt.Printf("[%s] User MFA push timed out\n", auth.UserConfig.Username)
             _, _ = auth.cancelAuth(stateToken)
             return errors.New("MFA timeout")
           }
         }
         if _, ok := res["status"]; ok {
           if res["status"] == "SUCCESS" {
-            fmt.Printf("[%s] User is now authenticated with MFA via Okta API\n", auth.userConfig.Username)
+            fmt.Printf("[%s] User is now authenticated with MFA via Okta API\n", auth.UserConfig.Username)
             return nil
           } else {
-            fmt.Printf("[%s] User MFA push failed: %s\n", auth.userConfig.Username, res["factorResult"])
+            fmt.Printf("[%s] User MFA push failed: %s\n", auth.UserConfig.Username, res["factorResult"])
             _, _ = auth.cancelAuth(stateToken)
             return errors.New("MFA failed")
           }
@@ -237,7 +254,7 @@ func (auth *oktaApiAuth) Auth() (error) {
       if _, ok := res["errorCauses"]; ok {
         cause := res["errorCauses"].([]interface{})[0]
         errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
-        fmt.Printf("[%s] User MFA token authentication failed: %s\n", auth.userConfig.Username, errorSummary)
+        fmt.Printf("[%s] User MFA token authentication failed: %s\n", auth.UserConfig.Username, errorSummary)
         return errors.New(errorSummary)
       }
       return errors.New("Unknown error")
@@ -248,7 +265,7 @@ func (auth *oktaApiAuth) Auth() (error) {
     }
   }
 
-  fmt.Printf("[%s] User is not allowed to authenticate: %s\n", auth.userConfig.Username, status)
+  fmt.Printf("[%s] User is not allowed to authenticate: %s\n", auth.UserConfig.Username, status)
   return errors.New("Not allowed")
 }
 
