@@ -5,11 +5,11 @@ import (
   "fmt"
   "os"
   "path/filepath"
+  "strconv"
   "strings"
   "gopkg.in/ini.v1"
 
   "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
-  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/types"
   "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/utils"
 )
 
@@ -28,11 +28,18 @@ var (
   }
 )
 
-type OktaAPI = types.OktaAPI
-type OktaUserConfig = types.OktaUserConfig
-type PluginEnv = types.PluginEnv
+const passcodeLen int = 6
+
+type PluginEnv struct {
+  ControlFile string
+  ClientIp    string
+  CommonName  string
+  Username    string
+  Password    string
+}
 
 type PluginMode uint8
+type OktaApiAuth = oktaApiAuth.OktaApiAuth
 
 type OktaOpenVPNValidator struct {
   configFile      string
@@ -40,16 +47,17 @@ type OktaOpenVPNValidator struct {
   usernameTrusted bool
   isUserValid     bool
   controlFile     string
-  apiConfig       *OktaAPI
-  userConfig      *OktaUserConfig
+  api             *OktaApiAuth
 }
 
 func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
+  api := oktaApiAuth.NewOktaApiAuth()
   return &OktaOpenVPNValidator{
     usernameTrusted: false,
     isUserValid: false,
     controlFile: "",
     configFile: "",
+    api: api,
   }
 }
 
@@ -101,7 +109,27 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
     }
     return false
   }
+  validator.parsePassword()
+  if err := validator.api.InitPool(); err != nil {
+    return false
+  }
   return true
+}
+
+func (validator *OktaOpenVPNValidator) parsePassword() {
+  // If the password provided by the user is longer than a OTP (6 cars)
+  // and the last 6 caracters are digits
+  // then extract the user password (first) and the OTP
+  userConfig := validator.api.UserConfig
+  if len(userConfig.Password) > passcodeLen {
+    last := userConfig.Password[len(userConfig.Password)-passcodeLen:]
+    if _, err := strconv.Atoi(last); err == nil {
+      userConfig.Passcode = last
+      userConfig.Password = userConfig.Password[:len(userConfig.Password)-passcodeLen]
+    } else {
+      fmt.Printf("[%s] No TOTP found in password\n", userConfig.Username)
+    }
+  }
 }
 
 func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
@@ -126,17 +154,12 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
           fmt.Printf("Error loading ini file: %s\n", err)
           return err
         }
-        validator.apiConfig = &OktaAPI{
-          AllowUntrustedUsers: false,
-          MFARequired: false,
-          MFAPushMaxRetries: 20,
-          MFAPushDelaySeconds: 3,
-        }
-        if err := cfg.Section("OktaAPI").MapTo(validator.apiConfig); err != nil {
+        apiConfig := validator.api.ApiConfig
+        if err := cfg.Section("OktaAPI").MapTo(apiConfig); err != nil {
           fmt.Printf("Error parsing ini file: %s\n", err)
           return err
         }
-        if validator.apiConfig.Url == "" || validator.apiConfig.Token == "" {
+        if apiConfig.Url == "" || apiConfig.Token == "" {
           fmt.Println("Missing param Url or Token")
           return errors.New("Missing param Url or Token")
         }
@@ -169,7 +192,7 @@ func (validator *OktaOpenVPNValidator) LoadPinset() (error) {
           fmt.Printf("Can not read pinset config file %s\n", pinsetFile)
           return err
         } else {
-          validator.apiConfig.AssertPin = strings.Split(string(pinset), "\n")
+          validator.api.ApiConfig.AssertPin = strings.Split(string(pinset), "\n")
           validator.pinsetFile = pinsetFile
           return nil
         }
@@ -202,15 +225,15 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
         return errors.New("Invalid CN or username format")
       }
 
+      apiConfig := validator.api.ApiConfig
       validator.usernameTrusted = true
-      if validator.apiConfig.UsernameSuffix != ""  && !strings.Contains(username, "@") {
-        username = fmt.Sprintf("%s@%s", username, validator.apiConfig.UsernameSuffix)
+      if apiConfig.UsernameSuffix != ""  && !strings.Contains(username, "@") {
+        username = fmt.Sprintf("%s@%s", username, apiConfig.UsernameSuffix)
       }
-      validator.userConfig = &OktaUserConfig{
-        Username: username,
-        Password: password,
-        ClientIp: "0.0.0.0",
-      }
+      userConfig := validator.api.UserConfig
+      userConfig.Username = username
+      userConfig.Password = password
+      userConfig.ClientIp ="0.0.0.0"
       return nil
     }
   }
@@ -234,7 +257,8 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
   // if the username comes from a certificate and AllowUntrustedUsers is false:
   // user is trusted
   // otherwise BE CAREFUL, username from OpenVPN credentials will be used !
-  if pluginEnv.CommonName != "" && !validator.apiConfig.AllowUntrustedUsers {
+  apiConfig := validator.api.ApiConfig
+  if pluginEnv.CommonName != "" && !apiConfig.AllowUntrustedUsers {
     validator.usernameTrusted = true
     pluginEnv.Username = pluginEnv.CommonName
   }
@@ -255,32 +279,32 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
     return errors.New("Invalid CN or username format")
   }
 
-  if validator.apiConfig.AllowUntrustedUsers {
+  if apiConfig.AllowUntrustedUsers {
     validator.usernameTrusted = true
   }
-  if validator.apiConfig.UsernameSuffix != ""  && !strings.Contains(pluginEnv.Username, "@") {
-    pluginEnv.Username = fmt.Sprintf("%s@%s", pluginEnv.Username, validator.apiConfig.UsernameSuffix)
+  if apiConfig.UsernameSuffix != ""  && !strings.Contains(pluginEnv.Username, "@") {
+    pluginEnv.Username = fmt.Sprintf("%s@%s", pluginEnv.Username, apiConfig.UsernameSuffix)
   }
 
-  validator.userConfig = &OktaUserConfig{
-    Username: pluginEnv.Username,
-    Password: pluginEnv.Password,
-    ClientIp: pluginEnv.ClientIp,
-  }
+  userConfig := validator.api.UserConfig
+  userConfig.Username = pluginEnv.Username
+  userConfig.Password = pluginEnv.Password
+  userConfig.ClientIp = pluginEnv.ClientIp
   return nil
 }
 
 func (validator *OktaOpenVPNValidator) Authenticate() error {
   if !validator.usernameTrusted {
-    fmt.Printf("[%s] User is not trusted - failing\n", validator.userConfig.Username)
+    fmt.Printf("[%s] User is not trusted - failing\n", validator.api.UserConfig.Username)
     return errors.New("User not trusted")
   }
+  /*
   okta, err := oktaApiAuth.NewOktaApiAuth(validator.apiConfig, validator.userConfig)
   if err != nil {
     return errors.New("OktaApiAuth initialisation failed")
   }
-
-  if err := okta.Auth(); err == nil {
+*/
+  if err := validator.api.Auth(); err == nil {
     validator.isUserValid = true
     return nil
   } else {
