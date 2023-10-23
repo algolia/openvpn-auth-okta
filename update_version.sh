@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Update all dist, debian files when bumping version
+#
+# Needs https://github.com/agx/git-buildpackage
 
 version=$1
 
@@ -19,6 +21,9 @@ git add dist/openvpn-auth-okta.spec
 git commit -m "chore(dist): Update changelog for ${version} release"
 
 sed -i'' -e "s/^\(DEBTRANSFORM-TAR: openvpn-auth-okta-\).*\(\.tar\.xz\)$/\1${version}\2/" dist/openvpn-auth-okta.dsc
+sed -i'' -e "s/^\(Version: \).*/\1${version}/" dist/openvpn-auth-okta.dsc
+git add dist/openvpn-auth-okta.dsc
+
 gbp dch --debian-branch="${branch}" \
   -c --commit-msg="chore(debian): Update changelog for %(version)s release" \
   --release \
@@ -27,7 +32,5 @@ gbp dch --debian-branch="${branch}" \
   --spawn-editor=no \
   --debian-tag="v%(version)s" \
   -N "${version}"
-
-sed -i'' -e "s/^\(Version: \).*/\1${version}/" dist/openvpn-auth-okta.dsc
 
 git tag -f -a "v${version}" -m "v${version}"
