@@ -24,14 +24,14 @@ This is a plugin for OpenVPN (Community Edition) that authenticates users direct
 
 
 %package -n okta-auth-validator
-Summary: Command line tool to authenticate against Okta.
+Summary: Command line tool to authenticate against Okta
 Requires: okta-auth-validator-common = %{version}
 
 %description -n okta-auth-validator
 This is a command line tool that authenticates users directly against Okta, with support for MFA.
 
 %package -n libokta-auth-validator
-Summary: Shared library to authenticate against Okta.
+Summary: Shared library to authenticate against Okta
 Requires: okta-auth-validator-common = %{version}
 
 %description -n libokta-auth-validator
@@ -39,14 +39,15 @@ Shared library that allows to authenticates user directly against Okta, with sup
 
 
 %package -n libokta-auth-validator-devel
-Summary: Development files for libokta-auth-validator.
+Summary: Development files for libokta-auth-validator
+Group: Development/Tools/Other
 Requires: libokta-auth-validator = %{version}
 
 %description -n libokta-auth-validator-devel
 Development files for libokta-auth-validator, a shared library that allows to authenticates user directly against Okta, with support for MFA.
 
 %package -n okta-auth-validator-common
-Summary: Config files for libokta-auth-validator.
+Summary: Config files for libokta-auth-validator
 
 %description -n okta-auth-validator-common
 Config files for openvpn-auth-okta, okta-auth-validator, libokta-auth-validator
