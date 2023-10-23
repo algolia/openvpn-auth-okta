@@ -9,19 +9,19 @@ Homepage: https://github.com/algolia/openvpn-auth-okta
 Package: openvpn-auth-okta
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${misc:Depends}, ${shlibs:Depends}, libokta-auth-validator (>= ${source:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, libokta-auth-validator (= ${source:Version}), okta-auth-validator-common (= ${source:Version})
 Description: This is a plugin for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA.
 
 Package: okta-auth-validator
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${misc:Depends}, ${shlibs:Depends}, libokta-auth-validator (>= ${source:Version})
+Depends: ${misc:Depends}, ${shlibs:Depends}, libokta-auth-validator (= ${source:Version}), okta-auth-validator-common (= ${source:Version})
 Description: This is a command line tool that authenticates users directly against Okta, with support for MFA.
 
 Package: libokta-auth-validator
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}, okta-auth-validator-common (= ${source:Version})
 Suggests: libokta-auth-validator-dev
 Description: Shared library that allows to authenticates user directly against Okta, with support for MFA.
 
@@ -30,3 +30,10 @@ Architecture: all
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Development files for libokta-auth-validator.
+
+Package: okta-auth-validator-common
+Architecture: all
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Config files for okta-auth-validator.
+
