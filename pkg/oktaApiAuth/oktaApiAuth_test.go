@@ -1,9 +1,11 @@
 package oktaApiAuth
 
 import (
+  "crypto/tls"
   "fmt"
   "net/http"
   "testing"
+  "time"
 
   "github.com/stretchr/testify/assert"
   "gopkg.in/h2non/gock.v1"
@@ -20,6 +22,17 @@ const (
   stateToken   string = "007ucIX7PATyn94hsHfOLVaXAmOBkKHWnOOLG43bsb"
   pushFID      string = "opf3hkfocI4JTLAju0g4"
   totpFID      string = "ostfm3hPNYSOIOIVTQWY"
+  // validPinset has been computed using:
+/*
+cat testing/fixtures/server.crt |\
+  openssl x509 -noout -pubkey |\
+  openssl rsa  -pubin -outform der 2>/dev/null |\
+  openssl dgst -sha256 -binary | base64
+*/
+  tlsHost       string = "127.0.0.1"
+  tlsPort       string = "1443"
+  validPinset   string = "j69yToSVkR6G7RKEc0qvsA6MysH+luI3wBIihDA20nI="
+  invalidPinset string = "ABCDEF"
 )
 
 // Computed with:
@@ -126,13 +139,98 @@ func TestOktaReq(t *testing.T) {
   }
 }
 
-func TestInitPool(t *testing.T) {
-  t.Run("Connection pool failure", func(t *testing.T) {
-    a := NewOktaApiAuth()
-    a.ApiConfig.Url = "INVALID"
-    err := a.InitPool()
-    assert.Equal(t, "dial tcp :443: connect: connection refused", err.Error())
+type poolTest struct {
+  testName string
+  host     string
+  port     string
+  pinset   []string
+  err      error
+}
+
+func startTLS(t *testing.T) {
+  t.Helper()
+
+  mux := http.NewServeMux()
+  mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+    w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+    w.WriteHeader(http.StatusOK)
+    _, _ = w.Write([]byte("This is an example server.\n"))
   })
+  cfg := &tls.Config{MinVersion: tls.VersionTLS12}
+  s := http.Server{
+    Addr: fmt.Sprintf("%s:%s", tlsHost, tlsPort),
+    Handler: mux,
+    TLSConfig: cfg,
+    ReadTimeout: 1*time.Second,
+    WriteTimeout: 1*time.Second,
+  }
+  err := s.ListenAndServeTLS("../../testing/fixtures/utils/server.crt",
+    "../../testing/fixtures/utils/server.key")
+  assert.NoError(t, err)
+  t.Cleanup(func() { _ = s.Close() })
+}
+
+func TestInitPool(t *testing.T) {
+  invalidHost := "invalid{host"
+  invalidHostErr := fmt.Sprintf("parse \"https://%s:%s\": invalid character \"{\" in host name",
+    invalidHost,
+    tlsPort)
+
+  tests := []poolTest{
+    {
+      "Test valid pinset",
+      tlsHost,
+      tlsPort,
+      []string{validPinset},
+      nil,
+    },
+
+    {
+      "Test invalid pinset",
+      tlsHost,
+      tlsPort,
+      []string{invalidPinset},
+      fmt.Errorf("Server pubkey does not match pinned keys"),
+    },
+
+    {
+      "Test unreachable host",
+      tlsHost,
+      "1444",
+      []string{},
+      fmt.Errorf(fmt.Sprintf("dial tcp %s:1444: connect: connection refused", tlsHost)),
+    },
+
+    {
+      "Test invalid url",
+      invalidHost,
+      tlsPort,
+      []string{},
+      fmt.Errorf(invalidHostErr),
+    },
+  }
+
+  go func(){
+    startTLS(t)
+  }()
+
+  time.Sleep(1 * time.Second)
+  for _, test := range tests {
+    t.Run(test.testName, func(t *testing.T) {
+      a := NewOktaApiAuth()
+      a.ApiConfig.Url = fmt.Sprintf("https://%s:%s", test.host, test.port)
+      a.ApiConfig.AssertPin = test.pinset
+      err := a.InitPool()
+      if test.err == nil {
+        if err != nil {
+          t.Logf(err.Error())
+        }
+        assert.Nil(t, err)
+      } else {
+        assert.Equal(t, test.err.Error(), err.Error())
+      }
+    })
+  }
 }
 
 
