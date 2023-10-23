@@ -13,6 +13,7 @@ BuildRequires: golang-1.21
 BuildRequires: gcc
 BuildRequires: make
 Requires: libokta-auth-validator = %{version}
+Requires: okta-auth-validator-common = %{version}
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-build
 
@@ -24,6 +25,7 @@ This is a plugin for OpenVPN (Community Edition) that authenticates users direct
 
 %package -n okta-auth-validator
 Summary: Command line tool to authenticate against Okta.
+Requires: okta-auth-validator-common = %{version}
 
 %description -n okta-auth-validator
 This is a command line tool that authenticates users directly against Okta, with support for MFA.
@@ -31,6 +33,7 @@ This is a command line tool that authenticates users directly against Okta, with
 
 %package -n libokta-auth-validator
 Summary: Shared library to authenticate against Okta.
+Requires: okta-auth-validator-common = %{version}
 
 %description -n libokta-auth-validator
 Shared library that allows to authenticates user directly against Okta, with support for MFA.
@@ -39,6 +42,10 @@ Shared library that allows to authenticates user directly against Okta, with sup
 %package -n libokta-auth-validator-devel
 Summary: Development files for libokta-auth-validator.
 Requires: libokta-auth-validator = %{version}
+
+%package -n okta-auth-validator-common
+Summary: Config files for libokta-auth-validator.
+
 
 %description -n libokta-auth-validator-devel
 Development files for libokta-auth-validator, a shared library that allows to authenticates user directly against Okta, with support for MFA.
@@ -57,8 +64,10 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 %files
 %dir %{_libdir}/openvpn
 %dir %{plugin_dir}/
-%dir /etc/okta-auth-validator/
 %attr(0644,root,root) %{plugin_dir}/openvpn-plugin-auth-okta.so
+
+%files -n okta-auth-validator-common
+%dir /etc/okta-auth-validator/
 %attr(0644,root,root) %config(noreplace) /etc/okta-auth-validator/okta_pinset.cfg
 %attr(0640,root,root) %config(noreplace) /etc/okta-auth-validator/okta_openvpn.ini
 
