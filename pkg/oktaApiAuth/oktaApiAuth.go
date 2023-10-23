@@ -2,17 +2,19 @@ package oktaApiAuth
 
 import (
   "bytes"
-  "io"
+  "crypto/sha256"
+  "crypto/tls"
+  "crypto/x509"
+  "encoding/base64"
   "encoding/json"
   "errors"
   "fmt"
+  "io"
   "net/http"
   "net/url"
   "slices"
   "sort"
   "time"
-
-  "gopkg.in/algolia/openvpn-auth-okta.v2/pkg/utils"
 )
 
 const userAgent string = "Mozilla/5.0 (Linux; x86_64) OktaOpenVPN/2.1.0"
@@ -71,10 +73,73 @@ func NewOktaApiAuth() (*OktaApiAuth) {
   }
 }
 
-func (auth *OktaApiAuth) InitPool() (err error) {
-  auth.pool, err = utils.ConnectionPool(auth.ApiConfig.Url, auth.ApiConfig.AssertPin)
-  if err != nil {
+// Prepare an http client with the proper TLS config
+// validate the server public key against our list of pinned key fingerprint
+func (auth *OktaApiAuth) InitPool() error {
+  if rawURL, err := url.Parse(auth.ApiConfig.Url); err != nil {
     return err
+  } else {
+    port := rawURL.Port()
+    if port == "" {
+      port="443"
+    }
+    // Connect to the server, fetch its public key and validate it against the
+    // base64 digest in pinset slice
+    tcpURL := fmt.Sprintf("%s:%s", rawURL.Hostname(), port)
+    conn, err := tls.Dial("tcp", tcpURL, &tls.Config{InsecureSkipVerify: true})
+    if err != nil {
+      fmt.Printf("Error in Dial: %s\n", err)
+      return err
+    }
+    defer conn.Close()
+    certs := conn.ConnectionState().PeerCertificates
+    for _, cert := range certs {
+      if !cert.IsCA {
+        // Compute public key base64 digest
+        derPubKey, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
+        if err != nil {
+          return err
+        }
+        pubKeySha := sha256.Sum256(derPubKey)
+        digest := base64.StdEncoding.EncodeToString([]byte(string(pubKeySha[:])))
+
+        if !slices.Contains(auth.ApiConfig.AssertPin, digest) {
+          fmt.Printf("Refusing to authenticate because host %s failed %s\n%s\n",
+            rawURL.Hostname(),
+            "a TLS public key pinning check.",
+            "Please contact support@okta.com with this error message")
+            return errors.New("Server pubkey does not match pinned keys")
+        }
+      }
+    }
+  }
+
+  tlsCfg := &tls.Config{
+    InsecureSkipVerify: false,
+    MinVersion: tls.VersionTLS12,
+    CipherSuites: []uint16{
+      // TLS 1.2 safe cipher suites
+      tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+      tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+      tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+      tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+      tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+      tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+      // TLS 1.3 cipher suites
+      tls.TLS_AES_128_GCM_SHA256,
+      tls.TLS_AES_256_GCM_SHA384,
+      tls.TLS_CHACHA20_POLY1305_SHA256,
+    },
+  }
+  t := &http.Transport{
+    MaxIdleConns: 5,
+    MaxConnsPerHost: 5,
+    MaxIdleConnsPerHost: 5,
+    TLSClientConfig: tlsCfg,
+  }
+  auth.pool = &http.Client{
+    Timeout:   10 * time.Second,
+    Transport: t,
   }
   return nil
 }
