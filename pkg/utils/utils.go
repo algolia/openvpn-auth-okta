@@ -5,7 +5,7 @@ import (
   "os"
 )
  
-
+// get an env var by its name, returns the fallback if not found
 func GetEnv(key, fallback string) string {
   if value, ok := os.LookupEnv(key); ok && value != "" {
     return value
@@ -13,6 +13,7 @@ func GetEnv(key, fallback string) string {
   return fallback
 }
 
+// check that username respects OpenVPN recomandation
 func CheckUsernameFormat(name string) bool {
   /* OpenVPN doc says:
   To protect against a client passing a maliciously formed username or password string,
@@ -40,6 +41,7 @@ func CheckNotWritable(path string) bool {
   return true
 }
 
+// remove all empty strings from string slice
 func RemoveEmptyStrings(s []string) []string {
   var r []string
   for _, str := range s {
@@ -50,6 +52,7 @@ func RemoveEmptyStrings(s []string) []string {
   return r
 }
 
+// remove all comments from string slice
 func RemoveComments(s []string) []string {
   var r []string
   reg, _ := regexp.Compile(`^[[:blank:]]*#`)
