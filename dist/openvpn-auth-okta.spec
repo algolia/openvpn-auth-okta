@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.5.0
+Version: 2.5.1
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,13 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Tue Oct 24 2023 vagrant <jeremy.jacque@algolia.com> 2.5.1-1
+- chore(pkg): relocate http pool initialisation from utils to oktaApiAuth
+- chore(utils): simplify test
+- chore(utils): add a function to remove comments from a slice
+- chore(validator): remove from the pinset list empty lines and comments
+- chore(utils): simplify CheckUsernameFormat
+
 * Sun Oct 22 2023 vagrant <jeremy.jacque@algolia.com> 2.5.0-1
 - chore(pkg): remove now useless types package
 - chore(oktaApiAuth): move types in pkg, split constructor, make needed struct fields public
@@ -95,6 +102,12 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 - chore(doc): reflect latest changes
 - chore(validator): remove useles comments, error test
 - chore(doc): update coverage badge after new tests implem
+- chore(debian): add missing common package for config files
+- chore(dist): split RPM pkg to have a dedicated config file one
+- chore(tools): small fix
+- fix(dist): add missing description for okta-auth-validator-common
+- chore(dist): fix some rpmlint issues
+- chore(cfg): remove algolia ref
 
 * Fri Oct 20 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.4.3-1
 - chore: change plugin file name to be aligned with other OpenVPN plugins
