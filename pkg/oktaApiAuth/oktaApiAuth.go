@@ -22,13 +22,31 @@ const userAgent string = "Mozilla/5.0 (Linux; x86_64) OktaOpenVPN/2.1.0"
 // Contains the configuration for the Okta API connection
 // Those configuration options are read from okta_openvpn.ini
 type OktaAPIConfig struct {
+  // Okta API server url, ie https://example.oktapreview.com
   Url                 string
+
+  // Your (company's) Okta API token
   Token               string
+
+  // The suffix to be added to your users names:
+  // ie if UsernameSuffix = "example.com" and your user logs in with "dade.murphy"
+  // the validator will try to authenticate for "dade.murphy@example.com"
   UsernameSuffix      string
+
+  // A list of valid SSL public key fingerprint to validate the Okta API server certificate against
   AssertPin           []string
+
+  // Is MFA Required for all users. If yes and Okta authenticates the user without MFA (not configured)
+  // the validator will reject it.
   MFARequired         bool // default: false
+
+  // Do not require usernames to come from client-side SSL certificates
   AllowUntrustedUsers bool // default: false
+
+  // Number of retries when waiting for MFA result
   MFAPushMaxRetries   int // default = 20
+
+  // Number of seconds to wait between MFA result retrieval tries
   MFAPushDelaySeconds int // default = 3
 }
 
@@ -73,7 +91,7 @@ func NewOktaApiAuth() (*OktaApiAuth) {
   }
 }
 
-// Prepare an http client with the proper TLS config
+// Prepare an http client with a safe TLS config
 // validate the server public key against our list of pinned key fingerprint
 func (auth *OktaApiAuth) InitPool() error {
   if rawURL, err := url.Parse(auth.ApiConfig.Url); err != nil {
