@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.5.1
+Version: 2.5.2
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,12 +84,7 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
-* Tue Oct 24 2023 vagrant <jeremy.jacque@algolia.com> 2.5.1-1
-- chore(pkg): relocate http pool initialisation from utils to oktaApiAuth
-- chore(utils): simplify test
-- chore(utils): add a function to remove comments from a slice
-- chore(validator): remove from the pinset list empty lines and comments
-- chore(utils): simplify CheckUsernameFormat
+* Tue Oct 24 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.2-1
 - chore(oktaApiAuth): add comments for functions
 - chore(utils): add comments for functions
 - chore(validator): remove useless function
@@ -99,7 +94,14 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 - chore(oktaApiAuth): add struct comments
 - chore(validator): add struct comments
 
-* Sun Oct 22 2023 vagrant <jeremy.jacque@algolia.com> 2.5.0-1
+* Tue Oct 24 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.1-1
+- chore(pkg): relocate http pool initialisation from utils to oktaApiAuth
+- chore(utils): simplify test
+- chore(utils): add a function to remove comments from a slice
+- chore(validator): remove from the pinset list empty lines and comments
+- chore(utils): simplify CheckUsernameFormat
+
+* Sun Oct 22 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.0-1
 - chore(pkg): remove now useless types package
 - chore(oktaApiAuth): move types in pkg, split constructor, make needed struct fields public
 - chore(oktaApiAuth/test): struct has been renamed, test InitPool

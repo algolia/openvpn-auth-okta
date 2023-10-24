@@ -1,11 +1,6 @@
-openvpn-auth-okta (2.5.1) stable; urgency=medium
+openvpn-auth-okta (2.5.2) stable; urgency=medium
 
   [ Jeremy JACQUE ]
-  * chore(pkg): relocate http pool initialisation from utils to oktaApiAuth
-  * chore(utils): simplify test
-  * chore(utils): add a function to remove comments from a slice
-  * chore(validator): remove from the pinset list empty lines and comments
-  * chore(utils): simplify CheckUsernameFormat
   * chore(oktaApiAuth): add comments for functions
   * chore(utils): add comments for functions
   * chore(validator): remove useless function
@@ -14,6 +9,17 @@ openvpn-auth-okta (2.5.1) stable; urgency=medium
   * chore(oktaApiAuth): clientIp is not set anymore to 0.0.0.0
   * chore(oktaApiAuth): add struct comments
   * chore(validator): add struct comments
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Wed, 25 Oct 2023 01:38:42 +0000
+
+openvpn-auth-okta (2.5.1) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * chore(pkg): relocate http pool initialisation from utils to oktaApiAuth
+  * chore(utils): simplify test
+  * chore(utils): add a function to remove comments from a slice
+  * chore(validator): remove from the pinset list empty lines and comments
+  * chore(utils): simplify CheckUsernameFormat
 
  -- Jeremy Jacque <jeremy.jacque@algolia.com>  Tue, 24 Oct 2023 01:03:42 +0000
 
