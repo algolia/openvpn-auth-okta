@@ -61,10 +61,6 @@ func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
   }
 }
 
-func (validator *OktaOpenVPNValidator) SetControlFile(f string) {
-  validator.controlFile = f
-}
-
 func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, pluginEnv *PluginEnv) bool {
   if err := validator.ReadConfigFile(); err != nil {
     if deferred {
@@ -73,7 +69,7 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
       * in the control file.
       * here the validator control may not have been yet set, force it
       */
-      validator.SetControlFile(os.Getenv("auth_control_file"))
+      validator.controlFile = os.Getenv("auth_control_file")
       validator.WriteControlFile()
     }
     return false
