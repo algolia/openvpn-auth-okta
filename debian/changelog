@@ -1,3 +1,14 @@
+openvpn-auth-okta (2.5.1) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * chore(pkg): relocate http pool initialisation from utils to oktaApiAuth
+  * chore(utils): simplify test
+  * chore(utils): add a function to remove comments from a slice
+  * chore(validator): remove from the pinset list empty lines and comments
+  * chore(utils): simplify CheckUsernameFormat
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Tue, 24 Oct 2023 01:03:42 +0000
+
 openvpn-auth-okta (2.5.0) stable; urgency=medium
 
   [ Jeremy JACQUE ]
@@ -11,6 +22,12 @@ openvpn-auth-okta (2.5.0) stable; urgency=medium
   * chore(doc): reflect latest changes
   * chore(validator): remove useles comments, error test
   * chore(doc): update coverage badge after new tests implem
+  * chore(debian): add missing common package for config files
+  * chore(dist): split RPM pkg to have a dedicated config file one
+  * chore(tools): small fix
+  * fix(dist): add missing description for okta-auth-validator-common
+  * chore(dist): fix some rpmlint issues
+  * chore(cfg): remove algolia ref
 
  -- Jeremy Jacque <jeremy.jacque@algolia.com>  Sun, 22 Oct 2023 23:37:45 +0000
 
