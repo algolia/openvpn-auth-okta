@@ -30,11 +30,24 @@ var (
 
 const passcodeLen int = 6
 
+// PluginEnv represents the information passed to the validator when it's running as
+// `Shared Object Plugin`
 type PluginEnv struct {
+  // ControlFile is the path to the OpenVPN auth control file
+  // where the authentication result is written
   ControlFile string
+
+  // The OpenVPN client ip address, used as `X-Forwarded-For` payload attribute
+  // to the Okta API
   ClientIp    string
+
+  // The CN of the SSL certificate presented by the OpenVPN client
   CommonName  string
+
+  // The client username submitted during OpenVPN authentication
   Username    string
+
+  // The client password submitted during OpenVPN authentication
   Password    string
 }
 
@@ -61,7 +74,7 @@ func NewOktaOpenVPNValidator() (*OktaOpenVPNValidator) {
   }
 }
 
-// setup the validator depending on the way it's invoked
+// Setup the validator depending on the way it's invoked
 func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, pluginEnv *PluginEnv) bool {
   if err := validator.ReadConfigFile(); err != nil {
     if deferred {
@@ -113,7 +126,7 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
   return true
 }
 
-// parse the password looking for an TOTP
+// Parse the password looking for an TOTP
 func (validator *OktaOpenVPNValidator) parsePassword() {
   // If the password provided by the user is longer than a OTP (6 cars)
   // and the last 6 caracters are digits
@@ -130,7 +143,7 @@ func (validator *OktaOpenVPNValidator) parsePassword() {
   }
 }
 
-// read the ini file looking for common API config
+// Read the ini file containing the API config
 func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
   var cfgPaths []string
   if validator.configFile == "" {
@@ -167,7 +180,7 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() (error) {
   return errors.New("No ini file found")
 }
 
-// read all allowed pubkey fingerprints for the API server from pinset file
+// Read all allowed pubkey fingerprints for the API server from pinset file
 func (validator *OktaOpenVPNValidator) LoadPinset() (error) {
   var pinsetPaths []string
   if validator.pinsetFile == "" {
@@ -200,7 +213,7 @@ func (validator *OktaOpenVPNValidator) LoadPinset() (error) {
   return errors.New("No pinset file found")
 }
 
-// get user credentials from the OpenVPN via-file
+// Get user credentials from the OpenVPN via-file
 func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
   if _, err := os.Stat(path); err != nil {
       fmt.Printf("OpenVPN via-file %s does not exists\n", path)
@@ -237,7 +250,7 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
   }
 }
 
-// get user credentials and info from the environment set by OpenVPN
+// Get user credentials and info from the environment set by OpenVPN
 func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
   if pluginEnv == nil {
     pluginEnv = &PluginEnv{
@@ -293,7 +306,7 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
   return nil
 }
 
-// authenticate the user against Okta API
+// Authenticate the user against Okta API
 func (validator *OktaOpenVPNValidator) Authenticate() error {
   if !validator.usernameTrusted {
     fmt.Printf("[%s] User is not trusted - failing\n", validator.api.UserConfig.Username)
@@ -307,7 +320,7 @@ func (validator *OktaOpenVPNValidator) Authenticate() error {
   }
 }
 
-// validate the OpenVPN control file and its directory permissions
+// Validate the OpenVPN control file and its directory permissions
 func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
   if validator.controlFile == "" {
     return errors.New("Unknow control file")
@@ -327,7 +340,7 @@ func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
   return nil
 }
 
-// write the authentication result in the OpenVPN control file (only used in deferred mode)
+// Write the authentication result in the OpenVPN control file (only used in deferred mode)
 func (validator *OktaOpenVPNValidator) WriteControlFile() {
   if err := validator.checkControlFilePerm(); err != nil {
     return
@@ -341,4 +354,3 @@ func (validator *OktaOpenVPNValidator) WriteControlFile() {
     fmt.Printf("Failed to write to OpenVPN control file %s\n", validator.controlFile)
   }
 }
-
