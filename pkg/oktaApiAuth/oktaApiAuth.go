@@ -160,7 +160,7 @@ func (auth *OktaApiAuth) oktaReq(path string, data map[string]string) (a map[str
     "Accept": "application/json",
     "Authorization": ssws,
   }
-  if auth.UserConfig.ClientIp != "0.0.0.0" {
+  if auth.UserConfig.ClientIp != "" {
     headers["X-Forwarded-For"] = auth.UserConfig.ClientIp
   }
 
