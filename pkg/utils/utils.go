@@ -52,3 +52,14 @@ func RemoveEmptyStrings(s []string) []string {
   }
   return r
 }
+
+func RemoveComments(s []string) []string {
+  var r []string
+  reg, _ := regexp.Compile(`^[[:blank:]]*#`)
+  for _, str := range s {
+    if match :=  reg.MatchString(`^[[:blank:]]*#`); !match {
+      r = append(r, str)
+    }
+  }
+  return r
+}
