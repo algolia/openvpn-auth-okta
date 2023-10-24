@@ -19,11 +19,8 @@ func CheckUsernameFormat(name string) bool {
   the username string must consist only of these characters:
   alphanumeric, underbar ('_'), dash ('-'), dot ('.'), or at ('@').
   */
-  match, err := regexp.MatchString(`^([[:alnum:]]|[_\-\.@])*$`, name);
-  if err != nil || !match {
-    return false
-  }
-  return true
+   match, _ := regexp.MatchString(`^([[:alnum:]]|[_\-\.@])*$`, name)
+  return match
 }
 
 // Check that path is not group or other writable
