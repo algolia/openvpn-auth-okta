@@ -217,13 +217,17 @@ func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (map[string]inter
   return auth.oktaReq(path, data)
 }
 
+// Cancel an authentication transaction
 func (auth *OktaApiAuth) cancelAuth(stateToken string) (map[string]interface{}, error) {
+  // https://developer.okta.com/docs/reference/api/authn/#cancel-transaction
   data := map[string]string{
     "stateToken": stateToken,
   }
   return auth.oktaReq("/authn/cancel", data)
 }
 
+// Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
+// returns nil if has been validated by Okta API, an error otherwise
 func (auth *OktaApiAuth) Auth() (error) {
   var status string
   fmt.Printf("[%s] Authenticating\n", auth.UserConfig.Username)
