@@ -188,7 +188,9 @@ func (validator *OktaOpenVPNValidator) LoadPinset() (error) {
           fmt.Printf("Can not read pinset config file %s\n", pinsetFile)
           return err
         } else {
-          validator.api.ApiConfig.AssertPin = strings.Split(string(pinset), "\n")
+          pinsetArray := strings.Split(string(pinset), "\n")
+          cleanPinset := utils.RemoveComments(utils.RemoveEmptyStrings(pinsetArray))
+          validator.api.ApiConfig.AssertPin = cleanPinset
           validator.pinsetFile = pinsetFile
           return nil
         }
