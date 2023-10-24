@@ -232,7 +232,6 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) (error){
       userConfig := validator.api.UserConfig
       userConfig.Username = username
       userConfig.Password = password
-      userConfig.ClientIp ="0.0.0.0"
       return nil
     }
   }
@@ -245,7 +244,8 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
       Username: os.Getenv("username"),
       CommonName: os.Getenv("common_name"),
       Password: os.Getenv("password"),
-      ClientIp: utils.GetEnv("untrusted_ip", "0.0.0.0"),
+      // TODO: use the local public ip as fallback
+      ClientIp: utils.GetEnv("untrusted_ip", ""),
       ControlFile: os.Getenv("auth_control_file"),
     }
   }
