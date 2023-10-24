@@ -90,6 +90,14 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 - chore(utils): add a function to remove comments from a slice
 - chore(validator): remove from the pinset list empty lines and comments
 - chore(utils): simplify CheckUsernameFormat
+- chore(oktaApiAuth): add comments for functions
+- chore(utils): add comments for functions
+- chore(validator): remove useless function
+- chore(validator): add comments for functions
+- chore(validator): do not set clientIp when not needed
+- chore(oktaApiAuth): clientIp is not set anymore to 0.0.0.0
+- chore(oktaApiAuth): add struct comments
+- chore(validator): add struct comments
 
 * Sun Oct 22 2023 vagrant <jeremy.jacque@algolia.com> 2.5.0-1
 - chore(pkg): remove now useless types package

@@ -6,6 +6,14 @@ openvpn-auth-okta (2.5.1) stable; urgency=medium
   * chore(utils): add a function to remove comments from a slice
   * chore(validator): remove from the pinset list empty lines and comments
   * chore(utils): simplify CheckUsernameFormat
+  * chore(oktaApiAuth): add comments for functions
+  * chore(utils): add comments for functions
+  * chore(validator): remove useless function
+  * chore(validator): add comments for functions
+  * chore(validator): do not set clientIp when not needed
+  * chore(oktaApiAuth): clientIp is not set anymore to 0.0.0.0
+  * chore(oktaApiAuth): add struct comments
+  * chore(validator): add struct comments
 
  -- Jeremy Jacque <jeremy.jacque@algolia.com>  Tue, 24 Oct 2023 01:03:42 +0000
 
