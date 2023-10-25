@@ -2,11 +2,11 @@
 *.pyc
 *.so
 *.o
-okta_openvpn
 venv/
 .DS_Store
 build/
 okta_openvpn.ini
+api.ini
 .dccache
 
 # Temporary testing files
