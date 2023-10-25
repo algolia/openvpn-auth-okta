@@ -129,7 +129,7 @@ To manually install the C plugin, copy the `build/openvpn-plugin-auth-okta.so` f
 
 #### Manually installing the Golang binary
 
-To manually install the binary, copy the `okta-auth-validator` to your system bin dir; the `okta\_pinset.cfg`, and `okta\_openvpn.ini` files to the location where your OpenVPN plugin scripts are stored.
+To manually install the binary, copy the `okta-auth-validator` to your system bin dir; the `pinset.cfg`, and `api.ini` files to the location where your OpenVPN plugin scripts are stored.
 
 
 ## Make sure that OpenVPN has a tempory directory
@@ -147,16 +147,16 @@ Use the [chown](https://en.wikipedia.org/wiki/Chown) and [chmod](https://en.wiki
 
 ## Configure the Okta OpenVPN plugin
 
-The Okta OpenVPN plugin is configured via the `okta\_openvpn.ini` file. You **must** update this file with the configuration options for your Okta organization for the plugin to work.
+The Okta OpenVPN plugin is configured via the `api.ini` file. You **must** update this file with the configuration options for your Okta organization for the plugin to work.
 
 If you installed the Okta OpenVPN plugin to the default location, run this command to edit your configuration file.
 
 ```shell
-$ sudo $EDITOR /etc/okta-auth-validator/okta_openvpn.ini
+$ sudo $EDITOR /etc/okta-auth-validator/api.ini
 ```
 > :warning: As this file contains your Okta token, please ensure it has limited permissions (should only be readable by root or the user running OpenVPN) !
 
-See [okta_openvpn.ini](https://github.com/algolia/openvpn-auth-okta/blob/v2/okta_openvpn.ini.inc) for configuration options.
+See [api.ini](https://github.com/algolia/openvpn-auth-okta/blob/v2/api.ini.inc) for configuration options.
 
 
 ## Configure OpenVPN to use the C `Shared Object Plugin`
