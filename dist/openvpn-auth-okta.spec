@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.5.2
+Version: 2.5.3
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,20 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Wed Oct 25 2023 vagrant <jeremy.jacque@algolia.com> 2.5.3-1
+- style(utils): use gofmt std indentation
+- style(oktaApiAuth): use gofmt std indentation
+- style(validator): use gofmt std indentation
+- style(cmd): use gofmt std indentation
+- style(lib): use gofmt std indentation
+- chore(doc): update coverage badge
+- chore(doc): add doc ref and goreportcard badges
+- chore(pkg): rename config files
+- chore(Makefile): rename config files
+- chore(dist): rename config files
+- chore(doc): rename config files
+- chore(git): rename config files
+
 * Tue Oct 24 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.2-1
 - chore(oktaApiAuth): add comments for functions
 - chore(utils): add comments for functions
