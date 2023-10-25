@@ -1,3 +1,21 @@
+openvpn-auth-okta (2.5.3) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * style(utils): use gofmt std indentation
+  * style(oktaApiAuth): use gofmt std indentation
+  * style(validator): use gofmt std indentation
+  * style(cmd): use gofmt std indentation
+  * style(lib): use gofmt std indentation
+  * chore(doc): update coverage badge
+  * chore(doc): add doc ref and goreportcard badges
+  * chore(pkg): rename config files
+  * chore(Makefile): rename config files
+  * chore(dist): rename config files
+  * chore(doc): rename config files
+  * chore(git): rename config files
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Wed, 25 Oct 2023 08:28:10 +0000
+
 openvpn-auth-okta (2.5.2) stable; urgency=medium
 
   [ Jeremy JACQUE ]
