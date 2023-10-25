@@ -20,7 +20,7 @@ import (
 const userAgent string = "Mozilla/5.0 (Linux; x86_64) OktaOpenVPN/2.1.0"
 
 // Contains the configuration for the Okta API connection
-// Those configuration options are read from okta_openvpn.ini
+// Those configuration options are read from api.ini
 type OktaAPIConfig struct {
 	// Okta API server url, ie https://example.oktapreview.com
 	Url string
