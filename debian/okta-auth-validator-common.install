@@ -1,2 +1,2 @@
-etc/okta-auth-validator/okta_pinset.cfg
-etc/okta-auth-validator/okta_openvpn.ini
+etc/okta-auth-validator/pinset.cfg
+etc/okta-auth-validator/api.ini
