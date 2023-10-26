@@ -7,14 +7,15 @@
 
 # Introduction
 
-This is a plugin/binary for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA (TOTP or PUSH only).
+This offers a set of lib and binary to authenticate users against [Okta Authentication API](https://developer.okta.com/docs/reference/api/authn/) , with support for MFA (TOTP or PUSH only).
+It also offers a plugin for OpenVPN (Community Edition) using the lib mentionned above.
 
-> :exclamation: Note: This plugin does not work with OpenVPN Access Server (OpenVPN-AS)
+> :exclamation: Note: The plugin does not work with OpenVPN Access Server (OpenVPN-AS)
 
 
 # Requirements
 
-This plugin requires that OpenVPN Community Edition be configured or used in one the following ways:
+The plugin requires that OpenVPN Community Edition be configured or used in one the following ways:
 
 1.  OpenVPN can be configured to call plugins via a deferred call (aka `Shared Object Plugin` mode) or call the binary directly (aka `Script Plugin` mode).
 2.  By default, OpenVPN clients *must* authenticate using client SSL certificates.
@@ -39,7 +40,7 @@ Compile the C plugin from this directory using this command:
 $ make plugin
 ```
 
-Compile the Golang binary plugin from this directory using this command:
+Compile the Golang binary from this repository using this command:
 
 ```shell
 $ make binary
@@ -168,7 +169,7 @@ plugin openvpn-plugin-auth-okta.so
 tmp-dir "/etc/openvpn/tmp"
 ```
 
-The default location for OpenVPN configuration files is `/etc/openvpn/server.conf`.  
+The default location for the OpenVPN configuration file is `/etc/openvpn/server.conf`.  
 This method is considered the safest as no credential is exported to a process environment or written to disk.
 
 
@@ -196,8 +197,6 @@ tmp-dir "/etc/openvpn/tmp"
 ```
 
 Please check the OpenVPN [manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-0/#options) for security considerations regarding this mode.
-
-The default location for OpenVPN configuration files is usually `/etc/openvpn/server.conf`
 
 
 # Useful links
