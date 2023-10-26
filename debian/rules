@@ -22,5 +22,10 @@ override_dh_auto_build:
 override_dh_auto_test:
 endif
 
+override_dh_fixperms:
+	dh_fixperms
+	chmod 0644 debian/tmp/etc/okta-auth-validator/pinset.cfg
+	chmod 0640 debian/tmp/etc/okta-auth-validator/api.ini
+
 override_dh_auto_install:
 	make install DESTDIR=$(CURDIR)/debian/tmp LIB_PREFIX=/usr/lib/$(DEB_HOST_MULTIARCH)
