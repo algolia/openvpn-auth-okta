@@ -99,10 +99,10 @@ install: all
 	$(INSTALL) -m644 $(BUILDDIR)/libokta-auth-validator.h $(DESTDIR)/usr/include/
 	$(INSTALL) -m644 $(BUILDDIR)/openvpn-plugin-auth-okta.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
 	if [ ! -f $(DESTDIR)/etc/okta-auth-validator/pinset.cfg ]; then \
-		$(INSTALL) -m644 pinset.cfg $(DESTDIR)/etc/okta-auth-validator/pinset.cfg; \
+		$(INSTALL) -m644 config/pinset.cfg $(DESTDIR)/etc/okta-auth-validator/pinset.cfg; \
 	fi
 	if [ ! -f $(DESTDIR)/etc/okta-auth-validator/api.ini ]; then \
-		$(INSTALL) -m640 api.ini.inc $(DESTDIR)/etc/okta-auth-validator/api.ini; \
+		$(INSTALL) -m640 config/api.ini.inc $(DESTDIR)/etc/okta-auth-validator/api.ini; \
 	fi
 
 clean:
