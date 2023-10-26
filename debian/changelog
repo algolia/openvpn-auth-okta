@@ -1,3 +1,18 @@
+openvpn-auth-okta (2.5.4) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * chore: rename config files
+  * fix(doc): fix invalid license header
+  * chore(doc): small README updates
+  * chore(doc): remove CODE.md as the pkg is now referenced in pkg.go.dev
+  * chore(doc): update authors
+  * chore(dist): move tool to update packages version
+  * chore(config): move config files to a dedicated dir
+  * chore(Makefile): enforce some compiler options
+  * fix(debian): ensure proper config files permissions
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Thu, 26 Oct 2023 22:20:24 +0000
+
 openvpn-auth-okta (2.5.3) stable; urgency=medium
 
   [ Jeremy JACQUE ]
