@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
+	"time"
 
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
+	log "github.com/sirupsen/logrus"
+	"github.com/t-tomalak/logrus-easy-formatter"
 )
 
 var (
@@ -20,13 +22,18 @@ func main() {
 	deferred = flag.Bool("deferred", false, "does this run as a deferred OpenVPN plugin")
 	flag.Parse()
 	args := flag.Args()
+	log.SetFormatter(&easy.Formatter{
+		TimestampFormat: time.ANSIC,
+		LogFormat: "%time% [okta-auth-validator](%lvl%): %msg%\n",
+	})
 	if *debug {
-		fmt.Println("DEBUG MODE")
-		if *deferred {
-			fmt.Println("Running as a Shared Object deferred plugin")
-		} else {
-			fmt.Println("Running as a Script plugin")
-		}
+		log.SetLevel(log.DebugLevel)
+	}
+
+	if *deferred {
+		log.Debug("Running as a Shared Object deferred plugin")
+	} else {
+		log.Debug("Running as a Script plugin")
 	}
 
 	oktaValidator := validator.NewOktaOpenVPNValidator()
@@ -37,6 +44,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
+
 	err := oktaValidator.Authenticate()
 	if *deferred {
 		oktaValidator.WriteControlFile()
