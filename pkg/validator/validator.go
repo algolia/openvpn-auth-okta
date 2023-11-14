@@ -77,6 +77,7 @@ func NewOktaOpenVPNValidator() *OktaOpenVPNValidator {
 // Setup the validator depending on the way it's invoked
 func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, pluginEnv *PluginEnv) bool {
 	if err := validator.ReadConfigFile(); err != nil {
+		fmt.Println("ReadConfigFile failure")
 		if deferred {
 			/*
 			 * if invoked as a deferred plugin, we should always exit 0 and write result
@@ -96,11 +97,13 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
 		if len(args) > 0 {
 			// via-file" method
 			if err := validator.LoadViaFile(args[0]); err != nil {
+				fmt.Println("LoadViaFile failure")
 				return false
 			}
 		} else {
 			// "via-env" method
 			if err := validator.LoadEnvVars(nil); err != nil {
+				fmt.Println("LoadEnvVars failure")
 				return false
 			}
 		}
@@ -108,12 +111,14 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
 		// We're running in "Shared Object Plugin" mode
 		// see https://openvpn.net/community-resources/using-alternative-authentication-methods/
 		if err := validator.LoadEnvVars(pluginEnv); err != nil {
+			fmt.Println("LoadEnvVars (deferred) failure")
 			validator.WriteControlFile()
 			return false
 		}
 	}
 
 	if err := validator.LoadPinset(); err != nil {
+		fmt.Println("LoadPinset failure")
 		if deferred {
 			validator.WriteControlFile()
 		}
@@ -121,6 +126,7 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
 	}
 	validator.parsePassword()
 	if err := validator.api.InitPool(); err != nil {
+		fmt.Println("Initpool failure")
 		return false
 	}
 	return true
