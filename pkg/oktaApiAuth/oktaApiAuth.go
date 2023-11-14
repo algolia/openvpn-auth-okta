@@ -15,6 +15,8 @@ import (
 	"slices"
 	"sort"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const userAgent string = "Mozilla/5.0 (Linux; x86_64) OktaOpenVPN/2.1.0"
@@ -106,7 +108,7 @@ func (auth *OktaApiAuth) InitPool() error {
 		tcpURL := fmt.Sprintf("%s:%s", rawURL.Hostname(), port)
 		conn, err := tls.Dial("tcp", tcpURL, &tls.Config{InsecureSkipVerify: true})
 		if err != nil {
-			fmt.Printf("Error in Dial: %s\n", err)
+			log.Errorf("Error in Dial: %s", err)
 			return err
 		}
 		defer conn.Close()
@@ -122,7 +124,7 @@ func (auth *OktaApiAuth) InitPool() error {
 				digest := base64.StdEncoding.EncodeToString([]byte(string(pubKeySha[:])))
 
 				if !slices.Contains(auth.ApiConfig.AssertPin, digest) {
-					fmt.Printf("Refusing to authenticate because host %s failed %s\n%s\n",
+					log.Errorf("Refusing to authenticate because host %s failed %s\n%s",
 						rawURL.Hostname(),
 						"a TLS public key pinning check.",
 						"Please contact support@okta.com with this error message")
@@ -184,12 +186,12 @@ func (auth *OktaApiAuth) oktaReq(path string, data map[string]string) (a map[str
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		fmt.Printf("Error marshaling request payload: %s\n", err)
+		log.Errorf("Error marshaling request payload: %s", err)
 		return nil, err
 	}
 	r, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewReader(jsonData))
 	if err != nil {
-		fmt.Printf("Error creating http request: %s\n", err)
+		log.Errorf("Error creating http request: %s", err)
 		return nil, err
 	}
 	for k, v := range headers {
@@ -202,12 +204,12 @@ func (auth *OktaApiAuth) oktaReq(path string, data map[string]string) (a map[str
 	defer resp.Body.Close()
 	jsonBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading Okta API response: %s\n", err)
+		log.Errorf("Error reading Okta API response: %s", err)
 		return nil, err
 	}
 	err = json.Unmarshal(jsonBody, &a)
 	if err != nil {
-		fmt.Printf("Error unmarshaling Okta API response: %s\n", err)
+		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		return nil, err
 	}
 	return a, nil
@@ -248,15 +250,15 @@ func (auth *OktaApiAuth) cancelAuth(stateToken string) (map[string]interface{}, 
 // returns nil if has been validated by Okta API, an error otherwise
 func (auth *OktaApiAuth) Auth() error {
 	var status string
-	fmt.Printf("[%s] Authenticating\n", auth.UserConfig.Username)
+	log.Infof("[%s] Authenticating", auth.UserConfig.Username)
 	retp, err := auth.preAuth()
 	if err != nil {
-		fmt.Printf("[%s] Error connecting to the Okta API: %s\n", auth.UserConfig.Username, err)
+		log.Errorf("[%s] Error connecting to the Okta API: %s", auth.UserConfig.Username, err)
 		return err
 	}
 
 	if _, ok := retp["errorCauses"]; ok {
-		fmt.Printf("[%s] pre-authentication failed: %s\n", auth.UserConfig.Username, retp["errorSummary"])
+		log.Warningf("[%s] pre-authentication failed: %s", auth.UserConfig.Username, retp["errorSummary"])
 		return errors.New("pre-authentication failed")
 	}
 	if st, ok := retp["status"]; ok {
@@ -269,23 +271,23 @@ func (auth *OktaApiAuth) Auth() error {
 		switch status {
 		case "SUCCESS":
 			if auth.ApiConfig.MFARequired {
-				fmt.Printf("[%s] allowed without MFA and MFA is required - rejected\n", auth.UserConfig.Username)
+				log.Warningf("[%s] allowed without MFA and MFA is required - rejected", auth.UserConfig.Username)
 				return errors.New("MFA required")
 			} else {
 				return nil
 			}
 
 		case "LOCKED_OUT":
-			fmt.Printf("[%s] user is locked out\n", auth.UserConfig.Username)
+			log.Warningf("[%s] user is locked out", auth.UserConfig.Username)
 			return errors.New("User locked out")
 
 		case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
-			fmt.Printf("[%s] user needs to enroll first\n", auth.UserConfig.Username)
+			log.Warningf("[%s] user needs to enroll first", auth.UserConfig.Username)
 			_, _ = auth.cancelAuth(stateToken)
 			return errors.New("Needs to enroll")
 
 		case "MFA_REQUIRED", "MFA_CHALLENGE":
-			fmt.Printf("[%s] user password validates, checking second factor\n", auth.UserConfig.Username)
+			log.Debugf("[%s] user password validates, checking second factor", auth.UserConfig.Username)
 
 			factors := retp["_embedded"].(map[string]interface{})["factors"].([]interface{})
 			supportedFactorTypes := []string{"token:software:totp", "push"}
@@ -304,7 +306,7 @@ func (auth *OktaApiAuth) Auth() error {
 			for _, factor := range factors {
 				factorType := factor.(map[string]interface{})["factorType"].(string)
 				if !slices.Contains(supportedFactorTypes, factorType) {
-					fmt.Printf("Unsupported factortype: %s, skipping\n", factorType)
+					log.Debugf("Unsupported factortype: %s, skipping", factorType)
 					continue
 				}
 				fid := factor.(map[string]interface{})["id"].(string)
@@ -322,17 +324,17 @@ func (auth *OktaApiAuth) Auth() error {
 						return err
 					}
 					if checkCount++; checkCount > auth.ApiConfig.MFAPushMaxRetries {
-						fmt.Printf("[%s] User MFA push timed out\n", auth.UserConfig.Username)
+						log.Warningf("[%s] User MFA push timed out", auth.UserConfig.Username)
 						_, _ = auth.cancelAuth(stateToken)
 						return errors.New("MFA timeout")
 					}
 				}
 				if _, ok := res["status"]; ok {
 					if res["status"] == "SUCCESS" {
-						fmt.Printf("[%s] User is now authenticated with MFA via Okta API\n", auth.UserConfig.Username)
+						log.Infof("[%s] User is now authenticated with MFA via Okta API", auth.UserConfig.Username)
 						return nil
 					} else {
-						fmt.Printf("[%s] User MFA push failed: %s\n", auth.UserConfig.Username, res["factorResult"])
+						log.Warningf("[%s] User MFA push failed: %s", auth.UserConfig.Username, res["factorResult"])
 						_, _ = auth.cancelAuth(stateToken)
 						return errors.New("MFA failed")
 					}
@@ -341,17 +343,17 @@ func (auth *OktaApiAuth) Auth() error {
 			if _, ok := res["errorCauses"]; ok {
 				cause := res["errorCauses"].([]interface{})[0]
 				errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
-				fmt.Printf("[%s] User MFA token authentication failed: %s\n", auth.UserConfig.Username, errorSummary)
+				log.Warningf("[%s] User MFA token authentication failed: %s", auth.UserConfig.Username, errorSummary)
 				return errors.New(errorSummary)
 			}
 			return errors.New("Unknown error")
 
 		default:
-			fmt.Printf("Unknown preauth status: %s\n", status)
+			log.Errorf("Unknown preauth status: %s", status)
 			return errors.New("Unknown preauth status")
 		}
 	}
 
-	fmt.Printf("[%s] User is not allowed to authenticate: %s\n", auth.UserConfig.Username, status)
+	log.Warningf("[%s] User is not allowed to authenticate: %s", auth.UserConfig.Username, status)
 	return errors.New("Not allowed")
 }
