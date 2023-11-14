@@ -1,9 +1,9 @@
 SHELL := bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
-
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
+UNAME_S := $(shell uname -s)
 
 INSTALL := install
 CC := gcc
@@ -19,8 +19,15 @@ BUILDDIR := build
 GOLDFLAGS := -ldflags '-extldflags "-static"'
 GOFLAGS := -buildmode=pie -a $(GOLDFLAGS)
 
+ifeq ($(UNAME_S),Linux)
 LIBOKTA_LDFLAGS := -ldflags '-extldflags -Wl,-soname,libokta-auth-validator.so'
+PLUGIN_LDFLAGS := -Wl,-soname,openvpn-plugin-auth-okta.so
+else
+LIBOKTA_LDFLAGS :=
+PLUGIN_LDFLAGS :=
+endif
 LIBOKTA_FLAGS := -buildmode=c-shared $(LIBOKTA_LDFLAGS)
+
 
 PKGSRC := pkg/oktaApiAuth/oktaApiAuth.go pkg/utils/utils.go pkg/validator/validator.go
 
@@ -41,7 +48,7 @@ $(BUILDDIR)/okta-auth-validator: cmd/okta-auth-validator/main.go $(PKGSRC) | $(B
 
 # Build the openvpn-plugin-auth-okta plugin (linked against the Go c-shared lib)
 $(BUILDDIR)/openvpn-plugin-auth-okta.so: $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.o openvpn-plugin.h
-	$(CC) $(LDFLAGS) -Wl,-soname,openvpn-plugin-auth-okta.so -o $(BUILDDIR)/openvpn-plugin-auth-okta.so $(BUILDDIR)/openvpn-plugin-auth-okta.o
+	$(CC) $(LDFLAGS) $(PLUGIN_LDFLAGS) -o $(BUILDDIR)/openvpn-plugin-auth-okta.so $(BUILDDIR)/openvpn-plugin-auth-okta.o
 
 # Build the okta-auth-validator shared lib (Golang c-shared)
 $(BUILDDIR)/libokta-auth-validator.so: lib/libokta-auth-validator.go $(PKGSRC) | $(BUILDDIR)
