@@ -50,6 +50,9 @@ type OktaAPIConfig struct {
 
 	// Number of seconds to wait between MFA result retrieval tries
 	MFAPushDelaySeconds int // default = 3
+
+	// List (comma separated) of groups allowed to connect
+	AllowedGroups string
 }
 
 // User credentials and informations
@@ -169,7 +172,7 @@ func (auth *OktaApiAuth) Pool() *http.Client {
 }
 
 // Do a POST http request to the Okta API using the path and payload provided
-func (auth *OktaApiAuth) oktaReq(path string, data map[string]string) (a map[string]interface{}, err error) {
+func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]string) (a map[string]interface{}, err error) {
 	u, _ := url.ParseRequestURI(auth.ApiConfig.Url)
 	u.Path = fmt.Sprintf("/api/v1%s", path)
 
@@ -184,12 +187,17 @@ func (auth *OktaApiAuth) oktaReq(path string, data map[string]string) (a map[str
 		headers["X-Forwarded-For"] = auth.UserConfig.ClientIp
 	}
 
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		log.Errorf("Error marshaling request payload: %s", err)
-		return nil, err
+	var r *http.Request
+	var dataReader *bytes.Reader = nil
+	if method == http.MethodPost {
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			log.Errorf("Error marshaling request payload: %s", err)
+			return nil, err
+		}
+		dataReader = bytes.NewReader(jsonData)
 	}
-	r, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewReader(jsonData))
+	r, err = http.NewRequest(method, u.String(), dataReader)
 	if err != nil {
 		log.Errorf("Error creating http request: %s", err)
 		return nil, err
@@ -222,7 +230,7 @@ func (auth *OktaApiAuth) preAuth() (map[string]interface{}, error) {
 		"username": auth.UserConfig.Username,
 		"password": auth.UserConfig.Password,
 	}
-	return auth.oktaReq("/authn", data)
+	return auth.oktaReq(http.MethodPost, "/authn", data)
 }
 
 // Call the MFA auth Okta API endpoint
@@ -234,7 +242,7 @@ func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (map[string]inter
 		"stateToken": stateToken,
 		"passCode":   auth.UserConfig.Passcode,
 	}
-	return auth.oktaReq(path, data)
+	return auth.oktaReq(http.MethodPost, path, data)
 }
 
 // Cancel an authentication transaction
@@ -243,7 +251,7 @@ func (auth *OktaApiAuth) cancelAuth(stateToken string) (map[string]interface{}, 
 	data := map[string]string{
 		"stateToken": stateToken,
 	}
-	return auth.oktaReq("/authn/cancel", data)
+	return auth.oktaReq(http.MethodPost, "/authn/cancel", data)
 }
 
 // Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
