@@ -23,8 +23,9 @@ ifeq ($(UNAME_S),Linux)
 LIBOKTA_LDFLAGS := -ldflags '-extldflags -Wl,-soname,libokta-auth-validator.so'
 PLUGIN_LDFLAGS := -Wl,-soname,openvpn-plugin-auth-okta.so
 else
-LIBOKTA_LDFLAGS :=
-PLUGIN_LDFLAGS :=
+# MacOs X
+LIBOKTA_LDFLAGS := -ldflags '-extldflags -Wl,-install_name,libokta-auth-validator.so'
+PLUGIN_LDFLAGS := -Wl,-install_name,openvpn-plugin-auth-okta.so
 endif
 LIBOKTA_FLAGS := -buildmode=c-shared $(LIBOKTA_LDFLAGS)
 
