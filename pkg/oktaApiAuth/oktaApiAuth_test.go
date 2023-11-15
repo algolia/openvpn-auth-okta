@@ -73,7 +73,7 @@ func TestOktaReq(t *testing.T) {
 
 	tests := []setupTest{
 		{
-			"invalid json response - success",
+			"invalid json response - failure",
 			[]authRequest{
 				{
 					"/api/v1/authn",
@@ -129,7 +129,7 @@ func TestOktaReq(t *testing.T) {
 			gock.InterceptClient(a.pool)
 			// Lets ensure we wont reach the real okta API
 			gock.DisableNetworking()
-			_, err = a.oktaReq(test.requests[0].path, test.requests[0].payload)
+			_, err = a.oktaReq(http.MethodPost, test.requests[0].path, test.requests[0].payload)
 			if test.err == nil {
 				assert.Nil(t, err)
 			} else {
