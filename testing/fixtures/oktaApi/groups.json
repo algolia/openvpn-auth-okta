@@ -1,0 +1,16 @@
+[
+  {
+    "id": "0gabcd1234",
+    "profile": {
+      "name": "Cloud App Users",
+      "description": "Users can access cloud apps"
+    }
+  },
+  {
+    "id": "0gefgh5678",
+    "profile": {
+      "name": "Internal App Users",
+      "description": "Users can access internal apps"
+    }
+  }
+]
