@@ -2,7 +2,7 @@
 ![Go version](https://img.shields.io/github/go-mod/go-version/algolia/openvpn-auth-okta.svg)
 [![Go Reference](https://pkg.go.dev/badge/gopkg.in/algolia/openvpn-auth-okta.v2.svg)](https://pkg.go.dev/gopkg.in/algolia/openvpn-auth-okta.v2)
 ![CI status](https://circleci.com/gh/algolia/openvpn-auth-okta/tree/v2.svg?style=shield)
-![Coverage](https://img.shields.io/badge/Coverage-94.2%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-94.7%25-brightgreen)
 [![Go Report Card](https://goreportcard.com/badge/gopkg.in/algolia/openvpn-auth-okta.v2)](https://goreportcard.com/report/gopkg.in/algolia/openvpn-auth-okta.v2)
 
 # Introduction
