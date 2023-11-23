@@ -22,6 +22,11 @@ Token:
 ## (Example below)
 # AllowUntrustedUsers: True
 
+## Configure what groups are allowed to connect to server
+##   comma separated list
+## (Example below)
+# AllowedGroups: vpnusers, developers
+
 # Always request MFA validation (TOTP or PUSH)
 # If PreAuth is successful without MFA challenge, user will be rejected
 ## (Example below)
