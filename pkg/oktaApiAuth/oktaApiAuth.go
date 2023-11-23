@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 	"sort"
 	"time"
 
@@ -90,6 +91,7 @@ func NewOktaApiAuth() *OktaApiAuth {
 			MFARequired:         false,
 			MFAPushMaxRetries:   20,
 			MFAPushDelaySeconds: 3,
+			AllowedGroups:       "",
 		},
 		UserConfig: &OktaUserConfig{},
 		userAgent:  userAgent,
@@ -188,7 +190,7 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	}
 
 	var r *http.Request
-	var dataReader *bytes.Reader = nil
+	var dataReader *bytes.Reader
 	if method == http.MethodPost {
 		jsonData, err := json.Marshal(data)
 		if err != nil {
@@ -196,6 +198,8 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 			return nil, err
 		}
 		dataReader = bytes.NewReader(jsonData)
+	} else {
+		dataReader = bytes.NewReader([]byte{})
 	}
 	r, err = http.NewRequest(method, u.String(), dataReader)
 	if err != nil {
@@ -215,10 +219,21 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 		log.Errorf("Error reading Okta API response: %s", err)
 		return nil, err
 	}
-	err = json.Unmarshal(jsonBody, &a)
-	if err != nil {
-		log.Errorf("Error unmarshaling Okta API response: %s", err)
-		return nil, err
+	if strings.HasPrefix(string(jsonBody), "{") {
+		err = json.Unmarshal(jsonBody, &a)
+		if err != nil {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			return nil, err
+		}
+	} else {
+		var res []interface{}
+		err = json.Unmarshal(jsonBody, &res)
+		if err != nil {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			return nil, err
+		}
+		a = make(map[string]interface{})
+		a["data"] = res
 	}
 	return a, nil
 }
@@ -254,10 +269,35 @@ func (auth *OktaApiAuth) cancelAuth(stateToken string) (map[string]interface{}, 
 	return auth.oktaReq(http.MethodPost, "/authn/cancel", data)
 }
 
+func (auth *OktaApiAuth) checkAllowedGroups() error {
+	if auth.ApiConfig.AllowedGroups != "" {
+		groupRes, err := auth.oktaReq(http.MethodGet, fmt.Sprintf("/users/%s/groups", auth.UserConfig.Username), nil)
+		if err != nil {
+			return err
+		}
+		var aGroups []string = strings.Split(auth.ApiConfig.AllowedGroups, ",")
+		for _, uGroup := range groupRes["data"].([]interface{}) {
+			gName := uGroup.(map[string]interface{})["profile"].(map[string]interface{})["name"].(string)
+			if slices.Contains(aGroups, gName) {
+				log.Debugf("[%s] Member of AllowedGroup %s", auth.UserConfig.Username, gName)
+				return nil
+			}
+		}
+		return errors.New("Not mmember of an AllowedGroup")
+	}
+	return nil
+}
+
 // Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
 // returns nil if has been validated by Okta API, an error otherwise
 func (auth *OktaApiAuth) Auth() error {
 	var status string
+	err := auth.checkAllowedGroups()
+	if err != nil {
+		log.Errorf("[%s] Allowed group error: %s", auth.UserConfig.Username, err)
+		return err
+	}
+
 	log.Infof("[%s] Authenticating", auth.UserConfig.Username)
 	retp, err := auth.preAuth()
 	if err != nil {
