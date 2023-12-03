@@ -85,6 +85,18 @@ func TestOktaReq(t *testing.T) {
 			},
 			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
 		},
+		{
+			"invalid payload - failure",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					nil,
+					http.StatusOK,
+					"invalid.json",
+				},
+			},
+			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+		},
 	}
 
 	for _, test := range tests {
