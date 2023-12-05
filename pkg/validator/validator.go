@@ -170,9 +170,13 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() error {
 				continue
 			} else {
 				// should never fail as err would be not nil only if cfgFile is not a string (or a []byte, a Reader)
-				cfg, _ := ini.Load(cfgFile)
+				cfg, err := ini.Load(cfgFile)
+				if err != nil {
+					log.Errorf("Error loading ini file: %s", err)
+					return err
+				}
 				apiConfig := validator.api.ApiConfig
-				if err := cfg.Section("OktaAPI").MapTo(apiConfig); err != nil {
+				if err := cfg.Section("OktaAPI").StrictMapTo(apiConfig); err != nil {
 					log.Errorf("Error parsing ini file: %s", err)
 					return err
 				}
