@@ -363,6 +363,12 @@ func TestReadConfigFile(t *testing.T) {
 			fmt.Errorf("Missing param Url or Token"),
 		},
 		{
+			"Invalid 2 config file - failure",
+			"../../testing/fixtures/validator/invalid2.ini",
+			"",
+			fmt.Errorf("key-value delimiter not found: UsernameSuffix\n"),
+		},
+		{
 			"Missing config file - failure",
 			"MISSING",
 			"",
