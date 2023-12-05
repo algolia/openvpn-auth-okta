@@ -27,6 +27,7 @@ const (
 type testCfgFile struct {
 	testName string
 	path     string
+	link     string
 	err      error
 }
 
@@ -346,21 +347,31 @@ func TestReadConfigFile(t *testing.T) {
 		{
 			"Valid config file - success",
 			"../../testing/fixtures/validator/valid.ini",
+			"",
+			nil,
+		},
+		{
+			"Valid config file link - success",
+			"",
+			"../../testing/fixtures/validator/valid.ini",
 			nil,
 		},
 		{
 			"Invalid config file - failure",
 			"../../testing/fixtures/validator/invalid.ini",
+			"",
 			fmt.Errorf("Missing param Url or Token"),
 		},
 		{
 			"Missing config file - failure",
 			"MISSING",
+			"",
 			fmt.Errorf("No ini file found"),
 		},
 		{
 			"Config file is a dir - failure",
 			"../../testing/fixtures/validator/",
+			"",
 			fmt.Errorf("No ini file found"),
 		},
 	}
@@ -369,7 +380,13 @@ func TestReadConfigFile(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			v := NewOktaOpenVPNValidator()
 			v.configFile = test.path
+			if test.path == "" {
+				_ = os.Symlink(test.link, "api.ini")
+			}
 			err := v.ReadConfigFile()
+			if test.path == "" {
+				_ = os.Remove("api.ini")
+			}
 			if test.err == nil {
 				assert.Nil(t, err)
 			} else {
@@ -382,18 +399,27 @@ func TestReadConfigFile(t *testing.T) {
 func TestLoadPinset(t *testing.T) {
 	tests := []testCfgFile{
 		{
-			"Pinset file - success",
+			"Valid pinset file - success",
+			"../../testing/fixtures/validator/valid.cfg",
+			"",
+			nil,
+		},
+		{
+			"Valid pinset link - success",
+			"",
 			"../../testing/fixtures/validator/valid.cfg",
 			nil,
 		},
 		{
 			"Missing pinset file - failure",
 			"MISSING",
+			"",
 			fmt.Errorf("No pinset file found"),
 		},
 		{
 			"Pinset file is a dir - failure",
 			"../../testing/fixtures/validator/",
+			"",
 			fmt.Errorf("No pinset file found"),
 		},
 	}
@@ -403,8 +429,13 @@ func TestLoadPinset(t *testing.T) {
 			v := NewOktaOpenVPNValidator()
 			v.api = oktaApiAuth.NewOktaApiAuth()
 			v.pinsetFile = test.path
-
+			if test.path == "" {
+				_ = os.Symlink(test.link, "pinset.cfg")
+			}
 			err := v.LoadPinset()
+			if test.path == "" {
+				_ = os.Remove("pinset.cfg")
+			}
 			if test.err == nil {
 				assert.Nil(t, err)
 				assert.True(t, slices.Contains(v.api.ApiConfig.AssertPin, pin))
