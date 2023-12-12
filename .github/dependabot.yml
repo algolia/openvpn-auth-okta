@@ -1,20 +1,5 @@
 version: 2
 updates:
-- package-ecosystem: pip
-  directory: "/"
-  schedule:
-    interval: daily
-    time: "04:00"
-  ignore:
-    # ignore types* minor updates because there are many and useless
-    - dependency-name: "types*"
-      update-types: ["version-update:semver-patch"]
-  open-pull-requests-limit: 10
-  reviewers:
-  - algolia/foundation
-  - algolia/security
-  labels:
-  - dependencies
 
 - package-ecosystem: gomod
   directory: "/"
