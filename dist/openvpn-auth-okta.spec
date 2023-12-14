@@ -85,16 +85,6 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 %changelog
 * Thu Dec 14 2023 vagrant <jeremy.jacque@algolia.com> 2.5.5-1
-- fix(doc): fix invalid license header
-- chore(doc): small README updates
-- chore(doc): remove CODE.md as the pkg is now referenced in pkg.go.dev
-- chore(doc): update authors
-- chore(dist): move tool to update packages version
-- chore(config): move config files to a dedicated dir
-- chore(Makefile): enforce some compiler options
-- fix(debian): ensure proper config files permissions
-- chore(dist): Update changelog for 2.5.4 release
-- chore(debian): Update changelog for 2.5.4 release
 - chore(validator): add msg for setup failures
 - chore: use logrus to have a clean output
 - fix(Makefile): missing source deps in targets
