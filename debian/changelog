@@ -1,20 +1,6 @@
 openvpn-auth-okta (2.5.5) stable; urgency=medium
 
   [ Jeremy JACQUE ]
-  * fix(doc): fix invalid license header
-  * chore(doc): small README updates
-  * chore(doc): remove CODE.md as the pkg is now referenced in pkg.go.dev
-  * chore(doc): update authors
-  * chore(dist): move tool to update packages version
-  * chore(config): move config files to a dedicated dir
-  * chore(Makefile): enforce some compiler options
-  * fix(debian): ensure proper config files permissions
-
-  [ vagrant ]
-  * chore(dist): Update changelog for 2.5.4 release
-  * chore(debian): Update changelog for 2.5.4 release
-
-  [ Jeremy JACQUE ]
   * chore(validator): add msg for setup failures
   * chore: use logrus to have a clean output
   * fix(Makefile): missing source deps in targets
@@ -32,9 +18,6 @@ openvpn-auth-okta (2.5.5) stable; urgency=medium
   * chore(validator/test): test wrongly formatted ini file
   * chore(doc): update coverage badge
   * chore(github): remove refs to pip in dependabot
-
-  [ vagrant ]
-  * chore(dist): Update changelog for 2.5.5 release
 
  -- vagrant <jeremy.jacque@algolia.com>  Thu, 14 Dec 2023 21:09:10 +0000
 
