@@ -416,6 +416,23 @@ func TestAuth(t *testing.T) {
 		},
 
 		{
+			"PreAuth with invalid response (missing status) - failure",
+			false,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusUnauthorized,
+					"preauth_missing_status.json",
+				},
+			},
+			false,
+			"",
+			fmt.Errorf("Missing preauth status"),
+		},
+
+		{
 			"PreAuth with locked out user - failure",
 			false,
 			"",
