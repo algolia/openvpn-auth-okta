@@ -392,7 +392,6 @@ func (auth *OktaApiAuth) Auth() error {
 	var status string
 	if st, ok := preAuthRes["status"]; ok {
 		status = st.(string)
-		stateToken := getToken(preAuthRes)
 
 		switch status {
 		case "SUCCESS":
@@ -409,19 +408,27 @@ func (auth *OktaApiAuth) Auth() error {
 
 		case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
 			log.Warningf("[%s] user needs to enroll first", auth.UserConfig.Username)
-			_, _ = auth.cancelAuth(stateToken)
+			if stateToken := getToken(preAuthRes); stateToken != "" {
+				_, _ = auth.cancelAuth(stateToken)
+			}
 			return errors.New("Needs to enroll")
 
 		case "MFA_REQUIRED", "MFA_CHALLENGE":
 			log.Debugf("[%s] user password validates, checking second factor", auth.UserConfig.Username)
-			return auth.validateMFA(preAuthRes, stateToken)
+			return auth.validateMFA(preAuthRes, getToken(preAuthRes))
 
 		default:
 			log.Errorf("[%s] unknown preauth status: %s", auth.UserConfig.Username, status)
+			if stateToken := getToken(preAuthRes); stateToken != "" {
+				_, _ = auth.cancelAuth(stateToken)
+			}
 			return errors.New("Unknown preauth status")
 		}
 	}
 
+	if stateToken := getToken(preAuthRes); stateToken != "" {
+		_, _ = auth.cancelAuth(stateToken)
+	}
 	log.Errorf("[%s] missing preauth status", auth.UserConfig.Username)
 	return errors.New("Missing preauth status")
 }
