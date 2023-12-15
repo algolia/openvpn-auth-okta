@@ -674,6 +674,12 @@ func TestAuth(t *testing.T) {
 					http.StatusOK,
 					"preauth_unknown_mfa_required.json",
 				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
 			},
 			false,
 			"",
@@ -743,6 +749,12 @@ func TestAuth(t *testing.T) {
 					http.StatusForbidden,
 					"auth_invalid_totp.json",
 				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
 			},
 			false,
 			"",
@@ -753,7 +765,14 @@ func TestAuth(t *testing.T) {
 			"PreAuth connection issue - failure",
 			true,
 			passcode,
-			nil,
+			[]authRequest{
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
 			true,
 			"",
 			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn\": gock: cannot match any request"),
@@ -825,8 +844,13 @@ func TestAuth(t *testing.T) {
 			if !test.unmatchedReq {
 				assert.False(t, gock.HasUnmatchedRequest())
 			}
-			assert.False(t, gock.IsPending())
-			assert.True(t, gock.IsDone())
+			if test.testName == "PreAuth connection issue - failure" {
+				assert.True(t, gock.IsPending())
+				assert.False(t, gock.IsDone())
+			} else {
+				assert.False(t, gock.IsPending())
+				assert.True(t, gock.IsDone())
+			}
 		})
 	}
 }

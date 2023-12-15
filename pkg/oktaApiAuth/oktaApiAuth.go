@@ -376,8 +376,10 @@ func (auth *OktaApiAuth) validateMFA(preAuthRes map[string]interface{}, stateTok
 		cause := res["errorCauses"].([]interface{})[0]
 		errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
 		log.Warningf("[%s] User MFA token authentication failed: %s", auth.UserConfig.Username, errorSummary)
+		_, _ = auth.cancelAuth(stateToken)
 		return errors.New(errorSummary)
 	}
+	_, _ = auth.cancelAuth(stateToken)
 	return errors.New("Unknown error")
 }
 
