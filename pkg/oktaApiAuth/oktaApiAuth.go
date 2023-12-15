@@ -13,8 +13,8 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strings"
 	"sort"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -288,33 +288,111 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 	return nil
 }
 
-// Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
-// returns nil if has been validated by Okta API, an error otherwise
-func (auth *OktaApiAuth) Auth() error {
-	var status string
+func (auth *OktaApiAuth) getFactors(preAuthRes map[string]interface{}) []interface{} {
+	factors := preAuthRes["_embedded"].(map[string]interface{})["factors"].([]interface{})
+
+	// When a TOTP is provided ensure that the proper Okta factor id used first, fallback to push
+	// use first push when TOTP is empty
+	var preferedFactor string = "push"
+	if auth.UserConfig.Passcode != "" {
+		preferedFactor = "token:software:totp"
+	}
+	sort.Slice(factors, func(i, j int) bool {
+		return factors[i].(map[string]interface{})["factorType"].(string) == preferedFactor
+	})
+	return factors
+}
+
+func (auth *OktaApiAuth) preChecks() (map[string]interface{}, error) {
 	err := auth.checkAllowedGroups()
 	if err != nil {
 		log.Errorf("[%s] Allowed group error: %s", auth.UserConfig.Username, err)
-		return err
+		return nil, err
 	}
 
-	log.Infof("[%s] Authenticating", auth.UserConfig.Username)
 	retp, err := auth.preAuth()
 	if err != nil {
 		log.Errorf("[%s] Error connecting to the Okta API: %s", auth.UserConfig.Username, err)
-		return err
+		return nil, err
 	}
 
 	if _, ok := retp["errorCauses"]; ok {
 		log.Warningf("[%s] pre-authentication failed: %s", auth.UserConfig.Username, retp["errorSummary"])
-		return errors.New("pre-authentication failed")
+		return nil, errors.New("pre-authentication failed")
 	}
-	if st, ok := retp["status"]; ok {
-		status = st.(string)
-		stateToken := ""
-		if tok, ok := retp["stateToken"]; ok {
-			stateToken = tok.(string)
+	return retp, nil
+}
+
+func getToken(preAuthRes map[string]interface{}) (st string) {
+	if tok, ok := preAuthRes["stateToken"]; ok {
+		st = tok.(string)
+	}
+	return st
+}
+
+func (auth *OktaApiAuth) validateMFA(preAuthRes map[string]interface{}, stateToken string) (err error) {
+	factors := auth.getFactors(preAuthRes)
+	supportedFactorTypes := []string{"token:software:totp", "push"}
+	var res map[string]interface{}
+
+	for _, factor := range factors {
+		factorType := factor.(map[string]interface{})["factorType"].(string)
+		if !slices.Contains(supportedFactorTypes, factorType) {
+			log.Debugf("Unsupported factortype: %s, skipping", factorType)
+			continue
 		}
+		fid := factor.(map[string]interface{})["id"].(string)
+		res, err = auth.doAuth(fid, stateToken)
+		if err != nil {
+			_, _ = auth.cancelAuth(stateToken)
+			return err
+		}
+		checkCount := 0
+		for res["factorResult"] == "WAITING" {
+			time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
+			res, err = auth.doAuth(fid, stateToken)
+			if err != nil {
+				_, _ = auth.cancelAuth(stateToken)
+				return err
+			}
+			if checkCount++; checkCount > auth.ApiConfig.MFAPushMaxRetries {
+				log.Warningf("[%s] User MFA push timed out", auth.UserConfig.Username)
+				_, _ = auth.cancelAuth(stateToken)
+				return errors.New("MFA timeout")
+			}
+		}
+		if _, ok := res["status"]; ok {
+			if res["status"] == "SUCCESS" {
+				log.Infof("[%s] User is now authenticated with MFA via Okta API", auth.UserConfig.Username)
+				return nil
+			} else {
+				log.Warningf("[%s] User MFA push failed: %s", auth.UserConfig.Username, res["factorResult"])
+				_, _ = auth.cancelAuth(stateToken)
+				return errors.New("MFA failed")
+			}
+		}
+	}
+	if _, ok := res["errorCauses"]; ok {
+		cause := res["errorCauses"].([]interface{})[0]
+		errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
+		log.Warningf("[%s] User MFA token authentication failed: %s", auth.UserConfig.Username, errorSummary)
+		return errors.New(errorSummary)
+	}
+	return errors.New("Unknown error")
+}
+
+// Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
+// returns nil if has been validated by Okta API, an error otherwise
+func (auth *OktaApiAuth) Auth() error {
+	log.Infof("[%s] Authenticating", auth.UserConfig.Username)
+	preAuthRes, err := auth.preChecks()
+	if err != nil {
+		return err
+	}
+	var status string
+	if st, ok := preAuthRes["status"]; ok {
+		status = st.(string)
+		stateToken := getToken(preAuthRes)
 
 		switch status {
 		case "SUCCESS":
@@ -336,65 +414,7 @@ func (auth *OktaApiAuth) Auth() error {
 
 		case "MFA_REQUIRED", "MFA_CHALLENGE":
 			log.Debugf("[%s] user password validates, checking second factor", auth.UserConfig.Username)
-
-			factors := retp["_embedded"].(map[string]interface{})["factors"].([]interface{})
-			supportedFactorTypes := []string{"token:software:totp", "push"}
-			var res map[string]interface{}
-
-			// When a TOTP is provided ensure that the proper Okta factor id used first, fallback to push
-			// use first push when TOTP is empty
-			var preferedFactor string = "push"
-			if auth.UserConfig.Passcode != "" {
-				preferedFactor = "token:software:totp"
-			}
-			sort.Slice(factors, func(i, j int) bool {
-				return factors[i].(map[string]interface{})["factorType"].(string) == preferedFactor
-			})
-
-			for _, factor := range factors {
-				factorType := factor.(map[string]interface{})["factorType"].(string)
-				if !slices.Contains(supportedFactorTypes, factorType) {
-					log.Debugf("Unsupported factortype: %s, skipping", factorType)
-					continue
-				}
-				fid := factor.(map[string]interface{})["id"].(string)
-				res, err = auth.doAuth(fid, stateToken)
-				if err != nil {
-					_, _ = auth.cancelAuth(stateToken)
-					return err
-				}
-				checkCount := 0
-				for res["factorResult"] == "WAITING" {
-					time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
-					res, err = auth.doAuth(fid, stateToken)
-					if err != nil {
-						_, _ = auth.cancelAuth(stateToken)
-						return err
-					}
-					if checkCount++; checkCount > auth.ApiConfig.MFAPushMaxRetries {
-						log.Warningf("[%s] User MFA push timed out", auth.UserConfig.Username)
-						_, _ = auth.cancelAuth(stateToken)
-						return errors.New("MFA timeout")
-					}
-				}
-				if _, ok := res["status"]; ok {
-					if res["status"] == "SUCCESS" {
-						log.Infof("[%s] User is now authenticated with MFA via Okta API", auth.UserConfig.Username)
-						return nil
-					} else {
-						log.Warningf("[%s] User MFA push failed: %s", auth.UserConfig.Username, res["factorResult"])
-						_, _ = auth.cancelAuth(stateToken)
-						return errors.New("MFA failed")
-					}
-				}
-			}
-			if _, ok := res["errorCauses"]; ok {
-				cause := res["errorCauses"].([]interface{})[0]
-				errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
-				log.Warningf("[%s] User MFA token authentication failed: %s", auth.UserConfig.Username, errorSummary)
-				return errors.New(errorSummary)
-			}
-			return errors.New("Unknown error")
+			return auth.validateMFA(preAuthRes, stateToken)
 
 		default:
 			log.Errorf("Unknown preauth status: %s", status)
