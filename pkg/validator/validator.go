@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
