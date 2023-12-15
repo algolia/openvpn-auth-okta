@@ -417,11 +417,11 @@ func (auth *OktaApiAuth) Auth() error {
 			return auth.validateMFA(preAuthRes, stateToken)
 
 		default:
-			log.Errorf("Unknown preauth status: %s", status)
+			log.Errorf("[%s] unknown preauth status: %s", auth.UserConfig.Username, status)
 			return errors.New("Unknown preauth status")
 		}
 	}
 
-	log.Warningf("[%s] User is not allowed to authenticate: %s", auth.UserConfig.Username, status)
-	return errors.New("Not allowed")
+	log.Errorf("[%s] missing preauth status", auth.UserConfig.Username)
+	return errors.New("Missing preauth status")
 }
