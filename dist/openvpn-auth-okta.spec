@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.5.5
+Version: 2.5.6
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,13 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Fri Dec 15 2023 vagrant <jeremy.jacque@algolia.com> 2.5.6-1
+- style: gofmt some source files
+- refacto(oktaApiAuth): reduce gocyclo score of Auth to an acceptable score
+- chore(oktaApiAuth): homogenize some Auth logs
+- chore(oktaApiAuth/test): add a test for invalid preauth response
+- chore(doc): update coverage badge
+
 * Thu Dec 14 2023 vagrant <jeremy.jacque@algolia.com> 2.5.5-1
 - chore(validator): add msg for setup failures
 - chore: use logrus to have a clean output
