@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
 	log "github.com/sirupsen/logrus"
 	"github.com/t-tomalak/logrus-easy-formatter"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
 )
 
 var (
@@ -24,7 +24,7 @@ func main() {
 	args := flag.Args()
 	log.SetFormatter(&easy.Formatter{
 		TimestampFormat: time.ANSIC,
-		LogFormat: "%time% [okta-auth-validator](%lvl%): %msg%\n",
+		LogFormat:       "%time% [okta-auth-validator](%lvl%): %msg%\n",
 	})
 	if *debug {
 		log.SetLevel(log.DebugLevel)

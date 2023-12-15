@@ -153,10 +153,10 @@ func TestOktaReq(t *testing.T) {
 }
 
 type allowedGroupsTest struct {
-	testName string
-	requests []authRequest
+	testName      string
+	requests      []authRequest
 	allowedGroups string
-	err      error
+	err           error
 }
 
 func TestCheckAllowedGroups(t *testing.T) {
