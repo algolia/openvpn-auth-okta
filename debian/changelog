@@ -1,3 +1,14 @@
+openvpn-auth-okta (2.5.6) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * style: gofmt some source files
+  * refacto(oktaApiAuth): reduce gocyclo score of Auth to an acceptable score
+  * chore(oktaApiAuth): homogenize some Auth logs
+  * chore(oktaApiAuth/test): add a test for invalid preauth response
+  * chore(doc): update coverage badge
+
+ -- vagrant <jeremy.jacque@algolia.com>  Fri, 15 Dec 2023 12:50:53 +0000
+
 openvpn-auth-okta (2.5.5) stable; urgency=medium
 
   [ Jeremy JACQUE ]
