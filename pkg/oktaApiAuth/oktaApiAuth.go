@@ -341,7 +341,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 	supportedFactorTypes := []string{"token:software:totp", "push"}
 	var res map[string]interface{}
 
-	for _, factor := range factors {
+	for count, factor := range factors {
 		factorType := factor.(map[string]interface{})["factorType"].(string)
 		if !slices.Contains(supportedFactorTypes, factorType) {
 			log.Debugf("[%s] unsupported factortype: %s, skipping",
@@ -394,8 +394,12 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 					auth.UserConfig.Username,
 					factorType,
 					errorSummary)
-				_, _ = auth.cancelAuth(stateToken)
-				return errors.New(errorSummary)
+				// Multiple OTP providers can be configured
+				// let's ensure we tried all before returning
+				if count == len(factors)-1 {
+					_, _ = auth.cancelAuth(stateToken)
+					return errors.New(errorSummary)
+				}
 			}
 		}
 	}
