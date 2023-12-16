@@ -11,3 +11,7 @@ Standards-Version: 4.5.10
 Build-Depends: debhelper, make, gcc, golang-1.21
 Package-List:
  openvpn-auth-okta deb base optional arch=any
+ okta-auth-validator deb base optional arch=any
+ libokta-auth-validator deb base optional arch=any
+ libokta-auth-validator-dev deb base optional arch=all
+ okta-auth-validator-common deb base optional arch=all
