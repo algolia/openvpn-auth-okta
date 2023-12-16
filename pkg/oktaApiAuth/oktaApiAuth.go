@@ -279,7 +279,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 		for _, uGroup := range groupRes["data"].([]interface{}) {
 			gName := uGroup.(map[string]interface{})["profile"].(map[string]interface{})["name"].(string)
 			if slices.Contains(aGroups, gName) {
-				log.Debugf("[%s] Member of AllowedGroup %s", auth.UserConfig.Username, gName)
+				log.Debugf("[%s] is a member of AllowedGroup %s", auth.UserConfig.Username, gName)
 				return nil
 			}
 		}
@@ -317,7 +317,9 @@ func (auth *OktaApiAuth) preChecks() (map[string]interface{}, error) {
 	}
 
 	if _, ok := retp["errorCauses"]; ok {
-		log.Warningf("[%s] pre-authentication failed: %s", auth.UserConfig.Username, retp["errorSummary"])
+		log.Warningf("[%s] pre-authentication failed: %s",
+			auth.UserConfig.Username,
+			retp["errorSummary"])
 		return nil, errors.New("pre-authentication failed")
 	}
 	return retp, nil
@@ -338,7 +340,9 @@ func (auth *OktaApiAuth) validateMFA(preAuthRes map[string]interface{}, stateTok
 	for _, factor := range factors {
 		factorType := factor.(map[string]interface{})["factorType"].(string)
 		if !slices.Contains(supportedFactorTypes, factorType) {
-			log.Debugf("Unsupported factortype: %s, skipping", factorType)
+			log.Debugf("[%s] unsupported factortype: %s, skipping",
+				auth.UserConfig.Username,
+				factorType)
 			continue
 		}
 		fid := factor.(map[string]interface{})["id"].(string)
@@ -349,6 +353,7 @@ func (auth *OktaApiAuth) validateMFA(preAuthRes map[string]interface{}, stateTok
 		}
 		checkCount := 0
 		for res["factorResult"] == "WAITING" {
+			// Reached only when "push" MFA is used
 			time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
 			res, err = auth.doAuth(fid, stateToken)
 			if err != nil {
@@ -356,17 +361,23 @@ func (auth *OktaApiAuth) validateMFA(preAuthRes map[string]interface{}, stateTok
 				return err
 			}
 			if checkCount++; checkCount > auth.ApiConfig.MFAPushMaxRetries {
-				log.Warningf("[%s] User MFA push timed out", auth.UserConfig.Username)
+				log.Warningf("[%s] MFA %s timed out", auth.UserConfig.Username, factorType)
 				_, _ = auth.cancelAuth(stateToken)
 				return errors.New("MFA timeout")
 			}
 		}
 		if _, ok := res["status"]; ok {
 			if res["status"] == "SUCCESS" {
-				log.Infof("[%s] User is now authenticated with MFA via Okta API", auth.UserConfig.Username)
+				log.Infof("[%s] authenticated with MFA %s via Okta API",
+					auth.UserConfig.Username,
+					factorType)
 				return nil
 			} else {
-				log.Warningf("[%s] User MFA push failed: %s", auth.UserConfig.Username, res["factorResult"])
+				// Reached only when "push" MFA is used
+				log.Warningf("[%s] MFA %s authentication failed: %s",
+					auth.UserConfig.Username,
+					factorType,
+					res["factorResult"])
 				_, _ = auth.cancelAuth(stateToken)
 				return errors.New("MFA failed")
 			}
@@ -398,7 +409,8 @@ func (auth *OktaApiAuth) Auth() error {
 		switch status {
 		case "SUCCESS":
 			if auth.ApiConfig.MFARequired {
-				log.Warningf("[%s] allowed without MFA and MFA is required - rejected", auth.UserConfig.Username)
+				log.Warningf("[%s] allowed without MFA and MFA is required - rejected",
+					auth.UserConfig.Username)
 				return errors.New("MFA required")
 			} else {
 				return nil
