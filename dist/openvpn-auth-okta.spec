@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.5.6
+Version: 2.5.7
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,20 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Sat Dec 16 2023 vagrant <jeremy.jacque@algolia.com> 2.5.7-1
+- fix(oktaApiAuth): handle properly transaction cancelation, only when needed
+- fix(oktaApiAuth/test): fix with new calls to transaction cancellation
+- chore(doc): update coverage badge
+- chore(oktaApiAuth): homogenize / clean auth logs
+- fix(oktaApiAuth): handle properly TOTP error (invalid passcode)
+- chore(oktaApiAuth): simplify validateMFA signature
+- chore(oktaApiAuth): rename some functions/vars for better readability
+- fix(oktaApiAuth): respect MFAPushMaxRetries count, saves an API call/MFAPushDelaySeconds sleep
+- feat(oktaApiAuth): handle expired password (only when no active MFA)
+- chore(config): clean a bit api.ini config template
+- chore(doc): rearrange and fix typo in README
+- fix(dist): add missing packages in dsc
+
 * Fri Dec 15 2023 vagrant <jeremy.jacque@algolia.com> 2.5.6-1
 - style: gofmt some source files
 - refacto(oktaApiAuth): reduce gocyclo score of Auth to an acceptable score

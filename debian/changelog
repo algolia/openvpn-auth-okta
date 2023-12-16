@@ -1,3 +1,21 @@
+openvpn-auth-okta (2.5.7) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * fix(oktaApiAuth): handle properly transaction cancelation, only when needed
+  * fix(oktaApiAuth/test): fix with new calls to transaction cancellation
+  * chore(doc): update coverage badge
+  * chore(oktaApiAuth): homogenize / clean auth logs
+  * fix(oktaApiAuth): handle properly TOTP error (invalid passcode)
+  * chore(oktaApiAuth): simplify validateMFA signature
+  * chore(oktaApiAuth): rename some functions/vars for better readability
+  * fix(oktaApiAuth): respect MFAPushMaxRetries count, saves an API call/MFAPushDelaySeconds sleep
+  * feat(oktaApiAuth): handle expired password (only when no active MFA)
+  * chore(config): clean a bit api.ini config template
+  * chore(doc): rearrange and fix typo in README
+  * fix(dist): add missing packages in dsc
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Sat, 16 Dec 2023 07:36:56 +0000
+
 openvpn-auth-okta (2.5.6) stable; urgency=medium
 
   [ Jeremy JACQUE ]
@@ -7,7 +25,7 @@ openvpn-auth-okta (2.5.6) stable; urgency=medium
   * chore(oktaApiAuth/test): add a test for invalid preauth response
   * chore(doc): update coverage badge
 
- -- vagrant <jeremy.jacque@algolia.com>  Fri, 15 Dec 2023 12:50:53 +0000
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Fri, 15 Dec 2023 12:50:53 +0000
 
 openvpn-auth-okta (2.5.5) stable; urgency=medium
 
@@ -30,7 +48,7 @@ openvpn-auth-okta (2.5.5) stable; urgency=medium
   * chore(doc): update coverage badge
   * chore(github): remove refs to pip in dependabot
 
- -- vagrant <jeremy.jacque@algolia.com>  Thu, 14 Dec 2023 21:09:10 +0000
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Thu, 14 Dec 2023 21:09:10 +0000
 
 openvpn-auth-okta (2.5.4) stable; urgency=medium
 
