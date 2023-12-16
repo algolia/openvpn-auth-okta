@@ -456,6 +456,29 @@ func TestAuth(t *testing.T) {
 		},
 
 		{
+			"PreAuth with password expired - failure",
+			false,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_password_expired.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			fmt.Errorf("User password expired"),
+		},
+
+		{
 			"PreAuth succeesful with no MFA required - success",
 			false,
 			"",
