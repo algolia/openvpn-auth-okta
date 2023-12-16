@@ -358,16 +358,16 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 		checkCount := 0
 		for res["factorResult"] == "WAITING" {
 			// Reached only when "push" MFA is used
+			if checkCount++; checkCount > auth.ApiConfig.MFAPushMaxRetries {
+				log.Warningf("[%s] MFA %s timed out", auth.UserConfig.Username, factorType)
+				_, _ = auth.cancelAuth(stateToken)
+				return errors.New("MFA timeout")
+			}
 			time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
 			res, err = auth.doAuth(fid, stateToken)
 			if err != nil {
 				_, _ = auth.cancelAuth(stateToken)
 				return err
-			}
-			if checkCount++; checkCount > auth.ApiConfig.MFAPushMaxRetries {
-				log.Warningf("[%s] MFA %s timed out", auth.UserConfig.Username, factorType)
-				_, _ = auth.cancelAuth(stateToken)
-				return errors.New("MFA timeout")
 			}
 		}
 		if _, ok := res["status"]; ok {

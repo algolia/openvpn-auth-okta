@@ -610,7 +610,6 @@ func TestAuth(t *testing.T) {
 					http.StatusOK,
 					"auth_waiting.json",
 				},
-
 				{
 					"/api/v1/authn/cancel",
 					map[string]string{"stateToken": stateToken},
@@ -792,7 +791,7 @@ func TestAuth(t *testing.T) {
 				AssertPin:           pin,
 				MFARequired:         test.mfaRequired,
 				AllowUntrustedUsers: true,
-				MFAPushMaxRetries:   0,
+				MFAPushMaxRetries:   1,
 				MFAPushDelaySeconds: 3,
 				AllowedGroups:       test.allowedGroups,
 			}
