@@ -104,8 +104,8 @@ func (auth *OktaApiAuth) InitPool() error {
 	if rawURL, err := url.Parse(auth.ApiConfig.Url); err != nil {
 		return err
 	} else {
-		port := rawURL.Port()
-		if port == "" {
+		var port string
+		if port = rawURL.Port(); port == "" {
 			port = "443"
 		}
 		// Connect to the server, fetch its public key and validate it against the
@@ -173,7 +173,7 @@ func (auth *OktaApiAuth) Pool() *http.Client {
 	return auth.pool
 }
 
-// Do a POST http request to the Okta API using the path and payload provided
+// Do an http request to the Okta API using the path and payload provided
 func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]string) (a map[string]interface{}, err error) {
 	u, _ := url.ParseRequestURI(auth.ApiConfig.Url)
 	u.Path = fmt.Sprintf("/api/v1%s", path)
@@ -219,6 +219,8 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 		log.Errorf("Error reading Okta API response: %s", err)
 		return nil, err
 	}
+	// TODO: return an interface{} and have the "client" functions handle properly
+	// what they expect
 	if strings.HasPrefix(string(jsonBody), "{") {
 		err = json.Unmarshal(jsonBody, &a)
 		if err != nil {
@@ -289,7 +291,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 	return nil
 }
 
-func (auth *OktaApiAuth) getFactors(preAuthRes map[string]interface{}) []interface{} {
+func (auth *OktaApiAuth) getUserFactors(preAuthRes map[string]interface{}) []interface{} {
 	factors := preAuthRes["_embedded"].(map[string]interface{})["factors"].([]interface{})
 
 	// When a TOTP is provided ensure that the proper Okta factor id used first, fallback to push
@@ -311,19 +313,19 @@ func (auth *OktaApiAuth) preChecks() (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	retp, err := auth.preAuth()
+	preAuthRes, err := auth.preAuth()
 	if err != nil {
 		log.Errorf("[%s] Error connecting to the Okta API: %s", auth.UserConfig.Username, err)
 		return nil, err
 	}
 
-	if _, ok := retp["errorCauses"]; ok {
+	if _, ok := preAuthRes["errorCauses"]; ok {
 		log.Warningf("[%s] pre-authentication failed: %s",
 			auth.UserConfig.Username,
-			retp["errorSummary"])
+			preAuthRes["errorSummary"])
 		return nil, errors.New("pre-authentication failed")
 	}
-	return retp, nil
+	return preAuthRes, nil
 }
 
 func getToken(preAuthRes map[string]interface{}) (st string) {
@@ -333,8 +335,8 @@ func getToken(preAuthRes map[string]interface{}) (st string) {
 	return st
 }
 
-func (auth *OktaApiAuth) validateMFA(preAuthRes map[string]interface{}) (err error) {
-	factors := auth.getFactors(preAuthRes)
+func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err error) {
+	factors := auth.getUserFactors(preAuthRes)
 	stateToken := getToken(preAuthRes)
 	supportedFactorTypes := []string{"token:software:totp", "push"}
 	var res map[string]interface{}
@@ -437,7 +439,7 @@ func (auth *OktaApiAuth) Auth() error {
 
 		case "MFA_REQUIRED", "MFA_CHALLENGE":
 			log.Debugf("[%s] user password validates, checking second factor", auth.UserConfig.Username)
-			return auth.validateMFA(preAuthRes)
+			return auth.validateUserMFA(preAuthRes)
 
 		default:
 			log.Errorf("[%s] unknown preauth status: %s", auth.UserConfig.Username, status)
