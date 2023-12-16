@@ -1,3 +1,10 @@
+openvpn-auth-okta (2.5.8) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * fix(oktaApiAuth): user may have multiple OTP providers, try all
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Sat, 16 Dec 2023 13:13:50 +0000
+
 openvpn-auth-okta (2.5.7) stable; urgency=medium
 
   [ Jeremy JACQUE ]
