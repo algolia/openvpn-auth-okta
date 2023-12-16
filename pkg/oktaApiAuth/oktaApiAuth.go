@@ -381,15 +381,21 @@ func (auth *OktaApiAuth) validateMFA(preAuthRes map[string]interface{}, stateTok
 				_, _ = auth.cancelAuth(stateToken)
 				return errors.New("MFA failed")
 			}
+		} else {
+			// Reached only when "TOTP" MFA is used
+			if _, ok := res["errorCauses"]; ok {
+				cause := res["errorCauses"].([]interface{})[0]
+				errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
+				log.Warningf("[%s] MFA %s authentication failed: %s",
+					auth.UserConfig.Username,
+					factorType,
+					errorSummary)
+				_, _ = auth.cancelAuth(stateToken)
+				return errors.New(errorSummary)
+			}
 		}
 	}
-	if _, ok := res["errorCauses"]; ok {
-		cause := res["errorCauses"].([]interface{})[0]
-		errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
-		log.Warningf("[%s] User MFA token authentication failed: %s", auth.UserConfig.Username, errorSummary)
-		_, _ = auth.cancelAuth(stateToken)
-		return errors.New(errorSummary)
-	}
+	log.Errorf("[%s] unknown MFA error", auth.UserConfig.Username)
 	_, _ = auth.cancelAuth(stateToken)
 	return errors.New("Unknown error")
 }
