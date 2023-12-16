@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.5.7
+Version: 2.5.8
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,9 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Sat Dec 16 2023 vagrant <jeremy.jacque@algolia.com> 2.5.8-1
+- fix(oktaApiAuth): user may have multiple OTP providers, try all
+
 * Sat Dec 16 2023 vagrant <jeremy.jacque@algolia.com> 2.5.7-1
 - fix(oktaApiAuth): handle properly transaction cancelation, only when needed
 - fix(oktaApiAuth/test): fix with new calls to transaction cancellation
