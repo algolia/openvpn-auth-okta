@@ -1,38 +1,40 @@
 [OktaAPI]
 ## The URL for your Okta instance
-## (Example below)
+## (Required)
 # Url: https://example.okta.com
 Url: 
 
 ## The API Token for your Okta instace
-## (Example below)
+## (Required)
 # Token: 01Abcd2efGHIjKl3m4NoPQrstu5vwxYZ_AbcdefGHi
 Token: 
 
-## An OPTIONAL suffix to be appended to the end of user names
+## A suffix to be appended to the end of user names
 ## before the attempting authentication against Okta.
 ##   For example: If this was set to 'example.com', a user with a
-##   certificate identifiying them as 'first.last' would be authenticated
+##   certificate / username identifiying them as 'first.last' would be authenticated
 ##   against Okta as 'first.last@example.com'.
-## (Example below)
+## (Optional, default: "")
 # UsernameSuffix: example.com
 
 ## Do not require usernames to come from client-side SSL certificates.
 ## NOT RECCOMMENDED FOR PRODUCTION ENVIRONMENTS
-## (Example below)
+## (Optional, default: False)
 # AllowUntrustedUsers: True
 
-## Configure what groups are allowed to connect to server
-##   comma separated list
-## (Example below)
+## Configure what groups are allowed to connect to server (comma separated list)
+## (Optional, default: "")
 # AllowedGroups: vpnusers, developers
 
-# Always request MFA validation (TOTP or PUSH)
-# If PreAuth is successful without MFA challenge, user will be rejected
-## (Example below)
+## Always request MFA validation (TOTP or PUSH)
+## If PreAuth is successful without MFA challenge, user will be rejected
+## (Optional, default: False)
 # MFARequired: True
 
-## Configure how often poll Okta for results of an Okta Verify Push
-## Values below are what are set by default:
+## Configure how many retries to poll Okta for results of an Okta Verify Push are allowed
+## (Optional, default: 20)
 # MFAPushMaxRetries: 20
+
+## Configure how many seconds to wait between Okta Verify Push retries
+## (Optional, default: 3)
 # MFAPushDelaySeconds: 3
