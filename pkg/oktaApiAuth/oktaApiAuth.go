@@ -270,6 +270,7 @@ func (auth *OktaApiAuth) cancelAuth(stateToken string) (map[string]interface{}, 
 }
 
 func (auth *OktaApiAuth) checkAllowedGroups() error {
+	// https://developer.okta.com/docs/reference/api/users/#request-parameters-8
 	if auth.ApiConfig.AllowedGroups != "" {
 		groupRes, err := auth.oktaReq(http.MethodGet, fmt.Sprintf("/users/%s/groups", auth.UserConfig.Username), nil)
 		if err != nil {
@@ -332,8 +333,9 @@ func getToken(preAuthRes map[string]interface{}) (st string) {
 	return st
 }
 
-func (auth *OktaApiAuth) validateMFA(preAuthRes map[string]interface{}, stateToken string) (err error) {
+func (auth *OktaApiAuth) validateMFA(preAuthRes map[string]interface{}) (err error) {
 	factors := auth.getFactors(preAuthRes)
+	stateToken := getToken(preAuthRes)
 	supportedFactorTypes := []string{"token:software:totp", "push"}
 	var res map[string]interface{}
 
@@ -435,7 +437,7 @@ func (auth *OktaApiAuth) Auth() error {
 
 		case "MFA_REQUIRED", "MFA_CHALLENGE":
 			log.Debugf("[%s] user password validates, checking second factor", auth.UserConfig.Username)
-			return auth.validateMFA(preAuthRes, getToken(preAuthRes))
+			return auth.validateMFA(preAuthRes)
 
 		default:
 			log.Errorf("[%s] unknown preauth status: %s", auth.UserConfig.Username, status)
