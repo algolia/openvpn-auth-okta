@@ -430,6 +430,13 @@ func (auth *OktaApiAuth) Auth() error {
 			log.Warningf("[%s] user is locked out", auth.UserConfig.Username)
 			return errors.New("User locked out")
 
+		case "PASSWORD_EXPIRED":
+			log.Warningf("[%s] user password is expired", auth.UserConfig.Username)
+			if stateToken := getToken(preAuthRes); stateToken != "" {
+				_, _ = auth.cancelAuth(stateToken)
+			}
+			return errors.New("User password expired")
+
 		case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
 			log.Warningf("[%s] user needs to enroll first", auth.UserConfig.Username)
 			if stateToken := getToken(preAuthRes); stateToken != "" {
