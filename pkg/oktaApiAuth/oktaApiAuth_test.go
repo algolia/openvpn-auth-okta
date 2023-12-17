@@ -479,7 +479,7 @@ func TestAuth(t *testing.T) {
 		},
 
 		{
-			"PreAuth succeesful with no MFA required - success",
+			"PreAuth successful with no MFA required - success",
 			false,
 			"",
 			[]authRequest{
@@ -607,7 +607,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
-			fmt.Errorf("MFA failed"),
+			fmt.Errorf("Push MFA failed"),
 		},
 
 		{
@@ -642,7 +642,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
-			fmt.Errorf("MFA timeout"),
+			fmt.Errorf("Push MFA timeout"),
 		},
 
 		{
@@ -780,7 +780,36 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
-			fmt.Errorf("Your passcode doesn't match our records. Please try again."),
+			fmt.Errorf("TOTP MFA failed"),
+		},
+
+		{
+			"Auth with TOTP MFA invalid answer - failure",
+			true,
+			passcode,
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_totp_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
+					map[string]string{"fid": totpFID, "stateToken": stateToken, "passCode": passcode},
+					http.StatusOK,
+					"invalid.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
 		},
 
 		{
