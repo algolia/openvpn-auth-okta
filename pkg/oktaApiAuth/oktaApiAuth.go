@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -291,19 +290,24 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 	return nil
 }
 
-func (auth *OktaApiAuth) getUserFactors(preAuthRes map[string]interface{}) []interface{} {
+func (auth *OktaApiAuth) getUserFactors(preAuthRes map[string]interface{}) (factorsTOTP []interface{}, factorsPush []interface{}) {
 	factors := preAuthRes["_embedded"].(map[string]interface{})["factors"].([]interface{})
 
-	// When a TOTP is provided ensure that the proper Okta factor id used first, fallback to push
-	// use first push when TOTP is empty
-	var preferedFactor string = "push"
-	if auth.UserConfig.Passcode != "" {
-		preferedFactor = "token:software:totp"
+	for _, f := range factors {
+		factorType := f.(map[string]interface{})["factorType"].(string)
+		if factorType == "token:software:totp" {
+			if auth.UserConfig.Passcode != "" {
+				factorsTOTP = append(factorsTOTP, f)
+			}
+		} else if factorType == "push" {
+			factorsPush = append(factorsPush, f)
+		} else {
+			log.Debugf("[%s] unsupported factortype: %s, skipping",
+				auth.UserConfig.Username,
+				factorType)
+		}
 	}
-	sort.Slice(factors, func(i, j int) bool {
-		return factors[i].(map[string]interface{})["factorType"].(string) == preferedFactor
-	})
-	return factors
+	return
 }
 
 func (auth *OktaApiAuth) preChecks() (map[string]interface{}, error) {
@@ -336,19 +340,47 @@ func getToken(preAuthRes map[string]interface{}) (st string) {
 }
 
 func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err error) {
-	factors := auth.getUserFactors(preAuthRes)
-	stateToken := getToken(preAuthRes)
-	supportedFactorTypes := []string{"token:software:totp", "push"}
 	var res map[string]interface{}
+	stateToken := getToken(preAuthRes)
+	factorsTOTP, factorsPush := auth.getUserFactors(preAuthRes)
 
-	for count, factor := range factors {
-		factorType := factor.(map[string]interface{})["factorType"].(string)
-		if !slices.Contains(supportedFactorTypes, factorType) {
-			log.Debugf("[%s] unsupported factortype: %s, skipping",
-				auth.UserConfig.Username,
-				factorType)
-			continue
+	// If no passcode is provided, this is a noop
+	for count, factor := range factorsTOTP {
+		fid := factor.(map[string]interface{})["id"].(string)
+		res, err = auth.doAuth(fid, stateToken)
+		if err != nil {
+			if count == len(factorsTOTP)-1 {
+				_, _ = auth.cancelAuth(stateToken)
+				return err
+			} else {
+				continue
+			}
 		}
+		if _, ok := res["status"]; ok {
+			if res["status"] == "SUCCESS" {
+				log.Infof("[%s] authenticated with TOTP MFA via Okta API",
+					auth.UserConfig.Username)
+				return nil
+			}
+		} else {
+			// Reached only when "TOTP" MFA is used
+			if _, ok := res["errorCauses"]; ok {
+				cause := res["errorCauses"].([]interface{})[0]
+				errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
+				log.Warningf("[%s] TOTP MFA authentication failed: %s",
+					auth.UserConfig.Username,
+					errorSummary)
+				// Multiple OTP providers can be configured
+				// let's ensure we tried all before returning
+				if count == len(factorsTOTP)-1 {
+					_, _ = auth.cancelAuth(stateToken)
+					return errors.New("TOTP MFA failed")
+				}
+			}
+		}
+	}
+
+	for count, factor := range factorsPush {
 		fid := factor.(map[string]interface{})["id"].(string)
 		res, err = auth.doAuth(fid, stateToken)
 		if err != nil {
@@ -359,50 +391,43 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 		for res["factorResult"] == "WAITING" {
 			// Reached only when "push" MFA is used
 			if checkCount++; checkCount > auth.ApiConfig.MFAPushMaxRetries {
-				log.Warningf("[%s] MFA %s timed out", auth.UserConfig.Username, factorType)
-				_, _ = auth.cancelAuth(stateToken)
-				return errors.New("MFA timeout")
+				log.Warningf("[%s] push MFA timed out", auth.UserConfig.Username)
+				if count == len(factorsPush)-1 {
+					_, _ = auth.cancelAuth(stateToken)
+					return errors.New("Push MFA timeout")
+				} else {
+					continue
+				}
 			}
 			time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
 			res, err = auth.doAuth(fid, stateToken)
 			if err != nil {
-				_, _ = auth.cancelAuth(stateToken)
-				return err
+				if count == len(factorsPush)-1 {
+					_, _ = auth.cancelAuth(stateToken)
+					return err
+				} else {
+					continue
+				}
 			}
 		}
 		if _, ok := res["status"]; ok {
 			if res["status"] == "SUCCESS" {
-				log.Infof("[%s] authenticated with MFA %s via Okta API",
-					auth.UserConfig.Username,
-					factorType)
+				log.Infof("[%s] authenticated with push MFA via Okta API",
+					auth.UserConfig.Username)
 				return nil
 			} else {
 				// Reached only when "push" MFA is used
-				log.Warningf("[%s] MFA %s authentication failed: %s",
+				log.Warningf("[%s] push MFA authentication failed: %s",
 					auth.UserConfig.Username,
-					factorType,
 					res["factorResult"])
-				_, _ = auth.cancelAuth(stateToken)
-				return errors.New("MFA failed")
-			}
-		} else {
-			// Reached only when "TOTP" MFA is used
-			if _, ok := res["errorCauses"]; ok {
-				cause := res["errorCauses"].([]interface{})[0]
-				errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
-				log.Warningf("[%s] MFA %s authentication failed: %s",
-					auth.UserConfig.Username,
-					factorType,
-					errorSummary)
-				// Multiple OTP providers can be configured
-				// let's ensure we tried all before returning
-				if count == len(factors)-1 {
+				if count == len(factorsPush)-1 {
 					_, _ = auth.cancelAuth(stateToken)
-					return errors.New(errorSummary)
+					return errors.New("Push MFA failed")
 				}
 			}
 		}
 	}
+
 	log.Errorf("[%s] unknown MFA error", auth.UserConfig.Username)
 	_, _ = auth.cancelAuth(stateToken)
 	return errors.New("Unknown error")
