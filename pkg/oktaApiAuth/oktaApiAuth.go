@@ -380,23 +380,29 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 		}
 	}
 
+PUSH:
 	for count, factor := range factorsPush {
 		fid := factor.(map[string]interface{})["id"].(string)
 		res, err = auth.doAuth(fid, stateToken)
 		if err != nil {
-			_, _ = auth.cancelAuth(stateToken)
-			return err
+			if count == len(factorsPush)-1 {
+				_, _ = auth.cancelAuth(stateToken)
+				return err
+			} else {
+				continue
+			}
 		}
 		checkCount := 0
 		for res["factorResult"] == "WAITING" {
 			// Reached only when "push" MFA is used
-			if checkCount++; checkCount > auth.ApiConfig.MFAPushMaxRetries {
+			checkCount++
+			if checkCount > auth.ApiConfig.MFAPushMaxRetries {
 				log.Warningf("[%s] push MFA timed out", auth.UserConfig.Username)
 				if count == len(factorsPush)-1 {
 					_, _ = auth.cancelAuth(stateToken)
 					return errors.New("Push MFA timeout")
 				} else {
-					continue
+					continue PUSH
 				}
 			}
 			time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
@@ -406,7 +412,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 					_, _ = auth.cancelAuth(stateToken)
 					return err
 				} else {
-					continue
+					continue PUSH
 				}
 			}
 		}
