@@ -831,6 +831,35 @@ func TestAuth(t *testing.T) {
 		},
 
 		{
+			"Auth with TOTP MFA, invalid answer - failure",
+			true,
+			passcode,
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_totp_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
+					map[string]string{"fid": totpFID, "stateToken": stateToken, "passCode": passcode},
+					http.StatusOK,
+					"invalid.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+		},
+
+		{
 			"Auth with TOTP MFA required, multi MFA allowed to sort - success",
 			true,
 			passcode,
@@ -883,7 +912,36 @@ func TestAuth(t *testing.T) {
 		},
 
 		{
-			"Auth with TOTP MFA invalid answer - failure",
+			"Auth with invalid TOTP MFA - failure",
+			true,
+			passcode,
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_totp_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
+					map[string]string{"fid": totpFID, "stateToken": stateToken, "passCode": passcode},
+					http.StatusForbidden,
+					"auth_invalid_totp.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			fmt.Errorf("TOTP MFA failed"),
+		},
+
+		{
+			"Auth with TOTP MFA missing status - failure",
 			true,
 			passcode,
 			[]authRequest{
@@ -897,7 +955,7 @@ func TestAuth(t *testing.T) {
 					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
 					map[string]string{"fid": totpFID, "stateToken": stateToken, "passCode": passcode},
 					http.StatusOK,
-					"invalid.json",
+					"auth_missing_status.json",
 				},
 				{
 					"/api/v1/authn/cancel",
@@ -908,7 +966,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
-			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+			fmt.Errorf("Unknown error"),
 		},
 
 		{
@@ -983,7 +1041,7 @@ func TestAuth(t *testing.T) {
 			}
 
 			for _, req := range test.requests {
-				reqponseFile := fmt.Sprintf("../../testing/fixtures/oktaApi/%s", req.jsonResponseFile)
+				responseFile := fmt.Sprintf("../../testing/fixtures/oktaApi/%s", req.jsonResponseFile)
 				l := gock.New(oktaEndpoint)
 
 				if test.allowedGroups != "" {
@@ -992,7 +1050,7 @@ func TestAuth(t *testing.T) {
 						MatchHeader("X-Forwarded-For", ip).
 						MatchType("json")
 					l.Reply(req.httpStatus).
-						File(reqponseFile)
+						File(responseFile)
 				} else {
 					l = l.Post(req.path).
 						MatchHeader("Authorization", fmt.Sprintf("SSWS %s", token)).
@@ -1000,7 +1058,7 @@ func TestAuth(t *testing.T) {
 						MatchType("json").
 						JSON(req.payload)
 					l.Reply(http.StatusOK).
-						File(reqponseFile)
+						File(responseFile)
 				}
 			}
 
