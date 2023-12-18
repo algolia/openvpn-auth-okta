@@ -646,6 +646,105 @@ func TestAuth(t *testing.T) {
 		},
 
 		{
+			"Auth with 2 push providers, first timeout - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			nil,
+		},
+
+		{
+			"Auth with 2 push providers, first invalid response - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"invalid.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			nil,
+		},
+
+		{
+			"Auth with 2 push providers, first invalid response after waiting - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"invalid.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			nil,
+		},
+
+		{
 			"Auth with MFA required, HTTP err - failure",
 			true,
 			"",
@@ -810,6 +909,35 @@ func TestAuth(t *testing.T) {
 			false,
 			"",
 			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+		},
+
+		{
+			"Auth with 2 TOTP MFA, first invalid answer - success",
+			true,
+			passcode,
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_totp_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": passcode},
+					http.StatusOK,
+					"invalid.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
+					map[string]string{"fid": totpFID, "stateToken": stateToken, "passCode": passcode},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			nil,
 		},
 
 		{
