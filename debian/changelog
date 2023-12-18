@@ -1,3 +1,16 @@
+openvpn-auth-okta (2.5.9) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * refacto(oktaApiAuth): handle totp and push MFA sequentialy with different error msg
+  * chore(oktaApiAuth/test): rename MFA errors, add test for invalid response for totp auth
+  * fix(oktaApiAuth): continue outer loop when push triggers error and not last
+  * chore(oktaApiAuth/test): test if multiple TOTP or push providers are possible
+  * chore(doc): update coverage badge
+  * refacto(oktaApiAuth): split validateUserMFA with 2 more functions (TOTP and push)
+  * chore(oktaApiAuth/test): implement tests following refacto
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Mon, 18 Dec 2023 01:36:45 +0000
+
 openvpn-auth-okta (2.5.8) stable; urgency=medium
 
   [ Jeremy JACQUE ]
