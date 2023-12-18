@@ -339,11 +339,8 @@ func getToken(preAuthRes map[string]interface{}) (st string) {
 	return st
 }
 
-func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err error) {
+func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []interface{}) (err error) {
 	var res map[string]interface{}
-	stateToken := getToken(preAuthRes)
-	factorsTOTP, factorsPush := auth.getUserFactors(preAuthRes)
-
 	// If no passcode is provided, this is a noop
 	for count, factor := range factorsTOTP {
 		fid := factor.(map[string]interface{})["id"].(string)
@@ -379,7 +376,11 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 			}
 		}
 	}
+	return errors.New("Unknown error")
+}
 
+func (auth *OktaApiAuth) verifyPushFactor(stateToken string, factorsPush []interface{}) (err error) {
+	var res map[string]interface{}
 PUSH:
 	for count, factor := range factorsPush {
 		fid := factor.(map[string]interface{})["id"].(string)
@@ -433,7 +434,30 @@ PUSH:
 			}
 		}
 	}
+	return errors.New("Unknown error")
+}
 
+func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err error) {
+	stateToken := getToken(preAuthRes)
+	factorsTOTP, factorsPush := auth.getUserFactors(preAuthRes)
+
+	if auth.UserConfig.Passcode != "" {
+		if err = auth.verifyTOTPFactor(stateToken, factorsTOTP); err != nil {
+			if err.Error() != "Unknown error" {
+				return err
+			}
+			goto ERR
+		}
+		return nil
+	}
+
+	if err = auth.verifyPushFactor(stateToken, factorsPush); err == nil {
+		return nil
+	} else if err.Error() != "Unknown error" {
+		return err
+	}
+
+ERR:
 	log.Errorf("[%s] unknown MFA error", auth.UserConfig.Username)
 	_, _ = auth.cancelAuth(stateToken)
 	return errors.New("Unknown error")
