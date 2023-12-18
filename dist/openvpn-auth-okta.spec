@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.5.8
+Version: 2.5.9
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,15 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Mon Dec 18 2023 vagrant <jeremy.jacque@algolia.com> 2.5.9-1
+- refacto(oktaApiAuth): handle totp and push MFA sequentialy with different error msg
+- chore(oktaApiAuth/test): rename MFA errors, add test for invalid response for totp auth
+- fix(oktaApiAuth): continue outer loop when push triggers error and not last
+- chore(oktaApiAuth/test): test if multiple TOTP or push providers are possible
+- chore(doc): update coverage badge
+- refacto(oktaApiAuth): split validateUserMFA with 2 more functions (TOTP and push)
+- chore(oktaApiAuth/test): implement tests following refacto
+
 * Sat Dec 16 2023 vagrant <jeremy.jacque@algolia.com> 2.5.8-1
 - fix(oktaApiAuth): user may have multiple OTP providers, try all
 
