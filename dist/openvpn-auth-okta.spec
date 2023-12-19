@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.5.9
+Version: 2.5.10
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,13 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Tue Dec 19 2023 vagrant <jeremy.jacque@algolia.com> 2.5.10-1
+- chore(oktaApiAuth): rephrase/enrich log outputs
+- chore(validator): rephrase/enrich log outputs
+- chore: create a dedicated func for logging setup (formatting with uuid, log-level)
+- chore(go): add uuid package needed for logging
+- chore(tools): update url for https://toolkit.okta.com/apps/
+
 * Mon Dec 18 2023 vagrant <jeremy.jacque@algolia.com> 2.5.9-1
 - refacto(oktaApiAuth): handle totp and push MFA sequentialy with different error msg
 - chore(oktaApiAuth/test): rename MFA errors, add test for invalid response for totp auth
