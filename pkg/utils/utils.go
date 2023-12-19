@@ -1,8 +1,14 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"regexp"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/t-tomalak/logrus-easy-formatter"
+	"github.com/google/uuid"
 )
 
 // get an env var by its name, returns the fallback if not found
@@ -62,4 +68,15 @@ func RemoveComments(s []string) []string {
 		}
 	}
 	return r
+}
+
+func SetLogFormatter(debug bool) {
+	luuid := uuid.NewString()
+	log.SetFormatter(&easy.Formatter{
+		TimestampFormat: time.ANSIC,
+		LogFormat:       fmt.Sprintf("%%time%% [okta-auth-validator:%s](%%lvl%%): %%msg%%\n", luuid),
+	})
+	if debug {
+		log.SetLevel(log.DebugLevel)
+	}
 }

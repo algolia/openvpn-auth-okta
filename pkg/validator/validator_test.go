@@ -174,7 +174,7 @@ func TestAuthenticate(t *testing.T) {
 			v := NewOktaOpenVPNValidator()
 			v.configFile = test.cfgFile
 			v.pinsetFile = test.pinsetFile
-			err := v.Setup(true, nil, nil)
+			err := v.Setup(true, true, nil, nil)
 			unsetEnv(setupEnv)
 			assert.True(t, err)
 			v.usernameTrusted = test.userTrusted
@@ -322,7 +322,7 @@ func TestSetup(t *testing.T) {
 			v := NewOktaOpenVPNValidator()
 			v.configFile = test.cfgFile
 			v.pinsetFile = test.pinsetFile
-			ret := v.Setup(test.deferred, test.args, nil)
+			ret := v.Setup(test.deferred, true, test.args, nil)
 			unsetEnv(test.env)
 			assert.Equal(t, test.ret, ret)
 		})
