@@ -172,16 +172,21 @@ func (validator *OktaOpenVPNValidator) ReadConfigFile() error {
 				// should never fail as err would be not nil only if cfgFile is not a string (or a []byte, a Reader)
 				cfg, err := ini.Load(cfgFile)
 				if err != nil {
-					log.Errorf("Error loading ini file: %s", err)
+					log.Errorf("Error loading ini file \"%s\": %s",
+						cfgFile,
+						err)
 					return err
 				}
 				apiConfig := validator.api.ApiConfig
 				if err := cfg.Section("OktaAPI").StrictMapTo(apiConfig); err != nil {
-					log.Errorf("Error parsing ini file: %s", err)
+					log.Errorf("Error parsing ini file \"%s\": %s",
+						cfgFile,
+						err)
 					return err
 				}
 				if apiConfig.Url == "" || apiConfig.Token == "" {
-					log.Error("Missing param Url or Token")
+					log.Errorf("Missing Url or Token parameter in \"%s\"",
+						cfgFile)
 					return errors.New("Missing param Url or Token")
 				}
 				validator.configFile = cfgFile
@@ -211,7 +216,9 @@ func (validator *OktaOpenVPNValidator) LoadPinset() error {
 				continue
 			} else {
 				if pinset, err := os.ReadFile(pinsetFile); err != nil {
-					log.Errorf("Can not read pinset config file %s", pinsetFile)
+					log.Errorf("Can not read pinset config file \"%s\": %s",
+						pinsetFile,
+						err)
 					return err
 				} else {
 					pinsetArray := strings.Split(string(pinset), "\n")
@@ -229,17 +236,19 @@ func (validator *OktaOpenVPNValidator) LoadPinset() error {
 // Get user credentials from the OpenVPN via-file
 func (validator *OktaOpenVPNValidator) LoadViaFile(path string) error {
 	if _, err := os.Stat(path); err != nil {
-		log.Errorf("OpenVPN via-file %s does not exists", path)
+		log.Errorf("OpenVPN via-file \"%s\" does not exists", path)
 		return err
 	} else {
 		if viaFileBuf, err := os.ReadFile(path); err != nil {
-			log.Errorf("Can not read OpenVPN via-file %s", path)
+			log.Errorf("Can not read OpenVPN via-file \"%s\": %s",
+				path,
+				err)
 			return err
 		} else {
 			viaFileInfos := strings.Split(string(viaFileBuf), "\n")
 			viaFileInfos = utils.RemoveEmptyStrings(viaFileInfos)
 			if len(viaFileInfos) < 2 {
-				log.Errorf("Invalid OpenVPN via-file %s content", path)
+				log.Errorf("Invalid OpenVPN via-file \"%s\" content", path)
 				return errors.New("Invalid via-file")
 			}
 			username := viaFileInfos[0]
@@ -322,7 +331,7 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
 // Authenticate the user against Okta API
 func (validator *OktaOpenVPNValidator) Authenticate() error {
 	if !validator.usernameTrusted {
-		log.Infof("[%s] User is not trusted - failing", validator.api.UserConfig.Username)
+		log.Warningf("[%s] is not trusted - failing", validator.api.UserConfig.Username)
 		return errors.New("User not trusted")
 	}
 	if err := validator.api.Auth(); err == nil {
@@ -340,13 +349,13 @@ func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
 	}
 
 	if !utils.CheckNotWritable(validator.controlFile) {
-		log.Errorf("Refusing to authenticate. The file %s must not be writable by non-owners.",
+		log.Errorf("Refusing to authenticate. The file \"%s\" must not be writable by non-owners.",
 			validator.controlFile)
 		return errors.New("control file writable by non-owners")
 	}
 	dirName := filepath.Dir(validator.controlFile)
 	if !utils.CheckNotWritable(dirName) {
-		log.Errorf("Refusing to authenticate. The directory containing the file %s must not be writable by non-owners.",
+		log.Errorf("Refusing to authenticate. The directory containing the file \"%s\" must not be writable by non-owners.",
 			validator.controlFile)
 		return errors.New("control file dir writable by non-owners")
 	}
@@ -364,6 +373,8 @@ func (validator *OktaOpenVPNValidator) WriteControlFile() {
 		valToWrite = []byte("1")
 	}
 	if err := os.WriteFile(validator.controlFile, valToWrite, 0600); err != nil {
-		log.Errorf("Failed to write to OpenVPN control file %s", validator.controlFile)
+		log.Errorf("Failed to write to OpenVPN control file \"%s\": %s",
+			validator.controlFile,
+			err)
 	}
 }
