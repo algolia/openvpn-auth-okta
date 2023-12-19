@@ -1,7 +1,7 @@
 {
   "name": "openvpn-auth-okta",
   "description": "A Golang implementation of the Okta OpenVPN plugin.",
-  "url": "https://github.com/algolia/openvpn-auth-okta",
+  "url": "https://gopkg.in/algolia/openvpn-auth-okta.v2",
   "categories": [
     "authentication",
     "authorization",
