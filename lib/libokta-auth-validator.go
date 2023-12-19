@@ -3,10 +3,6 @@ package main
 import "C"
 
 import (
-	"time"
-
-	log "github.com/sirupsen/logrus"
-	"github.com/t-tomalak/logrus-easy-formatter"
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
 )
 
@@ -14,11 +10,7 @@ type PluginEnv = validator.PluginEnv
 
 //export OktaAuthValidator
 func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
-	log.SetFormatter(&easy.Formatter{
-		TimestampFormat: time.ANSIC,
-		LogFormat:       "%time% [okta-auth-validator](%lvl%): %msg%\n",
-	})
-
+	// TODO: find an elegant way to pass a const char** from C plugin
 	pluginEnv := &PluginEnv{
 		Username:    C.GoString(user),
 		CommonName:  C.GoString(cn),
@@ -28,7 +20,7 @@ func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass 
 	}
 
 	v := validator.NewOktaOpenVPNValidator()
-	if res := v.Setup(true, nil, pluginEnv); !res {
+	if res := v.Setup(true, false, nil, pluginEnv); !res {
 		return
 	}
 	_ = v.Authenticate()

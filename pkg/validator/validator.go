@@ -78,7 +78,8 @@ func NewOktaOpenVPNValidator() *OktaOpenVPNValidator {
 }
 
 // Setup the validator depending on the way it's invoked
-func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, pluginEnv *PluginEnv) bool {
+func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []string, pluginEnv *PluginEnv) bool {
+	utils.SetLogFormatter(debug)
 	if err := validator.ReadConfigFile(); err != nil {
 		log.Error("ReadConfigFile failure")
 		if deferred {
