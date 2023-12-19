@@ -128,10 +128,11 @@ func (auth *OktaApiAuth) InitPool() error {
 				digest := base64.StdEncoding.EncodeToString([]byte(string(pubKeySha[:])))
 
 				if !slices.Contains(auth.ApiConfig.AssertPin, digest) {
-					log.Errorf("Refusing to authenticate because host %s failed %s\n%s",
+					log.Errorf("Refusing to authenticate because host %s failed %s\n%s\n%s",
 						rawURL.Hostname(),
 						"a TLS public key pinning check.",
-						"Please contact support@okta.com with this error message")
+						"Update your \"pinset.cfg\" file or ",
+						"contact support@okta.com with this error message")
 					return errors.New("Server pubkey does not match pinned keys")
 				}
 			}
@@ -193,7 +194,9 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	if method == http.MethodPost {
 		jsonData, err := json.Marshal(data)
 		if err != nil {
-			log.Errorf("Error marshaling request payload: %s", err)
+			log.Errorf("[%s] Error marshaling request payload: %s",
+				auth.UserConfig.Username,
+				err)
 			return nil, err
 		}
 		dataReader = bytes.NewReader(jsonData)
@@ -202,7 +205,9 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	}
 	r, err = http.NewRequest(method, u.String(), dataReader)
 	if err != nil {
-		log.Errorf("Error creating http request: %s", err)
+		log.Errorf("[%s] Error creating http request: %s",
+			auth.UserConfig.Username,
+			err)
 		return nil, err
 	}
 	for k, v := range headers {
@@ -215,7 +220,9 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	defer resp.Body.Close()
 	jsonBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorf("Error reading Okta API response: %s", err)
+		log.Errorf("[%s] Error reading Okta API response: %s",
+			auth.UserConfig.Username,
+			err)
 		return nil, err
 	}
 	// TODO: return an interface{} and have the "client" functions handle properly
@@ -223,14 +230,18 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	if strings.HasPrefix(string(jsonBody), "{") {
 		err = json.Unmarshal(jsonBody, &a)
 		if err != nil {
-			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			log.Errorf("[%s] Error unmarshaling Okta API response: %s",
+				auth.UserConfig.Username,
+				err)
 			return nil, err
 		}
 	} else {
 		var res []interface{}
 		err = json.Unmarshal(jsonBody, &res)
 		if err != nil {
-			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			log.Errorf("[%s] Error unmarshaling Okta API response: %s",
+				auth.UserConfig.Username,
+				err)
 			return nil, err
 		}
 		a = make(map[string]interface{})
@@ -313,7 +324,7 @@ func (auth *OktaApiAuth) getUserFactors(preAuthRes map[string]interface{}) (fact
 func (auth *OktaApiAuth) preChecks() (map[string]interface{}, error) {
 	err := auth.checkAllowedGroups()
 	if err != nil {
-		log.Errorf("[%s] Allowed group error: %s", auth.UserConfig.Username, err)
+		log.Errorf("[%s] allowed group verification error: %s", auth.UserConfig.Username, err)
 		return nil, err
 	}
 
@@ -344,6 +355,7 @@ func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []inter
 	// If no passcode is provided, this is a noop
 	for count, factor := range factorsTOTP {
 		fid := factor.(map[string]interface{})["id"].(string)
+		provider := factor.(map[string]interface{})["provider"].(string)
 		res, err = auth.doAuth(fid, stateToken)
 		if err != nil {
 			if count == len(factorsTOTP)-1 {
@@ -355,8 +367,9 @@ func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []inter
 		}
 		if _, ok := res["status"]; ok {
 			if res["status"] == "SUCCESS" {
-				log.Infof("[%s] authenticated with TOTP MFA via Okta API",
-					auth.UserConfig.Username)
+				log.Infof("[%s] authenticated with %s TOTP MFA",
+					auth.UserConfig.Username,
+					provider)
 				return nil
 			}
 		} else {
@@ -364,8 +377,9 @@ func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []inter
 			if _, ok := res["errorCauses"]; ok {
 				cause := res["errorCauses"].([]interface{})[0]
 				errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
-				log.Warningf("[%s] TOTP MFA authentication failed: %s",
+				log.Warningf("[%s] %s TOTP MFA authentication failed: %s",
 					auth.UserConfig.Username,
+					provider,
 					errorSummary)
 				// Multiple OTP providers can be configured
 				// let's ensure we tried all before returning
@@ -384,6 +398,7 @@ func (auth *OktaApiAuth) verifyPushFactor(stateToken string, factorsPush []inter
 PUSH:
 	for count, factor := range factorsPush {
 		fid := factor.(map[string]interface{})["id"].(string)
+		provider := factor.(map[string]interface{})["provider"].(string)
 		res, err = auth.doAuth(fid, stateToken)
 		if err != nil {
 			if count == len(factorsPush)-1 {
@@ -398,7 +413,9 @@ PUSH:
 			// Reached only when "push" MFA is used
 			checkCount++
 			if checkCount > auth.ApiConfig.MFAPushMaxRetries {
-				log.Warningf("[%s] push MFA timed out", auth.UserConfig.Username)
+				log.Warningf("[%s] %s push MFA timed out",
+					auth.UserConfig.Username,
+					provider)
 				if count == len(factorsPush)-1 {
 					_, _ = auth.cancelAuth(stateToken)
 					return errors.New("Push MFA timeout")
@@ -419,13 +436,15 @@ PUSH:
 		}
 		if _, ok := res["status"]; ok {
 			if res["status"] == "SUCCESS" {
-				log.Infof("[%s] authenticated with push MFA via Okta API",
-					auth.UserConfig.Username)
+				log.Infof("[%s] authenticated with %s push MFA",
+					auth.UserConfig.Username,
+					provider)
 				return nil
 			} else {
 				// Reached only when "push" MFA is used
-				log.Warningf("[%s] push MFA authentication failed: %s",
+				log.Warningf("[%s] %s push MFA authentication failed: %s",
 					auth.UserConfig.Username,
+					provider,
 					res["factorResult"])
 				if count == len(factorsPush)-1 {
 					_, _ = auth.cancelAuth(stateToken)
@@ -478,7 +497,7 @@ func (auth *OktaApiAuth) Auth() error {
 		switch status {
 		case "SUCCESS":
 			if auth.ApiConfig.MFARequired {
-				log.Warningf("[%s] allowed without MFA and MFA is required - rejected",
+				log.Warningf("[%s] allowed without MFA but MFA is required - rejected",
 					auth.UserConfig.Username)
 				return errors.New("MFA required")
 			} else {
@@ -486,25 +505,25 @@ func (auth *OktaApiAuth) Auth() error {
 			}
 
 		case "LOCKED_OUT":
-			log.Warningf("[%s] user is locked out", auth.UserConfig.Username)
+			log.Warningf("[%s] is locked out", auth.UserConfig.Username)
 			return errors.New("User locked out")
 
 		case "PASSWORD_EXPIRED":
-			log.Warningf("[%s] user password is expired", auth.UserConfig.Username)
+			log.Warningf("[%s] password is expired", auth.UserConfig.Username)
 			if stateToken := getToken(preAuthRes); stateToken != "" {
 				_, _ = auth.cancelAuth(stateToken)
 			}
 			return errors.New("User password expired")
 
 		case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
-			log.Warningf("[%s] user needs to enroll first", auth.UserConfig.Username)
+			log.Warningf("[%s] needs to enroll first", auth.UserConfig.Username)
 			if stateToken := getToken(preAuthRes); stateToken != "" {
 				_, _ = auth.cancelAuth(stateToken)
 			}
 			return errors.New("Needs to enroll")
 
 		case "MFA_REQUIRED", "MFA_CHALLENGE":
-			log.Debugf("[%s] user password validates, checking second factor", auth.UserConfig.Username)
+			log.Debugf("[%s] checking second factor", auth.UserConfig.Username)
 			return auth.validateUserMFA(preAuthRes)
 
 		default:
