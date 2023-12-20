@@ -16,18 +16,18 @@ LIB_PREFIX := /usr/lib
 PLUGIN_DIR := openvpn/plugins
 BUILDDIR := build
 
-GOLDFLAGS := -ldflags '-extldflags "-static"'
-GOFLAGS := -buildmode=pie -a $(GOLDFLAGS)
+GOLDFLAGS := -ldflags '-s -w -extldflags "-static"'
+GOFLAGS := -trimpath -buildmode=pie -a $(GOLDFLAGS)
 
 ifeq ($(UNAME_S),Linux)
-LIBOKTA_LDFLAGS := -ldflags '-extldflags -Wl,-soname,libokta-auth-validator.so'
+LIBOKTA_LDFLAGS := -ldflags '-s -w -extldflags -Wl,-soname,libokta-auth-validator.so'
 PLUGIN_LDFLAGS := -Wl,-soname,openvpn-plugin-auth-okta.so
 else
 # MacOs X
-LIBOKTA_LDFLAGS := -ldflags '-extldflags -Wl,-install_name,libokta-auth-validator.so'
+LIBOKTA_LDFLAGS := -ldflags '-s -w -extldflags -Wl,-install_name,libokta-auth-validator.so'
 PLUGIN_LDFLAGS := -Wl,-install_name,openvpn-plugin-auth-okta.so
 endif
-LIBOKTA_FLAGS := -buildmode=c-shared $(LIBOKTA_LDFLAGS)
+LIBOKTA_FLAGS := -trimpath -buildmode=c-shared $(LIBOKTA_LDFLAGS)
 
 
 PKGSRC := pkg/oktaApiAuth/oktaApiAuth.go pkg/utils/utils.go pkg/validator/validator.go
