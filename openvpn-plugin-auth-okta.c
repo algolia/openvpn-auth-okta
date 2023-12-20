@@ -211,6 +211,8 @@ deferred_auth_handler(const char *argv[], const char *envp[])
     plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Can not load libopenvpn-auth-okta.so");
     exit(127);
   }
+  // Clear any existing error
+  dlerror();
 
   void (*OktaAuthValidator)(char*, char*, char*, char*, char*) = dlsym(handle, "OktaAuthValidator");
   if ((error = dlerror()) != NULL)
@@ -221,6 +223,7 @@ deferred_auth_handler(const char *argv[], const char *envp[])
 
   // Call the Golang c-shared lib function
   (*OktaAuthValidator)((char*)ctrF, (char*)ip, (char*)cn, (char*)user, (char*)pass);
+  dlclose(handle);
   exit(0);
 }
 
