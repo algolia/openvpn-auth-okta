@@ -79,7 +79,7 @@ func NewOktaOpenVPNValidator() *OktaOpenVPNValidator {
 
 // Setup the validator depending on the way it's invoked
 func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []string, pluginEnv *PluginEnv) bool {
-	utils.SetLogFormatter(debug)
+	utils.SetLogFormatter(debug, "")
 	if err := validator.ReadConfigFile(); err != nil {
 		log.Error("ReadConfigFile failure")
 		if deferred {
@@ -133,6 +133,7 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []s
 		log.Error("Initpool failure")
 		return false
 	}
+	utils.SetLogFormatter(debug, validator.api.UserConfig.Username)
 	return true
 }
 
@@ -148,7 +149,7 @@ func (validator *OktaOpenVPNValidator) parsePassword() {
 			userConfig.Passcode = last
 			userConfig.Password = userConfig.Password[:len(userConfig.Password)-passcodeLen]
 		} else {
-			log.Debugf("[%s] No TOTP found in password", userConfig.Username)
+			log.Debugf("no TOTP found in password")
 		}
 	}
 }
@@ -332,7 +333,7 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
 // Authenticate the user against Okta API
 func (validator *OktaOpenVPNValidator) Authenticate() error {
 	if !validator.usernameTrusted {
-		log.Warningf("[%s] is not trusted - failing", validator.api.UserConfig.Username)
+		log.Warningf("is not trusted - failing")
 		return errors.New("User not trusted")
 	}
 	if err := validator.api.Auth(); err == nil {
