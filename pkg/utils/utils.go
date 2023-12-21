@@ -70,11 +70,20 @@ func RemoveComments(s []string) []string {
 	return r
 }
 
-func SetLogFormatter(debug bool) {
+func SetLogFormatter(debug bool, username string) {
 	luuid := uuid.NewString()
+	var format string
+	if username == "" {
+		format = fmt.Sprintf("%%time%% [okta-auth-validator:%s](%%lvl%%): %%msg%%\n", luuid)
+	} else {
+		format = fmt.Sprintf(
+			"%%time%% [okta-auth-validator:%s](%%lvl%%): [%s] %%msg%%\n",
+			luuid,
+			username)
+	}
 	log.SetFormatter(&easy.Formatter{
 		TimestampFormat: time.ANSIC,
-		LogFormat:       fmt.Sprintf("%%time%% [okta-auth-validator:%s](%%lvl%%): %%msg%%\n", luuid),
+		LogFormat:       format,
 	})
 	if debug {
 		log.SetLevel(log.DebugLevel)

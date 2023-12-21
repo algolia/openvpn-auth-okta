@@ -194,9 +194,7 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	if method == http.MethodPost {
 		jsonData, err := json.Marshal(data)
 		if err != nil {
-			log.Errorf("[%s] Error marshaling request payload: %s",
-				auth.UserConfig.Username,
-				err)
+			log.Errorf("Error marshaling request payload: %s", err)
 			return nil, err
 		}
 		dataReader = bytes.NewReader(jsonData)
@@ -205,9 +203,7 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	}
 	r, err = http.NewRequest(method, u.String(), dataReader)
 	if err != nil {
-		log.Errorf("[%s] Error creating http request: %s",
-			auth.UserConfig.Username,
-			err)
+		log.Errorf("Error creating http request: %s", err)
 		return nil, err
 	}
 	for k, v := range headers {
@@ -220,9 +216,7 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	defer resp.Body.Close()
 	jsonBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorf("[%s] Error reading Okta API response: %s",
-			auth.UserConfig.Username,
-			err)
+		log.Errorf("Error reading Okta API response: %s", err)
 		return nil, err
 	}
 	// TODO: return an interface{} and have the "client" functions handle properly
@@ -230,18 +224,14 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	if strings.HasPrefix(string(jsonBody), "{") {
 		err = json.Unmarshal(jsonBody, &a)
 		if err != nil {
-			log.Errorf("[%s] Error unmarshaling Okta API response: %s",
-				auth.UserConfig.Username,
-				err)
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			return nil, err
 		}
 	} else {
 		var res []interface{}
 		err = json.Unmarshal(jsonBody, &res)
 		if err != nil {
-			log.Errorf("[%s] Error unmarshaling Okta API response: %s",
-				auth.UserConfig.Username,
-				err)
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			return nil, err
 		}
 		a = make(map[string]interface{})
@@ -292,7 +282,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 		for _, uGroup := range groupRes["data"].([]interface{}) {
 			gName := uGroup.(map[string]interface{})["profile"].(map[string]interface{})["name"].(string)
 			if slices.Contains(aGroups, gName) {
-				log.Debugf("[%s] is a member of AllowedGroup %s", auth.UserConfig.Username, gName)
+				log.Debugf("is a member of AllowedGroup %s", gName)
 				return nil
 			}
 		}
@@ -313,9 +303,7 @@ func (auth *OktaApiAuth) getUserFactors(preAuthRes map[string]interface{}) (fact
 		} else if factorType == "push" {
 			factorsPush = append(factorsPush, f)
 		} else {
-			log.Debugf("[%s] unsupported factortype: %s, skipping",
-				auth.UserConfig.Username,
-				factorType)
+			log.Debugf("unsupported factortype: %s, skipping", factorType)
 		}
 	}
 	return
@@ -324,20 +312,18 @@ func (auth *OktaApiAuth) getUserFactors(preAuthRes map[string]interface{}) (fact
 func (auth *OktaApiAuth) preChecks() (map[string]interface{}, error) {
 	err := auth.checkAllowedGroups()
 	if err != nil {
-		log.Errorf("[%s] allowed group verification error: %s", auth.UserConfig.Username, err)
+		log.Errorf("allowed group verification error: %s", err)
 		return nil, err
 	}
 
 	preAuthRes, err := auth.preAuth()
 	if err != nil {
-		log.Errorf("[%s] Error connecting to the Okta API: %s", auth.UserConfig.Username, err)
+		log.Errorf("Error connecting to the Okta API: %s", err)
 		return nil, err
 	}
 
 	if _, ok := preAuthRes["errorCauses"]; ok {
-		log.Warningf("[%s] pre-authentication failed: %s",
-			auth.UserConfig.Username,
-			preAuthRes["errorSummary"])
+		log.Warningf("pre-authentication failed: %s", preAuthRes["errorSummary"])
 		return nil, errors.New("pre-authentication failed")
 	}
 	return preAuthRes, nil
@@ -367,9 +353,7 @@ func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []inter
 		}
 		if _, ok := res["status"]; ok {
 			if res["status"] == "SUCCESS" {
-				log.Infof("[%s] authenticated with %s TOTP MFA",
-					auth.UserConfig.Username,
-					provider)
+				log.Infof("authenticated with %s TOTP MFA", provider)
 				return nil
 			}
 		} else {
@@ -377,8 +361,7 @@ func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []inter
 			if _, ok := res["errorCauses"]; ok {
 				cause := res["errorCauses"].([]interface{})[0]
 				errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
-				log.Warningf("[%s] %s TOTP MFA authentication failed: %s",
-					auth.UserConfig.Username,
+				log.Warningf("%s TOTP MFA authentication failed: %s",
 					provider,
 					errorSummary)
 				// Multiple OTP providers can be configured
@@ -413,9 +396,7 @@ PUSH:
 			// Reached only when "push" MFA is used
 			checkCount++
 			if checkCount > auth.ApiConfig.MFAPushMaxRetries {
-				log.Warningf("[%s] %s push MFA timed out",
-					auth.UserConfig.Username,
-					provider)
+				log.Warningf("%s push MFA timed out", provider)
 				if count == len(factorsPush)-1 {
 					_, _ = auth.cancelAuth(stateToken)
 					return errors.New("Push MFA timeout")
@@ -436,14 +417,11 @@ PUSH:
 		}
 		if _, ok := res["status"]; ok {
 			if res["status"] == "SUCCESS" {
-				log.Infof("[%s] authenticated with %s push MFA",
-					auth.UserConfig.Username,
-					provider)
+				log.Infof("authenticated with %s push MFA", provider)
 				return nil
 			} else {
 				// Reached only when "push" MFA is used
-				log.Warningf("[%s] %s push MFA authentication failed: %s",
-					auth.UserConfig.Username,
+				log.Warningf("%s push MFA authentication failed: %s",
 					provider,
 					res["factorResult"])
 				if count == len(factorsPush)-1 {
@@ -477,7 +455,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 	}
 
 ERR:
-	log.Errorf("[%s] unknown MFA error", auth.UserConfig.Username)
+	log.Errorf("unknown MFA error")
 	_, _ = auth.cancelAuth(stateToken)
 	return errors.New("Unknown error")
 }
@@ -485,7 +463,7 @@ ERR:
 // Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
 // returns nil if has been validated by Okta API, an error otherwise
 func (auth *OktaApiAuth) Auth() error {
-	log.Infof("[%s] Authenticating", auth.UserConfig.Username)
+	log.Infof("Authenticating")
 	preAuthRes, err := auth.preChecks()
 	if err != nil {
 		return err
@@ -497,37 +475,36 @@ func (auth *OktaApiAuth) Auth() error {
 		switch status {
 		case "SUCCESS":
 			if auth.ApiConfig.MFARequired {
-				log.Warningf("[%s] allowed without MFA but MFA is required - rejected",
-					auth.UserConfig.Username)
+				log.Warningf("allowed without MFA but MFA is required - rejected")
 				return errors.New("MFA required")
 			} else {
 				return nil
 			}
 
 		case "LOCKED_OUT":
-			log.Warningf("[%s] is locked out", auth.UserConfig.Username)
+			log.Warningf("is locked out")
 			return errors.New("User locked out")
 
 		case "PASSWORD_EXPIRED":
-			log.Warningf("[%s] password is expired", auth.UserConfig.Username)
+			log.Warningf("password is expired")
 			if stateToken := getToken(preAuthRes); stateToken != "" {
 				_, _ = auth.cancelAuth(stateToken)
 			}
 			return errors.New("User password expired")
 
 		case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
-			log.Warningf("[%s] needs to enroll first", auth.UserConfig.Username)
+			log.Warningf("needs to enroll first")
 			if stateToken := getToken(preAuthRes); stateToken != "" {
 				_, _ = auth.cancelAuth(stateToken)
 			}
 			return errors.New("Needs to enroll")
 
 		case "MFA_REQUIRED", "MFA_CHALLENGE":
-			log.Debugf("[%s] checking second factor", auth.UserConfig.Username)
+			log.Debugf("checking second factor")
 			return auth.validateUserMFA(preAuthRes)
 
 		default:
-			log.Errorf("[%s] unknown preauth status: %s", auth.UserConfig.Username, status)
+			log.Errorf("unknown preauth status: %s", status)
 			if stateToken := getToken(preAuthRes); stateToken != "" {
 				_, _ = auth.cancelAuth(stateToken)
 			}
@@ -538,6 +515,6 @@ func (auth *OktaApiAuth) Auth() error {
 	if stateToken := getToken(preAuthRes); stateToken != "" {
 		_, _ = auth.cancelAuth(stateToken)
 	}
-	log.Errorf("[%s] missing preauth status", auth.UserConfig.Username)
+	log.Errorf("missing preauth status")
 	return errors.New("Missing preauth status")
 }
