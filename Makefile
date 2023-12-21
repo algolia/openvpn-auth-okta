@@ -9,62 +9,54 @@ INSTALL := install
 CC := gcc
 CFLAGS := -fPIC -I. -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong
 LDFLAGS := -shared -fPIC
-LIBS := -Lbuild -lokta-auth-validator
 
 DESTDIR :=
 LIB_PREFIX := /usr/lib
 PLUGIN_DIR := openvpn/plugins
 BUILDDIR := build
 
-GOLDFLAGS := -ldflags '-s -w -extldflags "-static"'
-GOFLAGS := -trimpath -buildmode=pie -a $(GOLDFLAGS)
+GOPLUGIN_LDFLAGS := -ldflags '-s -w -extldflags "-static"'
+GOPLUGIN_FLAGS := -trimpath -buildmode=pie -a $(GOLDFLAGS)
 
 ifeq ($(UNAME_S),Linux)
 LIBOKTA_LDFLAGS := -ldflags '-s -w -extldflags -Wl,-soname,libokta-auth-validator.so'
-PLUGIN_LDFLAGS := -Wl,-soname,openvpn-plugin-auth-okta.so
+CPLUGIN_LDFLAGS := $(LDFLAGS) -Wl,-soname,openvpn-plugin-auth-okta.so
 else
 # MacOs X
 LIBOKTA_LDFLAGS := -ldflags '-s -w -extldflags -Wl,-install_name,libokta-auth-validator.so'
-PLUGIN_LDFLAGS := -Wl,-install_name,openvpn-plugin-auth-okta.so
+CPLUGIN_LDFLAGS := $(LDFLAGS) -Wl,-install_name,openvpn-plugin-auth-okta.so
 endif
 LIBOKTA_FLAGS := -trimpath -buildmode=c-shared $(LIBOKTA_LDFLAGS)
 
 
-PKGSRC := pkg/oktaApiAuth/oktaApiAuth.go pkg/utils/utils.go pkg/validator/validator.go
+PKG_SRC := pkg/oktaApiAuth/oktaApiAuth.go pkg/utils/utils.go pkg/validator/validator.go
+PLUGIN_DEPS := $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.o openvpn-plugin.h
 
 all: binary plugin
 
 $(BUILDDIR):
 	mkdir $(BUILDDIR)
 
-
 $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-
 # Build the plugin as a standalone binary
 binary: $(BUILDDIR)/okta-auth-validator
-$(BUILDDIR)/okta-auth-validator: cmd/okta-auth-validator/main.go $(PKGSRC) | $(BUILDDIR)
-	CGO_ENABLED=0 go build $(GOFLAGS) -o $(BUILDDIR)/okta-auth-validator cmd/okta-auth-validator/main.go
+$(BUILDDIR)/okta-auth-validator: cmd/okta-auth-validator/main.go $(PKG_SRC) | $(BUILDDIR)
+	CGO_ENABLED=0 go build $(GOPLUGIN_FLAGS) -o $(BUILDDIR)/okta-auth-validator cmd/okta-auth-validator/main.go
 
 # Build the openvpn-plugin-auth-okta plugin (linked against the Go c-shared lib)
-$(BUILDDIR)/openvpn-plugin-auth-okta.so: $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.o openvpn-plugin.h
-	$(CC) $(LDFLAGS) $(PLUGIN_LDFLAGS) -o $(BUILDDIR)/openvpn-plugin-auth-okta.so $(BUILDDIR)/openvpn-plugin-auth-okta.o
+$(BUILDDIR)/openvpn-plugin-auth-okta.so: $(PLUGIN_DEPS)
+	$(CC) $(CPLUGIN_LDFLAGS) -o $(BUILDDIR)/openvpn-plugin-auth-okta.so $(BUILDDIR)/openvpn-plugin-auth-okta.o
 
 # Build the okta-auth-validator shared lib (Golang c-shared)
-$(BUILDDIR)/libokta-auth-validator.so: lib/libokta-auth-validator.go $(PKGSRC) | $(BUILDDIR)
+$(BUILDDIR)/libokta-auth-validator.so: lib/libokta-auth-validator.go $(PKG_SRC) | $(BUILDDIR)
 	go build $(LIBOKTA_FLAGS) -o $(BUILDDIR)/libokta-auth-validator.so lib/libokta-auth-validator.go
-
-$(BUILDDIR)/test_direct_load: $(BUILDDIR)/libokta-auth-validator.so
-	$(CC) $(CFLAGS) -ggdb -o build/test_direct_load testing/test_direct_load.c $(LIBS)
 
 # Build all shared libraries
 plugin: $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.so
 
 test: $(BUILDDIR)/cover.out
-
-test-c: $(BUILDDIR)/test_direct_load $(BUILDDIR)/test_defer_plugin
-	$(BUILDDIR)/test_direct_load
 
 coverage: $(BUILDDIR)/coverage.html
 
@@ -119,4 +111,4 @@ clean:
 	rm -f testing/fixtures/validator/invalid_control_file
 	rm -f testing/fixtures/validator/control_file
 
-.PHONY: clean install lint badge coverage test plugin
+.PHONY: clean binary install lint badge coverage test plugin
