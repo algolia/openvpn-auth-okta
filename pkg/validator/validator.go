@@ -6,12 +6,10 @@ import (
 	"gopkg.in/ini.v1"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/utils"
 )
 
 var (
@@ -79,7 +77,7 @@ func NewOktaOpenVPNValidator() *OktaOpenVPNValidator {
 
 // Setup the validator depending on the way it's invoked
 func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []string, pluginEnv *PluginEnv) bool {
-	utils.SetLogFormatter(debug, "")
+	setLogFormatter(debug, "")
 	if err := validator.ReadConfigFile(); err != nil {
 		log.Error("ReadConfigFile failure")
 		if deferred {
@@ -133,25 +131,8 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []s
 		log.Error("Initpool failure")
 		return false
 	}
-	utils.SetLogFormatter(debug, validator.api.UserConfig.Username)
+	setLogFormatter(debug, validator.api.UserConfig.Username)
 	return true
-}
-
-// Parse the password looking for an TOTP
-func (validator *OktaOpenVPNValidator) parsePassword() {
-	// If the password provided by the user is longer than a OTP (6 cars)
-	// and the last 6 caracters are digits
-	// then extract the user password (first) and the OTP
-	userConfig := validator.api.UserConfig
-	if len(userConfig.Password) > passcodeLen {
-		last := userConfig.Password[len(userConfig.Password)-passcodeLen:]
-		if _, err := strconv.Atoi(last); err == nil {
-			userConfig.Passcode = last
-			userConfig.Password = userConfig.Password[:len(userConfig.Password)-passcodeLen]
-		} else {
-			log.Debugf("no TOTP found in password")
-		}
-	}
 }
 
 // Read the ini file containing the API config
@@ -224,7 +205,7 @@ func (validator *OktaOpenVPNValidator) LoadPinset() error {
 					return err
 				} else {
 					pinsetArray := strings.Split(string(pinset), "\n")
-					cleanPinset := utils.RemoveComments(utils.RemoveEmptyStrings(pinsetArray))
+					cleanPinset := removeComments(removeEmptyStrings(pinsetArray))
 					validator.api.ApiConfig.AssertPin = cleanPinset
 					validator.pinsetFile = pinsetFile
 					return nil
@@ -248,7 +229,7 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) error {
 			return err
 		} else {
 			viaFileInfos := strings.Split(string(viaFileBuf), "\n")
-			viaFileInfos = utils.RemoveEmptyStrings(viaFileInfos)
+			viaFileInfos = removeEmptyStrings(viaFileInfos)
 			if len(viaFileInfos) < 2 {
 				log.Errorf("Invalid OpenVPN via-file \"%s\" content", path)
 				return errors.New("Invalid via-file")
@@ -256,7 +237,7 @@ func (validator *OktaOpenVPNValidator) LoadViaFile(path string) error {
 			username := viaFileInfos[0]
 			password := viaFileInfos[1]
 
-			if !utils.CheckUsernameFormat(username) {
+			if !checkUsernameFormat(username) {
 				log.Error("Username or CN invalid format")
 				return errors.New("Invalid CN or username format")
 			}
@@ -282,7 +263,7 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
 			CommonName: os.Getenv("common_name"),
 			Password:   os.Getenv("password"),
 			// TODO: use the local public ip as fallback
-			ClientIp:    utils.GetEnv("untrusted_ip", ""),
+			ClientIp:    getEnv("untrusted_ip", ""),
 			ControlFile: os.Getenv("auth_control_file"),
 		}
 	}
@@ -311,7 +292,7 @@ func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
 		return errors.New("No password")
 	}
 
-	if !utils.CheckUsernameFormat(pluginEnv.Username) {
+	if !checkUsernameFormat(pluginEnv.Username) {
 		log.Error("Username or CN invalid format")
 		return errors.New("Invalid CN or username format")
 	}
@@ -350,13 +331,13 @@ func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
 		return errors.New("Unknow control file")
 	}
 
-	if !utils.CheckNotWritable(validator.controlFile) {
+	if !checkNotWritable(validator.controlFile) {
 		log.Errorf("Refusing to authenticate. The file \"%s\" must not be writable by non-owners.",
 			validator.controlFile)
 		return errors.New("control file writable by non-owners")
 	}
 	dirName := filepath.Dir(validator.controlFile)
-	if !utils.CheckNotWritable(dirName) {
+	if !checkNotWritable(dirName) {
 		log.Errorf("Refusing to authenticate. The directory containing the file \"%s\" must not be writable by non-owners.",
 			validator.controlFile)
 		return errors.New("control file dir writable by non-owners")

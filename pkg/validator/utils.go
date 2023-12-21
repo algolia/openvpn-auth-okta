@@ -1,18 +1,36 @@
-package utils
+package validator
 
 import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/t-tomalak/logrus-easy-formatter"
-	"github.com/google/uuid"
 )
 
+// Parse the password looking for an TOTP
+func (validator *OktaOpenVPNValidator) parsePassword() {
+	// If the password provided by the user is longer than a OTP (6 cars)
+	// and the last 6 caracters are digits
+	// then extract the user password (first) and the OTP
+	userConfig := validator.api.UserConfig
+	if len(userConfig.Password) > passcodeLen {
+		last := userConfig.Password[len(userConfig.Password)-passcodeLen:]
+		if _, err := strconv.Atoi(last); err == nil {
+			userConfig.Passcode = last
+			userConfig.Password = userConfig.Password[:len(userConfig.Password)-passcodeLen]
+		} else {
+			log.Debugf("no TOTP found in password")
+		}
+	}
+}
+
 // get an env var by its name, returns the fallback if not found
-func GetEnv(key, fallback string) string {
+func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok && value != "" {
 		return value
 	}
@@ -20,7 +38,7 @@ func GetEnv(key, fallback string) string {
 }
 
 // check that username respects OpenVPN recomandation
-func CheckUsernameFormat(name string) bool {
+func checkUsernameFormat(name string) bool {
 	/* OpenVPN doc says:
 	To protect against a client passing a maliciously formed username or password string,
 	the username string must consist only of these characters:
@@ -31,7 +49,7 @@ func CheckUsernameFormat(name string) bool {
 }
 
 // Check that path is not group or other writable
-func CheckNotWritable(path string) bool {
+func checkNotWritable(path string) bool {
 	sIWGRP := 0b000010000 // Group write permissions
 	sIWOTH := 0b000000010 // Other write permissions
 
@@ -48,7 +66,7 @@ func CheckNotWritable(path string) bool {
 }
 
 // remove all empty strings from string slice
-func RemoveEmptyStrings(s []string) []string {
+func removeEmptyStrings(s []string) []string {
 	var r []string
 	for _, str := range s {
 		if str != "" {
@@ -59,7 +77,7 @@ func RemoveEmptyStrings(s []string) []string {
 }
 
 // remove all comments from string slice
-func RemoveComments(s []string) []string {
+func removeComments(s []string) []string {
 	var r []string
 	reg, _ := regexp.Compile(`^[[:blank:]]*#`)
 	for _, str := range s {
@@ -70,7 +88,7 @@ func RemoveComments(s []string) []string {
 	return r
 }
 
-func SetLogFormatter(debug bool, username string) {
+func setLogFormatter(debug bool, username string) {
 	luuid := uuid.NewString()
 	var format string
 	if username == "" {
