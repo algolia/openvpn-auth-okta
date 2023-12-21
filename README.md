@@ -200,6 +200,25 @@ tmp-dir "/etc/openvpn/tmp"
 Please check the OpenVPN [manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-0/#options) for security considerations regarding this mode.
 
 
+# Log outputs
+Outputs have been designed to be easily parsable, you'll find 2 different formats depending on wether the username has been set or not, ie:
+
+Before
+```
+Thu Dec 21 03:41:28 2023 [okta-auth-validator:4dd5f892-c51d-43bf-94c7-87b25b81707e](ERROR): Initpool failure
+```
+
+After
+```
+Thu Dec 21 03:41:28 2023 [okta-auth-validator:50bc833a-dcea-4337-9d73-41af17371c4e](INFO): [dade.murphy@example.com] Authenticating
+```
+
+A grok pattern could be:
+```
+DATESTAMP_OKTA %{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{YEAR}
+%{DATESTAMP_OKTA:timestamp} \[okta-auth-validator:%{UUID:session_id}\]\(%{LOGLEVEL:level}\):(%{SPACE}\[((%{EMAILADDRESS:username})|(%{EMAILLOCALPART:username}))\])? %{GREEDYDATA:message}
+```
+
 # Useful links
 
 - [OpenVPN: Using alternative authentication methods](https://openvpn.net/community-resources/using-alternative-authentication-methods/)
