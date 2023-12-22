@@ -91,6 +91,8 @@ func (auth *OktaApiAuth) InitPool() error {
 	return nil
 }
 
+// only used validator_test.go
+// TODO: find a clean way to only export this for tests
 func (auth *OktaApiAuth) Pool() *http.Client {
 	return auth.pool
 }
