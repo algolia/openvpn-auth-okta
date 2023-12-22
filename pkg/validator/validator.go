@@ -2,57 +2,14 @@ package validator
 
 import (
 	"errors"
-	"fmt"
-	"gopkg.in/ini.v1"
 	"os"
 	"path/filepath"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
 )
 
-var (
-	cfgDefaultPaths = [5]string{
-		"/etc/okta-auth-validator/api.ini",
-		"/etc/openvpn/okta_openvpn.ini",
-		"/etc/okta_openvpn.ini",
-		"api.ini",
-		"okta_openvpn.ini",
-	}
-	pinsetDefaultPaths = [5]string{
-		"/etc/okta-auth-validator/pinset.cfg",
-		"/etc/openvpn/okta_pinset.cfg",
-		"/etc/okta_pinset.cfg",
-		"pinset.cfg",
-		"okta_pinset.cfg",
-	}
-)
 
-const passcodeLen int = 6
-
-// PluginEnv represents the information passed to the validator when it's running as
-// `Shared Object Plugin`
-type PluginEnv struct {
-	// ControlFile is the path to the OpenVPN auth control file
-	// where the authentication result is written
-	ControlFile string
-
-	// The OpenVPN client ip address, used as `X-Forwarded-For` payload attribute
-	// to the Okta API
-	ClientIp string
-
-	// The CN of the SSL certificate presented by the OpenVPN client
-	CommonName string
-
-	// The client username submitted during OpenVPN authentication
-	Username string
-
-	// The client password submitted during OpenVPN authentication
-	Password string
-}
-
-type PluginMode uint8
 type OktaApiAuth = oktaApiAuth.OktaApiAuth
 
 type OktaOpenVPNValidator struct {
@@ -78,7 +35,7 @@ func NewOktaOpenVPNValidator() *OktaOpenVPNValidator {
 // Setup the validator depending on the way it's invoked
 func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []string, pluginEnv *PluginEnv) bool {
 	setLogFormatter(debug, "")
-	if err := validator.ReadConfigFile(); err != nil {
+	if err := validator.readConfigFile(); err != nil {
 		log.Error("ReadConfigFile failure")
 		if deferred {
 			/*
@@ -98,13 +55,13 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []s
 		//   https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/
 		if len(args) > 0 {
 			// via-file" method
-			if err := validator.LoadViaFile(args[0]); err != nil {
+			if err := validator.loadViaFile(args[0]); err != nil {
 				log.Error("LoadViaFile failure")
 				return false
 			}
 		} else {
 			// "via-env" method
-			if err := validator.LoadEnvVars(nil); err != nil {
+			if err := validator.loadEnvVars(nil); err != nil {
 				log.Error("LoadEnvVars failure")
 				return false
 			}
@@ -112,14 +69,14 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []s
 	} else {
 		// We're running in "Shared Object Plugin" mode
 		// see https://openvpn.net/community-resources/using-alternative-authentication-methods/
-		if err := validator.LoadEnvVars(pluginEnv); err != nil {
+		if err := validator.loadEnvVars(pluginEnv); err != nil {
 			log.Error("LoadEnvVars (deferred) failure")
 			validator.WriteControlFile()
 			return false
 		}
 	}
 
-	if err := validator.LoadPinset(); err != nil {
+	if err := validator.loadPinset(); err != nil {
 		log.Error("LoadPinset failure")
 		if deferred {
 			validator.WriteControlFile()
@@ -133,182 +90,6 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []s
 	}
 	setLogFormatter(debug, validator.api.UserConfig.Username)
 	return true
-}
-
-// Read the ini file containing the API config
-func (validator *OktaOpenVPNValidator) ReadConfigFile() error {
-	var cfgPaths []string
-	if validator.configFile == "" {
-		for _, v := range cfgDefaultPaths {
-			cfgPaths = append(cfgPaths, v)
-		}
-	} else {
-		cfgPaths = append(cfgPaths, validator.configFile)
-	}
-	for _, cfgFile := range cfgPaths {
-		if info, err := os.Stat(cfgFile); err != nil {
-			continue
-		} else {
-			if info.IsDir() {
-				continue
-			} else {
-				// should never fail as err would be not nil only if cfgFile is not a string (or a []byte, a Reader)
-				cfg, err := ini.Load(cfgFile)
-				if err != nil {
-					log.Errorf("Error loading ini file \"%s\": %s",
-						cfgFile,
-						err)
-					return err
-				}
-				apiConfig := validator.api.ApiConfig
-				if err := cfg.Section("OktaAPI").StrictMapTo(apiConfig); err != nil {
-					log.Errorf("Error parsing ini file \"%s\": %s",
-						cfgFile,
-						err)
-					return err
-				}
-				if apiConfig.Url == "" || apiConfig.Token == "" {
-					log.Errorf("Missing Url or Token parameter in \"%s\"",
-						cfgFile)
-					return errors.New("Missing param Url or Token")
-				}
-				validator.configFile = cfgFile
-				return nil
-			}
-		}
-	}
-	log.Errorf("No ini file found in %v", cfgPaths)
-	return errors.New("No ini file found")
-}
-
-// Read all allowed pubkey fingerprints for the API server from pinset file
-func (validator *OktaOpenVPNValidator) LoadPinset() error {
-	var pinsetPaths []string
-	if validator.pinsetFile == "" {
-		for _, v := range pinsetDefaultPaths {
-			pinsetPaths = append(pinsetPaths, v)
-		}
-	} else {
-		pinsetPaths = append(pinsetPaths, validator.pinsetFile)
-	}
-	for _, pinsetFile := range pinsetPaths {
-		if info, err := os.Stat(pinsetFile); err != nil {
-			continue
-		} else {
-			if info.IsDir() {
-				continue
-			} else {
-				if pinset, err := os.ReadFile(pinsetFile); err != nil {
-					log.Errorf("Can not read pinset config file \"%s\": %s",
-						pinsetFile,
-						err)
-					return err
-				} else {
-					pinsetArray := strings.Split(string(pinset), "\n")
-					cleanPinset := removeComments(removeEmptyStrings(pinsetArray))
-					validator.api.ApiConfig.AssertPin = cleanPinset
-					validator.pinsetFile = pinsetFile
-					return nil
-				}
-			}
-		}
-	}
-	return errors.New("No pinset file found")
-}
-
-// Get user credentials from the OpenVPN via-file
-func (validator *OktaOpenVPNValidator) LoadViaFile(path string) error {
-	if _, err := os.Stat(path); err != nil {
-		log.Errorf("OpenVPN via-file \"%s\" does not exists", path)
-		return err
-	} else {
-		if viaFileBuf, err := os.ReadFile(path); err != nil {
-			log.Errorf("Can not read OpenVPN via-file \"%s\": %s",
-				path,
-				err)
-			return err
-		} else {
-			viaFileInfos := strings.Split(string(viaFileBuf), "\n")
-			viaFileInfos = removeEmptyStrings(viaFileInfos)
-			if len(viaFileInfos) < 2 {
-				log.Errorf("Invalid OpenVPN via-file \"%s\" content", path)
-				return errors.New("Invalid via-file")
-			}
-			username := viaFileInfos[0]
-			password := viaFileInfos[1]
-
-			if !checkUsernameFormat(username) {
-				log.Error("Username or CN invalid format")
-				return errors.New("Invalid CN or username format")
-			}
-
-			apiConfig := validator.api.ApiConfig
-			validator.usernameTrusted = true
-			if apiConfig.UsernameSuffix != "" && !strings.Contains(username, "@") {
-				username = fmt.Sprintf("%s@%s", username, apiConfig.UsernameSuffix)
-			}
-			userConfig := validator.api.UserConfig
-			userConfig.Username = username
-			userConfig.Password = password
-			return nil
-		}
-	}
-}
-
-// Get user credentials and info from the environment set by OpenVPN
-func (validator *OktaOpenVPNValidator) LoadEnvVars(pluginEnv *PluginEnv) error {
-	if pluginEnv == nil {
-		pluginEnv = &PluginEnv{
-			Username:   os.Getenv("username"),
-			CommonName: os.Getenv("common_name"),
-			Password:   os.Getenv("password"),
-			// TODO: use the local public ip as fallback
-			ClientIp:    getEnv("untrusted_ip", ""),
-			ControlFile: os.Getenv("auth_control_file"),
-		}
-	}
-	validator.controlFile = pluginEnv.ControlFile
-
-	if validator.controlFile == "" {
-		log.Warning("No control file found, if using a deferred plugin auth will stall and fail.")
-	}
-	// if the username comes from a certificate and AllowUntrustedUsers is false:
-	// user is trusted
-	// otherwise BE CAREFUL, username from OpenVPN credentials will be used !
-	apiConfig := validator.api.ApiConfig
-	if pluginEnv.CommonName != "" && !apiConfig.AllowUntrustedUsers {
-		validator.usernameTrusted = true
-		pluginEnv.Username = pluginEnv.CommonName
-	}
-
-	// if username is empty, there is an issue somewhere
-	if pluginEnv.Username == "" {
-		log.Error("No username or CN provided")
-		return errors.New("No CN or username")
-	}
-
-	if pluginEnv.Password == "" {
-		log.Error("No password provided")
-		return errors.New("No password")
-	}
-
-	if !checkUsernameFormat(pluginEnv.Username) {
-		log.Error("Username or CN invalid format")
-		return errors.New("Invalid CN or username format")
-	}
-
-	if apiConfig.AllowUntrustedUsers {
-		validator.usernameTrusted = true
-	}
-	if apiConfig.UsernameSuffix != "" && !strings.Contains(pluginEnv.Username, "@") {
-		pluginEnv.Username = fmt.Sprintf("%s@%s", pluginEnv.Username, apiConfig.UsernameSuffix)
-	}
-
-	userConfig := validator.api.UserConfig
-	userConfig.Username = pluginEnv.Username
-	userConfig.Password = pluginEnv.Password
-	userConfig.ClientIp = pluginEnv.ClientIp
-	return nil
 }
 
 // Authenticate the user against Okta API
