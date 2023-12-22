@@ -3,7 +3,6 @@ package validator
 import (
 	"errors"
 	"os"
-	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
@@ -104,26 +103,6 @@ func (validator *OktaOpenVPNValidator) Authenticate() error {
 	} else {
 		return errors.New("Authentication failed")
 	}
-}
-
-// Validate the OpenVPN control file and its directory permissions
-func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
-	if validator.controlFile == "" {
-		return errors.New("Unknow control file")
-	}
-
-	if !checkNotWritable(validator.controlFile) {
-		log.Errorf("Refusing to authenticate. The file \"%s\" must not be writable by non-owners.",
-			validator.controlFile)
-		return errors.New("control file writable by non-owners")
-	}
-	dirName := filepath.Dir(validator.controlFile)
-	if !checkNotWritable(dirName) {
-		log.Errorf("Refusing to authenticate. The directory containing the file \"%s\" must not be writable by non-owners.",
-			validator.controlFile)
-		return errors.New("control file dir writable by non-owners")
-	}
-	return nil
 }
 
 // Write the authentication result in the OpenVPN control file (only used in deferred mode)
