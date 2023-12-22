@@ -16,7 +16,7 @@ PLUGIN_DIR := openvpn/plugins
 BUILDDIR := build
 
 GOPLUGIN_LDFLAGS := -ldflags '-s -w -extldflags "-static"'
-GOPLUGIN_FLAGS := -trimpath -buildmode=pie -a $(GOLDFLAGS)
+GOPLUGIN_FLAGS := -trimpath -buildmode=pie -a $(GOPLUGIN_LDFLAGS)
 
 ifeq ($(UNAME_S),Linux)
 LIBOKTA_LDFLAGS := -ldflags '-s -w -extldflags -Wl,-soname,libokta-auth-validator.so'
