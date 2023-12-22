@@ -9,6 +9,14 @@ import (
 	"gopkg.in/h2non/gock.v1"
 )
 
+type allowedGroupsTest struct {
+	testName      string
+	requests      []authRequest
+	allowedGroups string
+	err           error
+}
+
+
 func TestCheckAllowedGroups(t *testing.T) {
 	defer gock.Off()
 	// Uncomment the following line to see HTTP requests intercepted by gock

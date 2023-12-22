@@ -11,6 +11,21 @@ import (
 	"gopkg.in/h2non/gock.v1"
 )
 
+type poolTest struct {
+	testName string
+	host     string
+	port     string
+	pinset   []string
+	err      error
+}
+
+type setupTest struct {
+	testName string
+	requests []authRequest
+	err      error
+}
+
+
 func startTLS(t *testing.T) {
 	t.Helper()
 

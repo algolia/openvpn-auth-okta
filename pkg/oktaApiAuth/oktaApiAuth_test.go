@@ -33,14 +33,16 @@ const (
 	invalidPinset string = "ABCDEF"
 )
 
-// Computed with:
-/*
-echo -n | openssl s_client -connect example.oktapreview.com:443 2>/dev/null |\
- openssl x509 -noout -pubkey |\
- openssl rsa	-pubin -outform der 2>/dev/null |\
- openssl dgst -sha256 -binary | base64
-*/
-var pin []string = []string{"SE4qe2vdD9tAegPwO79rMnZyhHvqj3i5g1c2HkyGUNE="}
+type authTest struct {
+	testName      string
+	mfaRequired   bool
+	passcode      string
+	requests      []authRequest
+	unmatchedReq  bool
+	allowedGroups string
+	err           error
+}
+
 
 func TestAuth(t *testing.T) {
 	defer gock.Off()
