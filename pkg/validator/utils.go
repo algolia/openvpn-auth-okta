@@ -12,6 +12,8 @@ import (
 	"github.com/t-tomalak/logrus-easy-formatter"
 )
 
+const passcodeLen int = 6
+
 // Parse the password looking for an TOTP
 func (validator *OktaOpenVPNValidator) parsePassword() {
 	// If the password provided by the user is longer than a OTP (6 cars)
