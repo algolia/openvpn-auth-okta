@@ -28,9 +28,9 @@ CPLUGIN_LDFLAGS := $(LDFLAGS) -Wl,-install_name,openvpn-plugin-auth-okta.so
 endif
 LIBOKTA_FLAGS := -trimpath -buildmode=c-shared $(LIBOKTA_LDFLAGS)
 
-
-PKG_SRC := pkg/oktaApiAuth/oktaApiAuth.go pkg/utils/utils.go pkg/validator/validator.go
+PKG_SRC := $(shell ls pkg/*/*.go | grep -v "_test.go")
 PLUGIN_DEPS := $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.o openvpn-plugin.h
+
 
 all: binary plugin
 
