@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.5.10
+Version: 2.6.0
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,14 +84,32 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
-* Tue Dec 19 2023 vagrant <jeremy.jacque@algolia.com> 2.5.10-1
+* Fri Dec 22 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.6.0-1
+- fix(plugin): add missing dlclose
+- chore(Makefile): minimize built file size and trimpath
+- chore(Makefile): clean unused vars and targets, tune go build params
+- refacto(go): simplify logging by using different fomatter before and after username is set
+- chore(doc): update coverage badge
+- chore(doc): add a section about logs
+- refacto(oktaApiAuth): split oktaApiAuth package into multiple files
+- refacto(oktaApiAuth/test): split oktaApiAuth tests into multiple files
+- refacto(validator): integrate utils pkg as it is only used by validator
+- refacto(validator): split validator package into multiple files
+- refacto(validator/test): split validator tests into multiple files
+- refacto(Makefile): use a shell cmd to get the full list of pkg files for dependencies
+- fix(Makefile): GOLDFLAGS has been renamed GOPLUGIN_LDFLAGS in a previous commit
+- refacto(oktaApiAuth/test): use types_test.go only for stuff common to multiple tests
+- refacto(validator): move checkControlFilePerm to utils(_test)
+- chore(oktaApiAuth): add a todo for Pool only used in tests
+
+* Tue Dec 19 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.10-1
 - chore(oktaApiAuth): rephrase/enrich log outputs
 - chore(validator): rephrase/enrich log outputs
 - chore: create a dedicated func for logging setup (formatting with uuid, log-level)
 - chore(go): add uuid package needed for logging
 - chore(tools): update url for https://toolkit.okta.com/apps/
 
-* Mon Dec 18 2023 vagrant <jeremy.jacque@algolia.com> 2.5.9-1
+* Mon Dec 18 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.9-1
 - refacto(oktaApiAuth): handle totp and push MFA sequentialy with different error msg
 - chore(oktaApiAuth/test): rename MFA errors, add test for invalid response for totp auth
 - fix(oktaApiAuth): continue outer loop when push triggers error and not last
@@ -100,10 +118,10 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 - refacto(oktaApiAuth): split validateUserMFA with 2 more functions (TOTP and push)
 - chore(oktaApiAuth/test): implement tests following refacto
 
-* Sat Dec 16 2023 vagrant <jeremy.jacque@algolia.com> 2.5.8-1
+* Sat Dec 16 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.8-1
 - fix(oktaApiAuth): user may have multiple OTP providers, try all
 
-* Sat Dec 16 2023 vagrant <jeremy.jacque@algolia.com> 2.5.7-1
+* Sat Dec 16 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.7-1
 - fix(oktaApiAuth): handle properly transaction cancelation, only when needed
 - fix(oktaApiAuth/test): fix with new calls to transaction cancellation
 - chore(doc): update coverage badge
@@ -117,14 +135,14 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 - chore(doc): rearrange and fix typo in README
 - fix(dist): add missing packages in dsc
 
-* Fri Dec 15 2023 vagrant <jeremy.jacque@algolia.com> 2.5.6-1
+* Fri Dec 15 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.6-1
 - style: gofmt some source files
 - refacto(oktaApiAuth): reduce gocyclo score of Auth to an acceptable score
 - chore(oktaApiAuth): homogenize some Auth logs
 - chore(oktaApiAuth/test): add a test for invalid preauth response
 - chore(doc): update coverage badge
 
-* Thu Dec 14 2023 vagrant <jeremy.jacque@algolia.com> 2.5.5-1
+* Thu Dec 14 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.5.5-1
 - chore(validator): add msg for setup failures
 - chore: use logrus to have a clean output
 - fix(Makefile): missing source deps in targets
