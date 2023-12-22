@@ -1,3 +1,25 @@
+openvpn-auth-okta (2.6.0) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * fix(plugin): add missing dlclose
+  * chore(Makefile): minimize built file size and trimpath
+  * chore(Makefile): clean unused vars and targets, tune go build params
+  * refacto(go): simplify logging by using different fomatter before and after username is set
+  * chore(doc): update coverage badge
+  * chore(doc): add a section about logs
+  * refacto(oktaApiAuth): split oktaApiAuth package into multiple files
+  * refacto(oktaApiAuth/test): split oktaApiAuth tests into multiple files
+  * refacto(validator): integrate utils pkg as it is only used by validator
+  * refacto(validator): split validator package into multiple files
+  * refacto(validator/test): split validator tests into multiple files
+  * refacto(Makefile): use a shell cmd to get the full list of pkg files for dependencies
+  * fix(Makefile): GOLDFLAGS has been renamed GOPLUGIN_LDFLAGS in a previous commit
+  * refacto(oktaApiAuth/test): use types_test.go only for stuff common to multiple tests
+  * refacto(validator): move checkControlFilePerm to utils(_test)
+  * chore(oktaApiAuth): add a todo for Pool only used in tests
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Fri, 22 Dec 2023 06:56:20 +0000
+
 openvpn-auth-okta (2.5.10) stable; urgency=medium
 
   [ Jeremy JACQUE ]
