@@ -1,8 +1,10 @@
 package validator
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"time"
@@ -29,6 +31,26 @@ func (validator *OktaOpenVPNValidator) parsePassword() {
 			log.Debugf("no TOTP found in password")
 		}
 	}
+}
+
+// Validate the OpenVPN control file and its directory permissions
+func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
+	if validator.controlFile == "" {
+		return errors.New("Unknow control file")
+	}
+
+	if !checkNotWritable(validator.controlFile) {
+		log.Errorf("Refusing to authenticate. The file \"%s\" must not be writable by non-owners.",
+			validator.controlFile)
+		return errors.New("control file writable by non-owners")
+	}
+	dirName := filepath.Dir(validator.controlFile)
+	if !checkNotWritable(dirName) {
+		log.Errorf("Refusing to authenticate. The directory containing the file \"%s\" must not be writable by non-owners.",
+			validator.controlFile)
+		return errors.New("control file dir writable by non-owners")
+	}
+	return nil
 }
 
 // get an env var by its name, returns the fallback if not found

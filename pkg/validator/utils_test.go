@@ -1,7 +1,10 @@
 package validator
 
 import (
+	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +15,14 @@ type usernameTest struct {
 	username string
 	res      bool
 }
+
+type testControlFile struct {
+	testName string
+	path     string
+	mode     fs.FileMode
+	err      error
+}
+
 
 func TestCheckUsernameFormat(t *testing.T) {
 	tests := []usernameTest{
@@ -52,4 +63,54 @@ func TestGetEnv(t *testing.T) {
 		_ = os.Unsetenv("THIS_ENV_VAR_IS_EMPTY")
 		assert.Equal(t, res, "value")
 	})
+}
+
+func TestCheckControlFilePerm(t *testing.T) {
+	tests := []testControlFile{
+		{
+			"Test empty control file path - failure",
+			"",
+			0600,
+			fmt.Errorf("Unknow control file"),
+		},
+		{
+			"Test valid control file permissions - success",
+			"../../testing/fixtures/validator/valid_control_file",
+			0600,
+			nil,
+		},
+		{
+			"Test invalid control file permissions - success",
+			"../../testing/fixtures/validator/invalid_control_file",
+			0660,
+			fmt.Errorf("control file writable by non-owners"),
+		},
+		{
+			"Test invalid control file dir permissions - success",
+			"../../testing/fixtures/validator/invalid_ctrlfile_dir_perm/ctrl",
+			0600,
+			fmt.Errorf("control file dir writable by non-owners"),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			v := NewOktaOpenVPNValidator()
+			if test.path != "" {
+				v.controlFile = test.path
+				_, _ = os.Create(test.path)
+				defer func() { _ = os.Remove(test.path) }()
+				// This is crapy but git does not group write bit ...
+				if dirName := filepath.Base(filepath.Dir(test.path)); dirName == "invalid_ctrlfile_dir_perm" {
+					_ = os.Chmod(filepath.Dir(test.path), 0770)
+				}
+				_ = os.Chmod(test.path, test.mode)
+			}
+			err := v.checkControlFilePerm()
+			if test.err == nil {
+				assert.Nil(t, err)
+			} else {
+				assert.Equal(t, test.err.Error(), err.Error())
+			}
+		})
+	}
 }

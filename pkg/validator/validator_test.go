@@ -5,7 +5,6 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,13 +18,14 @@ const (
 	token        string = "12345"
 )
 
-
-type testControlFile struct {
-	testName string
-	path     string
-	mode     fs.FileMode
-	err      error
+var setupEnv = map[string]string{
+	"username":          "dade.murphy",
+	"common_name":       "",
+	"password":          "password",
+	"untrusted_ip":      "1.2.3.4",
+	"auth_control_file": controlFile,
 }
+
 
 type testWriteFile struct {
 	testName  string
@@ -58,14 +58,6 @@ type testAuthenticate struct {
 	requests    []authRequest
 	ret         bool
 	err         error
-}
-
-var setupEnv = map[string]string{
-	"username":          "dade.murphy",
-	"common_name":       "",
-	"password":          "password",
-	"untrusted_ip":      "1.2.3.4",
-	"auth_control_file": controlFile,
 }
 
 func TestAuthenticate(t *testing.T) {
@@ -295,59 +287,6 @@ func TestSetup(t *testing.T) {
 			ret := v.Setup(test.deferred, true, test.args, nil)
 			unsetEnv(test.env)
 			assert.Equal(t, test.ret, ret)
-		})
-	}
-}
-
-
-// Authenticate() already done in oktaApiAuth and Load*
-
-func TestCheckControlFilePerm(t *testing.T) {
-	tests := []testControlFile{
-		{
-			"Test empty control file path - failure",
-			"",
-			0600,
-			fmt.Errorf("Unknow control file"),
-		},
-		{
-			"Test valid control file permissions - success",
-			"../../testing/fixtures/validator/valid_control_file",
-			0600,
-			nil,
-		},
-		{
-			"Test invalid control file permissions - success",
-			"../../testing/fixtures/validator/invalid_control_file",
-			0660,
-			fmt.Errorf("control file writable by non-owners"),
-		},
-		{
-			"Test invalid control file dir permissions - success",
-			"../../testing/fixtures/validator/invalid_ctrlfile_dir_perm/ctrl",
-			0600,
-			fmt.Errorf("control file dir writable by non-owners"),
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.testName, func(t *testing.T) {
-			v := NewOktaOpenVPNValidator()
-			if test.path != "" {
-				v.controlFile = test.path
-				_, _ = os.Create(test.path)
-				defer func() { _ = os.Remove(test.path) }()
-				// This is crapy but git does not group write bit ...
-				if dirName := filepath.Base(filepath.Dir(test.path)); dirName == "invalid_ctrlfile_dir_perm" {
-					_ = os.Chmod(filepath.Dir(test.path), 0770)
-				}
-				_ = os.Chmod(test.path, test.mode)
-			}
-			err := v.checkControlFilePerm()
-			if test.err == nil {
-				assert.Nil(t, err)
-			} else {
-				assert.Equal(t, test.err.Error(), err.Error())
-			}
 		})
 	}
 }
