@@ -8,7 +8,6 @@ import (
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
 )
 
-
 type OktaApiAuth = oktaApiAuth.OktaApiAuth
 
 type OktaOpenVPNValidator struct {

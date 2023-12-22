@@ -10,7 +10,6 @@ echo -n | openssl s_client -connect example.oktapreview.com:443 2>/dev/null |\
 // used in api_test.go, oktaApiAuth_test.go, utils_test.go
 var pin []string = []string{"SE4qe2vdD9tAegPwO79rMnZyhHvqj3i5g1c2HkyGUNE="}
 
-
 // used in api_test.go, oktaApiAuth_test.go, utils_test.go
 type authRequest struct {
 	path             string

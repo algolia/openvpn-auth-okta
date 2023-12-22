@@ -16,7 +16,6 @@ type allowedGroupsTest struct {
 	err           error
 }
 
-
 func TestCheckAllowedGroups(t *testing.T) {
 	defer gock.Off()
 	// Uncomment the following line to see HTTP requests intercepted by gock

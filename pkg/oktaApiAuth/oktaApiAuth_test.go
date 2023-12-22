@@ -43,7 +43,6 @@ type authTest struct {
 	err           error
 }
 
-
 func TestAuth(t *testing.T) {
 	defer gock.Off()
 	//gock.Observe(gock.DumpRequest)

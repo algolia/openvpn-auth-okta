@@ -26,7 +26,6 @@ var setupEnv = map[string]string{
 	"auth_control_file": controlFile,
 }
 
-
 type testWriteFile struct {
 	testName  string
 	userValid bool

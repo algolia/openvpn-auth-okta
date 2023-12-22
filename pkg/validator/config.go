@@ -26,7 +26,6 @@ var (
 	}
 )
 
-
 // Read the ini file containing the API config
 func (validator *OktaOpenVPNValidator) readConfigFile() error {
 	var cfgPaths []string

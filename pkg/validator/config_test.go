@@ -18,7 +18,6 @@ type testCfgFile struct {
 	err      error
 }
 
-
 func TestParsePassword(t *testing.T) {
 	t.Run("Parse password with passcode", func(t *testing.T) {
 		setEnv(setupEnv)

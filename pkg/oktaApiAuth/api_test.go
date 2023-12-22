@@ -25,7 +25,6 @@ type setupTest struct {
 	err      error
 }
 
-
 func startTLS(t *testing.T) {
 	t.Helper()
 

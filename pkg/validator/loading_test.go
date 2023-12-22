@@ -11,7 +11,6 @@ import (
 
 const pin string = "SE4qe2vdD9tAegPwO79rMnZyhHvqj3i5g1c2HkyGUNE="
 
-
 type testViaFile struct {
 	testName         string
 	path             string
@@ -30,7 +29,6 @@ type testEnvVar struct {
 	env                 map[string]string
 	err                 error
 }
-
 
 func TestLoadViaFile(t *testing.T) {
 	tests := []testViaFile{

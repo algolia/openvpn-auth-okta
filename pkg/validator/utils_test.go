@@ -23,7 +23,6 @@ type testControlFile struct {
 	err      error
 }
 
-
 func TestCheckUsernameFormat(t *testing.T) {
 	tests := []usernameTest{
 		{
