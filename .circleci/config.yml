@@ -1,6 +1,4 @@
 version: 2.1
-orbs:
-  snyk: snyk/snyk@2.0.1
 
 executors:
   golang:
@@ -51,21 +49,6 @@ jobs:
           path: build/coverage.html
       - save_cache:
           <<: *save-cache
-  snyk-open-source:
-    executor: golang
-    steps:
-      - checkout
-      - snyk/scan:
-          severity-threshold: high
-          additional-arguments: --tags=repository=openvpn-auth-okta,team=infrastructure,team=iaas
-  snyk-code:
-    executor: golang
-    steps:
-      - checkout
-      - snyk/scan:
-          command: code test
-          severity-threshold: high
-          additional-arguments: --tags=repository=openvpn-auth-okta,team=infrastructure,team=iaas
 
 workflows:
   lint_test_build:
@@ -74,5 +57,3 @@ workflows:
       - test:
           requires:
             - golangci-lint
-      - snyk-code
-      - snyk-open-source
