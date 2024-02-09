@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.6.0
+Version: 2.6.1
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,12 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Fri Feb 09 2024 vagrant <jeremy.jacque@algolia.com> 2.6.1-1
+- chore(go): fmt
+- chore(ci): remove snyk jobs as we are decommissioning it
+- chore(doc): simplify pkg install section by using OBS instruction page
+- chore: add license header to source files
+
 * Fri Dec 22 2023 Jeremy Jacque <jeremy.jacque@algolia.com> 2.6.0-1
 - fix(plugin): add missing dlclose
 - chore(Makefile): minimize built file size and trimpath
