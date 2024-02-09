@@ -1,3 +1,13 @@
+openvpn-auth-okta (2.6.1) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * chore(go): fmt
+  * chore(ci): remove snyk jobs as we are decommissioning it
+  * chore(doc): simplify pkg install section by using OBS instruction page
+  * chore: add license header to source files
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Fri, 09 Feb 2024 21:33:15 +0000
+
 openvpn-auth-okta (2.6.0) stable; urgency=medium
 
   [ Jeremy JACQUE ]
