@@ -35,60 +35,22 @@ You have three options to install the Okta OpenVPN plugin:
 
 Thanks to the [OpenSUSE Build Service](https://build.opensuse.org/) packages are available for multiple distros: CentOS, Debian, Fedora, openSUSE, Ubuntu.
 
-##### Debian, Ubuntu:
-```shell
-# supports Debian 11, 12 and Ubuntu 20.04, 22.04, 23.04, 23.10
-. /etc/os-release
-if [ "${NAME}" = "Ubuntu" ]
-then
-  DIST="xUbuntu"
-else
-  DIST="Debian"
-fi
+Choose the proper instructions for your Linux distribution [here](https://software.opensuse.org/download/package?package=openvpn-auth-okta&project=home%3AAlgolia%3AOSS).
 
-echo "deb [arch=amd64 trusted=yes] \"https://download.opensuse.org/repositories/home:/Algolia:/OSS/${DIST}_${VERSION_ID}\" ./" | sudo tee /etc/apt/sources.list.d/algolia-oss.list
-
-wget https://download.opensuse.org/repositories/home:/Algolia:/OSS/${DIST}_${VERSION_ID}/Release.key -O- | sudo apt-key add -
-sudo apt-get update
-sudo apt-get install openvpn-auth-okta
-```
-
-##### openSUSE
-
-```shell
-# supports openSUSE 15.4, 15.5
-. /etc/os-release
-
-wget -q  https://download.opensuse.org/repositories/home:/Algolia:/OSS/${VERSION_ID}/home:Algolia:OSS.repo -O- | sudo tee /etc/zypp/repos.d/algolia-oss.repo
-
-sudo zypper ref
-sudo zypper install openvpn-auth-okta
-```
-
-##### CentOS
-
-```shell
-# supports CentOS 8, 8-stream, 9
-. /etc/os-release
-
-wget -q  https://download.opensuse.org/repositories/home:/Algolia:/OSS/CentOS_${VERSION_ID}/home:Algolia:OSS.repo -O- | sudo tee /etc/yum.repos.d/algolia-oss.repo
-
-sudo yum install -y openvpn-auth-okta
-```
-
-##### Fedora
-
-```shell
-# supports Fedora 38, 39
-. /etc/os-release
-
-wget -q  https://download.opensuse.org/repositories/home:/Algolia:/OSS/Fedora_${VERSION_ID}/home:Algolia:OSS.repo -O- | sudo tee /etc/yum.repos.d/algolia-oss.repo
-
-sudo yum install -y openvpn-auth-okta
-```
+##### Packages are available for:
+ - CentOS: `8`, `8 Stream`
+ - Debian: `Bullseye` (11), `Bookworm` (12)
+ - Fedora: `38`, `39`
+ - openSUSE: `15.4`, `15.5`
+ - Ubuntu: `Focal Fossa` (20.04), `Jammy Jellyfish` (22.04), `Lunar Lobster` (23.04), `Mantic Minotaur` (23.10)
 
 
 ### 2.  For default setups, use `sudo make install` to run the install for you.
+
+Build requirements:
+  - gcc
+  - golang (>= 1.21)
+  - make
 
 If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openvpn/plugins` and configuration files are stored in `/etc/okta-auth-validator`, then you can use the `make install` command to install the Okta OpenVPN plugin:
 
