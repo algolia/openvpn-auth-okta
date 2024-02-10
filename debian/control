@@ -2,7 +2,7 @@ Source: openvpn-auth-okta
 Section: net
 Priority: optional
 Maintainer: Jeremy Jacque <jeremy.jacque@algolia.com>
-Build-Depends: debhelper (>=10), make, gcc, golang-1.21
+Build-Depends: debhelper (>=10), make, gcc, golang-1.21 | golang-1.22
 Standards-Version: 0.1
 Homepage: https://github.com/algolia/openvpn-auth-okta
 
