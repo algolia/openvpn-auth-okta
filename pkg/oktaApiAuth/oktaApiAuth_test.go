@@ -55,6 +55,7 @@ type authTest struct {
 
 func TestAuth(t *testing.T) {
 	defer gock.Off()
+	// Uncomment the following line to see HTTP requests intercepted by gock
 	//gock.Observe(gock.DumpRequest)
 
 	/*
@@ -126,16 +127,10 @@ func TestAuth(t *testing.T) {
 					http.StatusUnauthorized,
 					"preauth_missing_status.json",
 				},
-				{
-					"/api/v1/authn/cancel",
-					map[string]string{"stateToken": stateToken},
-					http.StatusOK,
-					"empty.json",
-				},
 			},
 			false,
 			"",
-			fmt.Errorf("Missing preauth status"),
+			fmt.Errorf("Key: 'PreAuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
 		},
 
 		{
@@ -556,7 +551,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
-			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+			fmt.Errorf("TOTP MFA failed"),
 		},
 
 		{
@@ -666,7 +661,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
-			fmt.Errorf("Unknown error"),
+			fmt.Errorf("TOTP MFA failed"),
 		},
 
 		{

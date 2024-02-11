@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -108,7 +107,7 @@ func (auth *OktaApiAuth) Pool() *http.Client {
 }
 
 // Do an http request to the Okta API using the path and payload provided
-func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]string) (a map[string]interface{}, err error) {
+func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]string) (jsonBody []byte, err error) {
 	u, _ := url.ParseRequestURI(auth.ApiConfig.Url)
 	u.Path = fmt.Sprintf("/api/v1%s", path)
 
@@ -148,34 +147,17 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 		return nil, err
 	}
 	defer resp.Body.Close()
-	jsonBody, err := io.ReadAll(resp.Body)
+	jsonBody, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("Error reading Okta API response: %s", err)
 		return nil, err
 	}
-	// TODO: return an interface{} and have the "client" functions handle properly
-	// what they expect
-	if strings.HasPrefix(string(jsonBody), "{") {
-		err = json.Unmarshal(jsonBody, &a)
-		if err != nil {
-			log.Errorf("Error unmarshaling Okta API response: %s", err)
-			return nil, err
-		}
-	} else {
-		var res []interface{}
-		err = json.Unmarshal(jsonBody, &res)
-		if err != nil {
-			log.Errorf("Error unmarshaling Okta API response: %s", err)
-			return nil, err
-		}
-		a = make(map[string]interface{})
-		a["data"] = res
-	}
-	return a, nil
+
+	return jsonBody, nil
 }
 
 // Call the preauth Okta API endpoint
-func (auth *OktaApiAuth) preAuth() (map[string]interface{}, error) {
+func (auth *OktaApiAuth) preAuth() ([]byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application
 	data := map[string]string{
 		"username": auth.UserConfig.Username,
@@ -185,7 +167,7 @@ func (auth *OktaApiAuth) preAuth() (map[string]interface{}, error) {
 }
 
 // Call the MFA auth Okta API endpoint
-func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (map[string]interface{}, error) {
+func (auth *OktaApiAuth) doAuth(fid string, stateToken string) ([]byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#verify-call-factor
 	path := fmt.Sprintf("/authn/factors/%s/verify", fid)
 	data := map[string]string{
@@ -197,7 +179,7 @@ func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (map[string]inter
 }
 
 // Cancel an authentication transaction
-func (auth *OktaApiAuth) cancelAuth(stateToken string) (map[string]interface{}, error) {
+func (auth *OktaApiAuth) cancelAuth(stateToken string) ([]byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#cancel-transaction
 	data := map[string]string{
 		"stateToken": stateToken,

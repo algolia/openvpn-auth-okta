@@ -11,9 +11,11 @@
 package oktaApiAuth
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,13 +46,10 @@ func NewOktaApiAuth() *OktaApiAuth {
 	}
 }
 
-func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []interface{}) (err error) {
-	var res map[string]interface{}
+func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []AuthFactor) (err error) {
 	// If no passcode is provided, this is a noop
 	for count, factor := range factorsTOTP {
-		fid := factor.(map[string]interface{})["id"].(string)
-		provider := factor.(map[string]interface{})["provider"].(string)
-		res, err = auth.doAuth(fid, stateToken)
+		apiRes, err := auth.doAuth(factor.Id, stateToken)
 		if err != nil {
 			if count == len(factorsTOTP)-1 {
 				_, _ = auth.cancelAuth(stateToken)
@@ -59,38 +58,74 @@ func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []inter
 				continue
 			}
 		}
-		if _, ok := res["status"]; ok {
-			if res["status"] == "SUCCESS" {
-				log.Infof("authenticated with %s TOTP MFA", provider)
-				return nil
-			}
-		} else {
-			// Reached only when "TOTP" MFA is used
-			if _, ok := res["errorCauses"]; ok {
-				cause := res["errorCauses"].([]interface{})[0]
-				errorSummary := cause.(map[string]interface{})["errorSummary"].(string)
+
+		validate := validator.New(validator.WithRequiredStructEnabled())
+		var authResErr ErrorResponse
+		err = json.Unmarshal(apiRes, &authResErr)
+		if err == nil {
+			err = validate.Struct(authResErr)
+			if err == nil {
+				var errorSummary string
+				if len(authResErr.Causes) > 0 {
+					errorSummary = authResErr.Causes[0].Summary
+				} else {
+					errorSummary = authResErr.Summary
+				}
 				log.Warningf("%s TOTP MFA authentication failed: %s",
-					provider,
+					factor.Provider,
 					errorSummary)
-				// Multiple OTP providers can be configured
-				// let's ensure we tried all before returning
 				if count == len(factorsTOTP)-1 {
 					_, _ = auth.cancelAuth(stateToken)
 					return errors.New("TOTP MFA failed")
+				} else {
+					continue
 				}
 			}
+		}
+
+		var authRes AuthResponse
+		err = json.Unmarshal(apiRes, &authRes)
+		if err != nil {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			if count == len(factorsTOTP)-1 {
+				_, _ = auth.cancelAuth(stateToken)
+				return errors.New("TOTP MFA failed")
+			} else {
+				continue
+			}
+		}
+
+		err = validate.Struct(authRes)
+		if err != nil {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			if count == len(factorsTOTP)-1 {
+				_, _ = auth.cancelAuth(stateToken)
+				return errors.New("TOTP MFA failed")
+			} else {
+				continue
+			}
+		}
+
+		if authRes.Status == "SUCCESS" {
+			log.Infof("authenticated with %s TOTP MFA", factor.Provider)
+			return nil
+		}
+
+		log.Warningf("%s TOTP MFA authentication failed: %s",
+			factor.Provider,
+			authRes.Result)
+		if count == len(factorsTOTP)-1 {
+			_, _ = auth.cancelAuth(stateToken)
+			return errors.New("TOTP MFA failed")
 		}
 	}
 	return errors.New("Unknown error")
 }
 
-func (auth *OktaApiAuth) verifyPushFactor(stateToken string, factorsPush []interface{}) (err error) {
-	var res map[string]interface{}
+func (auth *OktaApiAuth) verifyPushFactor(stateToken string, factorsPush []AuthFactor) (err error) {
 PUSH:
 	for count, factor := range factorsPush {
-		fid := factor.(map[string]interface{})["id"].(string)
-		provider := factor.(map[string]interface{})["provider"].(string)
-		res, err = auth.doAuth(fid, stateToken)
+		apiRes, err := auth.doAuth(factor.Id, stateToken)
 		if err != nil {
 			if count == len(factorsPush)-1 {
 				_, _ = auth.cancelAuth(stateToken)
@@ -99,12 +134,50 @@ PUSH:
 				continue
 			}
 		}
+		validate := validator.New(validator.WithRequiredStructEnabled())
+		var authResErr ErrorResponse
+		err = json.Unmarshal(apiRes, &authResErr)
+		if err == nil {
+			err = validate.Struct(authResErr)
+			if err == nil {
+				log.Errorf("Error unmarshaling Okta API response: %s", err)
+				if count == len(factorsPush)-1 {
+					_, _ = auth.cancelAuth(stateToken)
+					return err
+				} else {
+					continue
+				}
+			}
+		}
+
+		var authRes AuthResponse
+		err = json.Unmarshal(apiRes, &authRes)
+		if err != nil {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			if count == len(factorsPush)-1 {
+				_, _ = auth.cancelAuth(stateToken)
+				return errors.New("Push MFA failed")
+			} else {
+				continue
+			}
+		}
+		err = validate.Struct(authRes)
+		if err != nil {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			if count == len(factorsPush)-1 {
+				_, _ = auth.cancelAuth(stateToken)
+				return errors.New("Push MFA failed")
+			} else {
+				continue
+			}
+		}
+
 		checkCount := 0
-		for res["factorResult"] == "WAITING" {
+		for authRes.Result == "WAITING" {
 			// Reached only when "push" MFA is used
 			checkCount++
 			if checkCount > auth.ApiConfig.MFAPushMaxRetries {
-				log.Warningf("%s push MFA timed out", provider)
+				log.Warningf("%s push MFA timed out", factor.Provider)
 				if count == len(factorsPush)-1 {
 					_, _ = auth.cancelAuth(stateToken)
 					return errors.New("Push MFA timeout")
@@ -112,42 +185,62 @@ PUSH:
 					continue PUSH
 				}
 			}
+
 			time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
-			res, err = auth.doAuth(fid, stateToken)
+
+			apiRes, err = auth.doAuth(factor.Id, stateToken)
 			if err != nil {
 				if count == len(factorsPush)-1 {
 					_, _ = auth.cancelAuth(stateToken)
 					return err
 				} else {
-					continue PUSH
+					continue
 				}
 			}
-		}
-		if _, ok := res["status"]; ok {
-			if res["status"] == "SUCCESS" {
-				log.Infof("authenticated with %s push MFA", provider)
-				return nil
-			} else {
-				// Reached only when "push" MFA is used
-				log.Warningf("%s push MFA authentication failed: %s",
-					provider,
-					res["factorResult"])
+
+			err = json.Unmarshal(apiRes, &authRes)
+			if err != nil {
+				log.Errorf("Error unmarshaling Okta API response: %s", err)
+				if count == len(factorsPush)-1 {
+					_, _ = auth.cancelAuth(stateToken)
+					return err
+				} else {
+					continue
+				}
+			}
+			err = validate.Struct(authRes)
+			if err != nil {
+				log.Errorf("Error unmarshaling Okta API response: %s", err)
 				if count == len(factorsPush)-1 {
 					_, _ = auth.cancelAuth(stateToken)
 					return errors.New("Push MFA failed")
+				} else {
+					continue
 				}
 			}
+		}
+
+		if authRes.Status == "SUCCESS" {
+			log.Infof("authenticated with %s push MFA", factor.Provider)
+			return nil
+		}
+
+		log.Warningf("%s push MFA authentication failed: %s",
+			factor.Provider,
+			authRes.Result)
+		if count == len(factorsPush)-1 {
+			_, _ = auth.cancelAuth(stateToken)
+			return errors.New("Push MFA failed")
 		}
 	}
 	return errors.New("Unknown error")
 }
 
-func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err error) {
-	stateToken := getToken(preAuthRes)
+func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error) {
 	factorsTOTP, factorsPush := auth.getUserFactors(preAuthRes)
 
 	if auth.UserConfig.Passcode != "" {
-		if err = auth.verifyTOTPFactor(stateToken, factorsTOTP); err != nil {
+		if err = auth.verifyTOTPFactor(preAuthRes.Token, factorsTOTP); err != nil {
 			if err.Error() != "Unknown error" {
 				return err
 			}
@@ -156,7 +249,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 		return nil
 	}
 
-	if err = auth.verifyPushFactor(stateToken, factorsPush); err == nil {
+	if err = auth.verifyPushFactor(preAuthRes.Token, factorsPush); err == nil {
 		return nil
 	} else if err.Error() != "Unknown error" {
 		return err
@@ -164,7 +257,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes map[string]interface{}) (err
 
 ERR:
 	log.Errorf("unknown MFA error")
-	_, _ = auth.cancelAuth(stateToken)
+	_, _ = auth.cancelAuth(preAuthRes.Token)
 	return errors.New("Unknown error")
 }
 
@@ -176,53 +269,43 @@ func (auth *OktaApiAuth) Auth() error {
 	if err != nil {
 		return err
 	}
-	var status string
-	if st, ok := preAuthRes["status"]; ok {
-		status = st.(string)
 
-		switch status {
-		case "SUCCESS":
-			if auth.ApiConfig.MFARequired {
-				log.Warningf("allowed without MFA but MFA is required - rejected")
-				return errors.New("MFA required")
-			} else {
-				return nil
-			}
-
-		case "LOCKED_OUT":
-			log.Warningf("is locked out")
-			return errors.New("User locked out")
-
-		case "PASSWORD_EXPIRED":
-			log.Warningf("password is expired")
-			if stateToken := getToken(preAuthRes); stateToken != "" {
-				_, _ = auth.cancelAuth(stateToken)
-			}
-			return errors.New("User password expired")
-
-		case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
-			log.Warningf("needs to enroll first")
-			if stateToken := getToken(preAuthRes); stateToken != "" {
-				_, _ = auth.cancelAuth(stateToken)
-			}
-			return errors.New("Needs to enroll")
-
-		case "MFA_REQUIRED", "MFA_CHALLENGE":
-			log.Debugf("checking second factor")
-			return auth.validateUserMFA(preAuthRes)
-
-		default:
-			log.Errorf("unknown preauth status: %s", status)
-			if stateToken := getToken(preAuthRes); stateToken != "" {
-				_, _ = auth.cancelAuth(stateToken)
-			}
-			return errors.New("Unknown preauth status")
+	switch preAuthRes.Status {
+	case "SUCCESS":
+		if auth.ApiConfig.MFARequired {
+			log.Warningf("allowed without MFA but MFA is required - rejected")
+			return errors.New("MFA required")
+		} else {
+			return nil
 		}
-	}
 
-	if stateToken := getToken(preAuthRes); stateToken != "" {
-		_, _ = auth.cancelAuth(stateToken)
+	case "LOCKED_OUT":
+		log.Warningf("is locked out")
+		return errors.New("User locked out")
+
+	case "PASSWORD_EXPIRED":
+		log.Warningf("password is expired")
+		if preAuthRes.Token != "" {
+			_, _ = auth.cancelAuth(preAuthRes.Token)
+		}
+		return errors.New("User password expired")
+
+	case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
+		log.Warningf("needs to enroll first")
+		if preAuthRes.Token != "" {
+			_, _ = auth.cancelAuth(preAuthRes.Token)
+		}
+		return errors.New("Needs to enroll")
+
+	case "MFA_REQUIRED", "MFA_CHALLENGE":
+		log.Debugf("checking second factor")
+		return auth.validateUserMFA(preAuthRes)
+
+	default:
+		log.Errorf("unknown preauth status: %s", preAuthRes.Status)
+		if preAuthRes.Token != "" {
+			_, _ = auth.cancelAuth(preAuthRes.Token)
+		}
+		return errors.New("Unknown preauth status")
 	}
-	log.Errorf("missing preauth status")
-	return errors.New("Missing preauth status")
 }
