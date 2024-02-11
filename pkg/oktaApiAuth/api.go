@@ -25,6 +25,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -164,6 +165,80 @@ func (auth *OktaApiAuth) preAuth() ([]byte, error) {
 		"password": auth.UserConfig.Password,
 	}
 	return auth.oktaReq(http.MethodPost, "/authn", data)
+}
+
+func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors int, stateToken string) (AuthResponse, error) {
+	apiRes, err := auth.doAuth(factor.Id, stateToken)
+	if err != nil {
+		if count == nbFactors-1 {
+			_, _ = auth.cancelAuth(stateToken)
+			return AuthResponse{}, err
+		} else {
+			return AuthResponse{}, errors.New("continue")
+		}
+	}
+
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	var authResErr ErrorResponse
+	err = json.Unmarshal(apiRes, &authResErr)
+	if err == nil {
+		err = validate.Struct(authResErr)
+		if err == nil {
+			var errorSummary string
+			if len(authResErr.Causes) > 0 {
+				errorSummary = authResErr.Causes[0].Summary
+			} else {
+				errorSummary = authResErr.Summary
+			}
+			var ftype string
+			var ferror string
+			if factor.Type == "token:software:totp" {
+				ftype = "TOTP"
+				ferror = "TOTP MFA failed"
+			} else {
+				ftype = "push"
+				ferror = "Push MFA failed"
+			}
+			if count == nbFactors-1 {
+				log.Warningf("%s %s MFA authentication failed: %s",
+					factor.Provider,
+					ftype,
+					errorSummary)
+				_, _ = auth.cancelAuth(stateToken)
+				return AuthResponse{}, errors.New(ferror)
+			} else {
+				log.Errorf("%s %s MFA authentication failed: %s",
+					factor.Provider,
+					ftype,
+					errorSummary)
+				return AuthResponse{}, errors.New("continue")
+			}
+		}
+	}
+
+	var authRes AuthResponse
+	err = json.Unmarshal(apiRes, &authRes)
+	if err != nil {
+		log.Errorf("Error unmarshaling Okta API response: %s", err)
+		if count == nbFactors-1 {
+			_, _ = auth.cancelAuth(stateToken)
+			return AuthResponse{}, err
+		} else {
+			return AuthResponse{}, errors.New("continue")
+		}
+	}
+
+	err = validate.Struct(authRes)
+	if err != nil {
+		log.Errorf("Error unmarshaling Okta API response: %s", err)
+		if count == nbFactors-1 {
+			_, _ = auth.cancelAuth(stateToken)
+			return AuthResponse{}, err
+		} else {
+			return AuthResponse{}, errors.New("continue")
+		}
+	}
+	return authRes, nil
 }
 
 // Call the MFA auth Okta API endpoint
