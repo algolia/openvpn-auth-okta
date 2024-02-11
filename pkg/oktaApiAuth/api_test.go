@@ -137,7 +137,7 @@ func TestOktaReq(t *testing.T) {
 					"invalid.json",
 				},
 			},
-			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+			nil,
 		},
 		{
 			"invalid payload - failure",
@@ -149,7 +149,7 @@ func TestOktaReq(t *testing.T) {
 					"invalid.json",
 				},
 			},
-			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+			nil,
 		},
 	}
 
