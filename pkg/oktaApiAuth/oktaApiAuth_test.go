@@ -54,17 +54,94 @@ type authTest struct {
 	err           error
 }
 
-func TestAuth(t *testing.T) {
+/*
+	all the JSON response files used here have been extracted from
+		https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application
+		https://developer.okta.com/docs/reference/api/authn/#multifactor-authentication-operations
+	with fatcor id and stateToken modifications
+*/
+
+func commonAuthTest(authTests []authTest, t *testing.T) {
 	defer gock.Off()
 	// Uncomment the following line to see HTTP requests intercepted by gock
 	//gock.Observe(gock.DumpRequest)
+	for _, test := range authTests {
+		t.Run(test.testName, func(t *testing.T) {
+			gock.Clean()
+			gock.CleanUnmatchedRequest()
+			gock.Flush()
 
-	/*
-		all the JSON response files used here have been extracted from
-			https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application
-			https://developer.okta.com/docs/reference/api/authn/#multifactor-authentication-operations
-		with fatcor id and stateToken modifications
-	*/
+			apiCfg := &OktaAPIConfig{
+				Url:                 oktaEndpoint,
+				Token:               token,
+				UsernameSuffix:      "algolia.com",
+				AssertPin:           pin,
+				MFARequired:         test.mfaRequired,
+				AllowUntrustedUsers: true,
+				MFAPushMaxRetries:   test.pushRetries,
+				MFAPushDelaySeconds: 3,
+				AllowedGroups:       test.allowedGroups,
+			}
+			userCfg := &OktaUserConfig{
+				Username: username,
+				Password: password,
+				Passcode: test.passcode,
+				ClientIp: ip,
+			}
+
+			for _, req := range test.requests {
+				responseFile := fmt.Sprintf("../../testing/fixtures/oktaApi/%s", req.jsonResponseFile)
+				l := gock.New(oktaEndpoint)
+
+				if test.allowedGroups != "" {
+					l = l.Get(req.path).
+						MatchHeader("Authorization", fmt.Sprintf("SSWS %s", token)).
+						MatchHeader("X-Forwarded-For", ip).
+						MatchType("json")
+					l.Reply(req.httpStatus).
+						File(responseFile)
+				} else {
+					l = l.Post(req.path).
+						MatchHeader("Authorization", fmt.Sprintf("SSWS %s", token)).
+						MatchHeader("X-Forwarded-For", ip).
+						MatchType("json").
+						JSON(req.payload)
+					l.Reply(http.StatusOK).
+						File(responseFile)
+				}
+			}
+
+			a := &OktaApiAuth{
+				ApiConfig:  apiCfg,
+				UserConfig: userCfg,
+				userAgent:  userAgent,
+			}
+			err := a.InitPool()
+			assert.Nil(t, err)
+
+			gock.InterceptClient(a.pool)
+			gock.DisableNetworking()
+			err2 := a.Auth()
+			if test.err == nil {
+				assert.Nil(t, err2)
+			} else {
+				assert.Equal(t, test.err.Error(), err2.Error())
+			}
+			if !test.unmatchedReq {
+				assert.False(t, gock.HasUnmatchedRequest())
+			}
+			if test.testName == "PreAuth connection issue - failure" {
+				assert.True(t, gock.IsPending())
+				assert.False(t, gock.IsDone())
+			} else {
+				assert.False(t, gock.IsPending())
+				assert.True(t, gock.IsDone())
+			}
+		})
+	}
+}
+
+func TestAuthGroups(t *testing.T) {
 	authTests := []authTest{
 		{
 			"Not member of allowed groups - failure",
@@ -82,6 +159,29 @@ func TestAuth(t *testing.T) {
 			"test1, test2",
 			1,
 			fmt.Errorf("Not mmember of an AllowedGroup"),
+		},
+	}
+	commonAuthTest(authTests, t)
+}
+
+func TestAuthPreAuth(t *testing.T) {
+	authTests := []authTest{
+		{
+			"PreAuth connection issue - failure",
+			true,
+			passcode,
+			[]authRequest{
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			true,
+			"",
+			1,
+			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn\": gock: cannot match any request"),
 		},
 
 		{
@@ -263,7 +363,59 @@ func TestAuth(t *testing.T) {
 			1,
 			fmt.Errorf("Unknown preauth status"),
 		},
+	}
+	commonAuthTest(authTests, t)
+}
 
+func TestAuthMFA(t *testing.T) {
+	authTests := []authTest{
+		{
+			"Auth with MFA required, HTTP err - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_push_mfa_required.json",
+				},
+			},
+			true,
+			"",
+			1,
+			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request"),
+		},
+
+		{
+			"Auth with unknown factortype - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_unknown_mfa_required.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			1,
+			fmt.Errorf("Unknown error"),
+		},
+	}
+	commonAuthTest(authTests, t)
+}
+
+func TestAuthPushMFA(t *testing.T) {
+	authTests := []authTest{
 		{
 			"Auth with push MFA required - success",
 			true,
@@ -316,6 +468,30 @@ func TestAuth(t *testing.T) {
 			"",
 			1,
 			fmt.Errorf("Push MFA failed"),
+		},
+
+		{
+			"Auth with push timeout err - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_push_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+			},
+			true,
+			"",
+			1,
+			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request"),
 		},
 
 		{
@@ -491,73 +667,12 @@ func TestAuth(t *testing.T) {
 			1,
 			nil,
 		},
+	}
+	commonAuthTest(authTests, t)
+}
 
-		{
-			"Auth with MFA required, HTTP err - failure",
-			true,
-			"",
-			[]authRequest{
-				{
-					"/api/v1/authn",
-					map[string]string{"username": username, "password": password},
-					http.StatusOK,
-					"preauth_push_mfa_required.json",
-				},
-			},
-			true,
-			"",
-			1,
-			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request"),
-		},
-
-		{
-			"Auth with push timeout err - failure",
-			true,
-			"",
-			[]authRequest{
-				{
-					"/api/v1/authn",
-					map[string]string{"username": username, "password": password},
-					http.StatusOK,
-					"preauth_push_mfa_required.json",
-				},
-				{
-					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
-					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
-					http.StatusOK,
-					"auth_waiting.json",
-				},
-			},
-			true,
-			"",
-			1,
-			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request"),
-		},
-
-		{
-			"Auth with unknown factortype - failure",
-			true,
-			"",
-			[]authRequest{
-				{
-					"/api/v1/authn",
-					map[string]string{"username": username, "password": password},
-					http.StatusOK,
-					"preauth_unknown_mfa_required.json",
-				},
-				{
-					"/api/v1/authn/cancel",
-					map[string]string{"stateToken": stateToken},
-					http.StatusOK,
-					"empty.json",
-				},
-			},
-			false,
-			"",
-			1,
-			fmt.Errorf("Unknown error"),
-		},
-
+func TestAuthTOTPMFA(t *testing.T) {
+	authTests := []authTest{
 		{
 			"Auth with TOTP MFA required - success",
 			true,
@@ -755,98 +870,6 @@ func TestAuth(t *testing.T) {
 			1,
 			nil,
 		},
-
-		{
-			"PreAuth connection issue - failure",
-			true,
-			passcode,
-			[]authRequest{
-				{
-					"/api/v1/authn/cancel",
-					map[string]string{"stateToken": stateToken},
-					http.StatusOK,
-					"empty.json",
-				},
-			},
-			true,
-			"",
-			1,
-			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn\": gock: cannot match any request"),
-		},
 	}
-
-	for _, test := range authTests {
-		t.Run(test.testName, func(t *testing.T) {
-			gock.Clean()
-			gock.CleanUnmatchedRequest()
-			gock.Flush()
-
-			apiCfg := &OktaAPIConfig{
-				Url:                 oktaEndpoint,
-				Token:               token,
-				UsernameSuffix:      "algolia.com",
-				AssertPin:           pin,
-				MFARequired:         test.mfaRequired,
-				AllowUntrustedUsers: true,
-				MFAPushMaxRetries:   test.pushRetries,
-				MFAPushDelaySeconds: 3,
-				AllowedGroups:       test.allowedGroups,
-			}
-			userCfg := &OktaUserConfig{
-				Username: username,
-				Password: password,
-				Passcode: test.passcode,
-				ClientIp: ip,
-			}
-
-			for _, req := range test.requests {
-				responseFile := fmt.Sprintf("../../testing/fixtures/oktaApi/%s", req.jsonResponseFile)
-				l := gock.New(oktaEndpoint)
-
-				if test.allowedGroups != "" {
-					l = l.Get(req.path).
-						MatchHeader("Authorization", fmt.Sprintf("SSWS %s", token)).
-						MatchHeader("X-Forwarded-For", ip).
-						MatchType("json")
-					l.Reply(req.httpStatus).
-						File(responseFile)
-				} else {
-					l = l.Post(req.path).
-						MatchHeader("Authorization", fmt.Sprintf("SSWS %s", token)).
-						MatchHeader("X-Forwarded-For", ip).
-						MatchType("json").
-						JSON(req.payload)
-					l.Reply(http.StatusOK).
-						File(responseFile)
-				}
-			}
-
-			a := &OktaApiAuth{
-				ApiConfig:  apiCfg,
-				UserConfig: userCfg,
-				userAgent:  userAgent,
-			}
-			err := a.InitPool()
-			assert.Nil(t, err)
-
-			gock.InterceptClient(a.pool)
-			gock.DisableNetworking()
-			err2 := a.Auth()
-			if test.err == nil {
-				assert.Nil(t, err2)
-			} else {
-				assert.Equal(t, test.err.Error(), err2.Error())
-			}
-			if !test.unmatchedReq {
-				assert.False(t, gock.HasUnmatchedRequest())
-			}
-			if test.testName == "PreAuth connection issue - failure" {
-				assert.True(t, gock.IsPending())
-				assert.False(t, gock.IsDone())
-			} else {
-				assert.False(t, gock.IsPending())
-				assert.True(t, gock.IsDone())
-			}
-		})
-	}
+	commonAuthTest(authTests, t)
 }
