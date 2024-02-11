@@ -50,6 +50,7 @@ type authTest struct {
 	requests      []authRequest
 	unmatchedReq  bool
 	allowedGroups string
+	pushRetries   int
 	err           error
 }
 
@@ -79,6 +80,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"test1, test2",
+			1,
 			fmt.Errorf("Not mmember of an AllowedGroup"),
 		},
 
@@ -96,6 +98,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("pre-authentication failed"),
 		},
 
@@ -113,6 +116,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("pre-authentication failed"),
 		},
 
@@ -130,6 +134,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("Key: 'PreAuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
 		},
 
@@ -147,6 +152,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("User locked out"),
 		},
 
@@ -170,6 +176,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("User password expired"),
 		},
 
@@ -187,6 +194,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			nil,
 		},
 
@@ -204,6 +212,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("MFA required"),
 		},
 
@@ -227,6 +236,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("Needs to enroll"),
 		},
 
@@ -250,6 +260,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("Unknown preauth status"),
 		},
 
@@ -273,6 +284,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			nil,
 		},
 
@@ -302,6 +314,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("Push MFA failed"),
 		},
 
@@ -337,6 +350,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("Push MFA timeout"),
 		},
 
@@ -372,6 +386,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			nil,
 		},
 
@@ -401,7 +416,44 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			nil,
+		},
+
+		{
+			"Auth with 1 push providers, invalid response after waiting - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_push_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"invalid.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			2,
+			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
 		},
 
 		{
@@ -436,6 +488,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			nil,
 		},
 
@@ -453,6 +506,7 @@ func TestAuth(t *testing.T) {
 			},
 			true,
 			"",
+			1,
 			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request"),
 		},
 
@@ -476,6 +530,7 @@ func TestAuth(t *testing.T) {
 			},
 			true,
 			"",
+			1,
 			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request"),
 		},
 
@@ -499,6 +554,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("Unknown error"),
 		},
 
@@ -522,6 +578,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			nil,
 		},
 
@@ -551,7 +608,8 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
-			fmt.Errorf("TOTP MFA failed"),
+			1,
+			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
 		},
 
 		{
@@ -574,6 +632,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			nil,
 		},
 
@@ -603,6 +662,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("TOTP MFA failed"),
 		},
 
@@ -632,6 +692,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("TOTP MFA failed"),
 		},
 
@@ -661,6 +722,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			fmt.Errorf("TOTP MFA failed"),
 		},
 
@@ -690,6 +752,7 @@ func TestAuth(t *testing.T) {
 			},
 			false,
 			"",
+			1,
 			nil,
 		},
 
@@ -707,6 +770,7 @@ func TestAuth(t *testing.T) {
 			},
 			true,
 			"",
+			1,
 			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn\": gock: cannot match any request"),
 		},
 	}
@@ -724,7 +788,7 @@ func TestAuth(t *testing.T) {
 				AssertPin:           pin,
 				MFARequired:         test.mfaRequired,
 				AllowUntrustedUsers: true,
-				MFAPushMaxRetries:   1,
+				MFAPushMaxRetries:   test.pushRetries,
 				MFAPushDelaySeconds: 3,
 				AllowedGroups:       test.allowedGroups,
 			}
