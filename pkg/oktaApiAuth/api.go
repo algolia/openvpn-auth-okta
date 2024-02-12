@@ -244,6 +244,66 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 	return authRes, nil
 }
 
+func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int, stateToken string, authRes *AuthResponse) error {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	checkCount := 0
+	for authRes.Result == "WAITING" {
+		checkCount++
+		if checkCount > auth.ApiConfig.MFAPushMaxRetries {
+			log.Warningf("%s push MFA timed out", factor.Provider)
+			if count == nbFactors-1 {
+				_, _, _ = auth.cancelAuth(stateToken)
+				return errors.New("Push MFA timeout")
+			} else {
+				return errors.New("continue")
+			}
+		}
+
+		time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
+
+		code, apiRes, err := auth.doAuth(factor.Id, stateToken)
+		if err != nil {
+			if count == nbFactors-1 {
+				_, _, _ = auth.cancelAuth(stateToken)
+				return err
+			} else {
+				continue
+			}
+		}
+		if code != 200 && code != 202 {
+			if count == nbFactors-1 {
+				_, _, _ = auth.cancelAuth(stateToken)
+				// TODO: fix err
+				return err
+			} else {
+				continue
+			}
+		}
+
+		err = json.Unmarshal(apiRes, &authRes)
+		if err != nil {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			if count == nbFactors-1 {
+				_, _, _ = auth.cancelAuth(stateToken)
+				return err
+			} else {
+				continue
+			}
+		}
+		err = validate.Struct(authRes)
+		if err != nil {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			if count == nbFactors-1 {
+				_, _, _ = auth.cancelAuth(stateToken)
+				return errors.New("Push MFA failed")
+			} else {
+				continue
+			}
+		}
+	}
+	return nil
+}
+
 // Call the MFA auth Okta API endpoint
 func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (int, []byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#verify-call-factor
