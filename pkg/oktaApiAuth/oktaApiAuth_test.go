@@ -106,7 +106,7 @@ func commonAuthTest(authTests []authTest, t *testing.T) {
 						MatchHeader("X-Forwarded-For", ip).
 						MatchType("json").
 						JSON(req.payload)
-					l.Reply(http.StatusOK).
+					l.Reply(req.httpStatus).
 						File(responseFile)
 				}
 			}
@@ -185,25 +185,25 @@ func TestAuthPreAuth(t *testing.T) {
 		},
 
 		{
-			"PreAuth with invalid token - failure",
+			"PreAuth rate limited - failure",
 			false,
 			"",
 			[]authRequest{
 				{
 					"/api/v1/authn",
 					map[string]string{"username": username, "password": password},
-					http.StatusUnauthorized,
-					"preauth_invalid_token.json",
+					http.StatusTooManyRequests,
+					"preauth_rate_limit.json",
 				},
 			},
 			false,
 			"",
 			1,
-			fmt.Errorf("pre-authentication failed"),
+			fmt.Errorf("pre-authentication rate limited"),
 		},
 
 		{
-			"PreAuth with invalid creadential - failure",
+			"PreAuth with invalid creadential, (hidden) locked out user - failure",
 			false,
 			"",
 			[]authRequest{
@@ -228,7 +228,7 @@ func TestAuthPreAuth(t *testing.T) {
 				{
 					"/api/v1/authn",
 					map[string]string{"username": username, "password": password},
-					http.StatusUnauthorized,
+					http.StatusOK,
 					"preauth_missing_status.json",
 				},
 			},
@@ -408,7 +408,31 @@ func TestAuthMFA(t *testing.T) {
 			false,
 			"",
 			1,
-			fmt.Errorf("Unknown error"),
+			fmt.Errorf("No MFA factor available"),
+		},
+
+		{
+			"Auth with unknown factortype, passcode provided - failure",
+			true,
+			passcode,
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_unknown_mfa_required.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			1,
+			fmt.Errorf("No MFA factor available"),
 		},
 	}
 	commonAuthTest(authTests, t)
@@ -782,7 +806,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 		},
 
 		{
-			"Auth with invalid TOTP MFA - failure",
+			"Auth with 2 invalid TOTP MFA - failure",
 			true,
 			passcode,
 			[]authRequest{
@@ -790,7 +814,13 @@ func TestAuthTOTPMFA(t *testing.T) {
 					"/api/v1/authn",
 					map[string]string{"username": username, "password": password},
 					http.StatusOK,
-					"preauth_totp_mfa_required.json",
+					"preauth_2_totp_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": passcode},
+					http.StatusForbidden,
+					"auth_invalid_totp.json",
 				},
 				{
 					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
@@ -857,6 +887,36 @@ func TestAuthTOTPMFA(t *testing.T) {
 					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": passcode},
 					http.StatusOK,
 					"invalid.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
+					map[string]string{"fid": totpFID, "stateToken": stateToken, "passCode": passcode},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			1,
+			nil,
+		},
+
+		{
+			"Auth with 2 TOTP MFA, first invalid passcode - success",
+			true,
+			passcode,
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_totp_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": passcode},
+					http.StatusForbidden,
+					"auth_invalid_totp.json",
 				},
 				{
 					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
