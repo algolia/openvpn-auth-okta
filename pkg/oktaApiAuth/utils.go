@@ -25,9 +25,13 @@ import (
 func (auth *OktaApiAuth) checkAllowedGroups() error {
 	// https://developer.okta.com/docs/reference/api/users/#request-parameters-8
 	if auth.ApiConfig.AllowedGroups != "" {
-		apiRes, err := auth.oktaReq(http.MethodGet, fmt.Sprintf("/users/%s/groups", auth.UserConfig.Username), nil)
+		code, apiRes, err := auth.oktaReq(http.MethodGet, fmt.Sprintf("/users/%s/groups", auth.UserConfig.Username), nil)
 		if err != nil {
 			return err
+		}
+		if code != 200 && code != 202 {
+			log.Error()
+			// TODO: fix error management
 		}
 
 		var groupRes []OktaGroup
@@ -72,20 +76,28 @@ func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
 		return PreAuthResponse{}, err
 	}
 
-	apiRes, err := auth.preAuth()
+	code, apiRes, err := auth.preAuth()
 	if err != nil {
 		log.Errorf("Error connecting to the Okta API: %s", err)
 		return PreAuthResponse{}, err
 	}
 
+	log.Errorf("HTTP CODE: %d", code)
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	var preAuthResErr ErrorResponse
-	err = json.Unmarshal(apiRes, &preAuthResErr)
-	if err == nil {
-		err = validate.Struct(preAuthResErr)
+	if code != 200 && code != 202 {
+		if code == 429 {
+			log.Warning("pre-authentication failed: rate limited")
+			return PreAuthResponse{}, errors.New("pre-authentication rate limited")
+		}
+
+		var preAuthResErr ErrorResponse
+		err = json.Unmarshal(apiRes, &preAuthResErr)
 		if err == nil {
-			log.Warningf("pre-authentication failed: %s", preAuthResErr.Summary)
-			return PreAuthResponse{}, errors.New("pre-authentication failed")
+			err = validate.Struct(preAuthResErr)
+			if err == nil {
+				log.Warningf("pre-authentication failed: %s", preAuthResErr.Summary)
+				return PreAuthResponse{}, errors.New("pre-authentication failed")
+			}
 		}
 	}
 
