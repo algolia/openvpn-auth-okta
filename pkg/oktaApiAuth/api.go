@@ -108,7 +108,7 @@ func (auth *OktaApiAuth) Pool() *http.Client {
 }
 
 // Do an http request to the Okta API using the path and payload provided
-func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]string) (jsonBody []byte, err error) {
+func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]string) (code int, jsonBody []byte, err error) {
 	u, _ := url.ParseRequestURI(auth.ApiConfig.Url)
 	u.Path = fmt.Sprintf("/api/v1%s", path)
 
@@ -129,7 +129,7 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 		jsonData, err := json.Marshal(data)
 		if err != nil {
 			log.Errorf("Error marshaling request payload: %s", err)
-			return nil, err
+			return 500, nil, err
 		}
 		dataReader = bytes.NewReader(jsonData)
 	} else {
@@ -138,27 +138,27 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	r, err = http.NewRequest(method, u.String(), dataReader)
 	if err != nil {
 		log.Errorf("Error creating http request: %s", err)
-		return nil, err
+		return 500, nil, err
 	}
 	for k, v := range headers {
 		r.Header.Add(k, v)
 	}
 	resp, err := auth.pool.Do(r)
 	if err != nil {
-		return nil, err
+		return 500, nil, err
 	}
 	defer resp.Body.Close()
 	jsonBody, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("Error reading Okta API response: %s", err)
-		return nil, err
+		return 500, nil, err
 	}
 
-	return jsonBody, nil
+	return resp.StatusCode, jsonBody, nil
 }
 
 // Call the preauth Okta API endpoint
-func (auth *OktaApiAuth) preAuth() ([]byte, error) {
+func (auth *OktaApiAuth) preAuth() (int, []byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application
 	data := map[string]string{
 		"username": auth.UserConfig.Username,
@@ -168,10 +168,10 @@ func (auth *OktaApiAuth) preAuth() ([]byte, error) {
 }
 
 func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors int, stateToken string) (AuthResponse, error) {
-	apiRes, err := auth.doAuth(factor.Id, stateToken)
+	code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 	if err != nil {
 		if count == nbFactors-1 {
-			_, _ = auth.cancelAuth(stateToken)
+			_, _, _ = auth.cancelAuth(stateToken)
 			return AuthResponse{}, err
 		} else {
 			return AuthResponse{}, errors.New("continue")
@@ -179,39 +179,42 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	var authResErr ErrorResponse
-	err = json.Unmarshal(apiRes, &authResErr)
-	if err == nil {
-		err = validate.Struct(authResErr)
+
+	if code != 200 && code != 202 {
+		var authResErr ErrorResponse
+		err = json.Unmarshal(apiRes, &authResErr)
 		if err == nil {
-			var errorSummary string
-			if len(authResErr.Causes) > 0 {
-				errorSummary = authResErr.Causes[0].Summary
-			} else {
-				errorSummary = authResErr.Summary
-			}
-			var ftype string
-			var ferror string
-			if factor.Type == "token:software:totp" {
-				ftype = "TOTP"
-				ferror = "TOTP MFA failed"
-			} else {
-				ftype = "push"
-				ferror = "Push MFA failed"
-			}
-			if count == nbFactors-1 {
-				log.Warningf("%s %s MFA authentication failed: %s",
-					factor.Provider,
-					ftype,
-					errorSummary)
-				_, _ = auth.cancelAuth(stateToken)
-				return AuthResponse{}, errors.New(ferror)
-			} else {
-				log.Errorf("%s %s MFA authentication failed: %s",
-					factor.Provider,
-					ftype,
-					errorSummary)
-				return AuthResponse{}, errors.New("continue")
+			err = validate.Struct(authResErr)
+			if err == nil {
+				var errorSummary string
+				if len(authResErr.Causes) > 0 {
+					errorSummary = authResErr.Causes[0].Summary
+				} else {
+					errorSummary = authResErr.Summary
+				}
+				var ftype string
+				var ferror string
+				if factor.Type == "token:software:totp" {
+					ftype = "TOTP"
+					ferror = "TOTP MFA failed"
+				} else {
+					ftype = "push"
+					ferror = "Push MFA failed"
+				}
+				if count == nbFactors-1 {
+					log.Warningf("%s %s MFA authentication failed: %s",
+						factor.Provider,
+						ftype,
+						errorSummary)
+					_, _, _ = auth.cancelAuth(stateToken)
+					return AuthResponse{}, errors.New(ferror)
+				} else {
+					log.Errorf("%s %s MFA authentication failed: %s",
+						factor.Provider,
+						ftype,
+						errorSummary)
+					return AuthResponse{}, errors.New("continue")
+				}
 			}
 		}
 	}
@@ -221,7 +224,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 	if err != nil {
 		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		if count == nbFactors-1 {
-			_, _ = auth.cancelAuth(stateToken)
+			_, _, _ = auth.cancelAuth(stateToken)
 			return AuthResponse{}, err
 		} else {
 			return AuthResponse{}, errors.New("continue")
@@ -232,7 +235,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 	if err != nil {
 		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		if count == nbFactors-1 {
-			_, _ = auth.cancelAuth(stateToken)
+			_, _, _ = auth.cancelAuth(stateToken)
 			return AuthResponse{}, err
 		} else {
 			return AuthResponse{}, errors.New("continue")
@@ -242,7 +245,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 }
 
 // Call the MFA auth Okta API endpoint
-func (auth *OktaApiAuth) doAuth(fid string, stateToken string) ([]byte, error) {
+func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (int, []byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#verify-call-factor
 	path := fmt.Sprintf("/authn/factors/%s/verify", fid)
 	data := map[string]string{
@@ -254,7 +257,7 @@ func (auth *OktaApiAuth) doAuth(fid string, stateToken string) ([]byte, error) {
 }
 
 // Cancel an authentication transaction
-func (auth *OktaApiAuth) cancelAuth(stateToken string) ([]byte, error) {
+func (auth *OktaApiAuth) cancelAuth(stateToken string) (int, []byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#cancel-transaction
 	data := map[string]string{
 		"stateToken": stateToken,

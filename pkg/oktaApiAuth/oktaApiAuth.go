@@ -67,7 +67,7 @@ func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []AuthF
 			log.Errorf("%s TOTP MFA authentication failed: %s",
 				factor.Provider,
 				authRes.Result)
-			_, _ = auth.cancelAuth(stateToken)
+			_, _, _ = auth.cancelAuth(stateToken)
 			return errors.New("TOTP MFA failed")
 		}
 		log.Warningf("%s TOTP MFA authentication failed: %s",
@@ -75,7 +75,7 @@ func (auth *OktaApiAuth) verifyTOTPFactor(stateToken string, factorsTOTP []AuthF
 			authRes.Result)
 	}
 	// We'll only be there if a passcode is provided and no TOTP factor is available
-	return errors.New("Unknown error")
+	return errors.New("No TOTP MFA available")
 }
 
 func (auth *OktaApiAuth) verifyPushFactor(stateToken string, factorsPush []AuthFactor) (err error) {
@@ -97,7 +97,7 @@ PUSH:
 			if checkCount > auth.ApiConfig.MFAPushMaxRetries {
 				log.Warningf("%s push MFA timed out", factor.Provider)
 				if count == len(factorsPush)-1 {
-					_, _ = auth.cancelAuth(stateToken)
+					_, _, _ = auth.cancelAuth(stateToken)
 					return errors.New("Push MFA timeout")
 				} else {
 					continue PUSH
@@ -106,10 +106,19 @@ PUSH:
 
 			time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
 
-			apiRes, err := auth.doAuth(factor.Id, stateToken)
+			code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 			if err != nil {
 				if count == len(factorsPush)-1 {
-					_, _ = auth.cancelAuth(stateToken)
+					_, _, _ = auth.cancelAuth(stateToken)
+					return err
+				} else {
+					continue
+				}
+			}
+			if code != 200 && code != 202 {
+				if count == len(factorsPush)-1 {
+					_, _, _ = auth.cancelAuth(stateToken)
+					// TODO: fix err
 					return err
 				} else {
 					continue
@@ -120,7 +129,7 @@ PUSH:
 			if err != nil {
 				log.Errorf("Error unmarshaling Okta API response: %s", err)
 				if count == len(factorsPush)-1 {
-					_, _ = auth.cancelAuth(stateToken)
+					_, _, _ = auth.cancelAuth(stateToken)
 					return err
 				} else {
 					continue
@@ -130,7 +139,7 @@ PUSH:
 			if err != nil {
 				log.Errorf("Error unmarshaling Okta API response: %s", err)
 				if count == len(factorsPush)-1 {
-					_, _ = auth.cancelAuth(stateToken)
+					_, _, _ = auth.cancelAuth(stateToken)
 					return errors.New("Push MFA failed")
 				} else {
 					continue
@@ -147,14 +156,14 @@ PUSH:
 			log.Errorf("%s push MFA authentication failed: %s",
 				factor.Provider,
 				authRes.Result)
-			_, _ = auth.cancelAuth(stateToken)
+			_, _, _ = auth.cancelAuth(stateToken)
 			return errors.New("Push MFA failed")
 		}
 		log.Warningf("%s push MFA authentication failed: %s",
 			factor.Provider,
 			authRes.Result)
 	}
-	return errors.New("Unknown error")
+	return errors.New("No push MFA available")
 }
 
 func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error) {
@@ -162,7 +171,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error)
 
 	if auth.UserConfig.Passcode != "" {
 		if err = auth.verifyTOTPFactor(preAuthRes.Token, factorsTOTP); err != nil {
-			if err.Error() != "Unknown error" {
+			if err.Error() != "No TOTP MFA available" {
 				return err
 			}
 			goto ERR
@@ -172,14 +181,14 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error)
 
 	if err = auth.verifyPushFactor(preAuthRes.Token, factorsPush); err == nil {
 		return nil
-	} else if err.Error() != "Unknown error" {
+	} else if err.Error() != "No push MFA available" {
 		return err
 	}
 
 ERR:
-	log.Errorf("unknown MFA error")
-	_, _ = auth.cancelAuth(preAuthRes.Token)
-	return errors.New("Unknown error")
+	log.Errorf("No MFA factor available")
+	_, _, _ = auth.cancelAuth(preAuthRes.Token)
+	return errors.New("No MFA factor available")
 }
 
 // Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
@@ -207,14 +216,14 @@ func (auth *OktaApiAuth) Auth() error {
 	case "PASSWORD_EXPIRED":
 		log.Warningf("password is expired")
 		if preAuthRes.Token != "" {
-			_, _ = auth.cancelAuth(preAuthRes.Token)
+			_, _, _ = auth.cancelAuth(preAuthRes.Token)
 		}
 		return errors.New("User password expired")
 
 	case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
 		log.Warningf("needs to enroll first")
 		if preAuthRes.Token != "" {
-			_, _ = auth.cancelAuth(preAuthRes.Token)
+			_, _, _ = auth.cancelAuth(preAuthRes.Token)
 		}
 		return errors.New("Needs to enroll")
 
@@ -225,7 +234,7 @@ func (auth *OktaApiAuth) Auth() error {
 	default:
 		log.Errorf("unknown preauth status: %s", preAuthRes.Status)
 		if preAuthRes.Token != "" {
-			_, _ = auth.cancelAuth(preAuthRes.Token)
+			_, _, _ = auth.cancelAuth(preAuthRes.Token)
 		}
 		return errors.New("Unknown preauth status")
 	}
