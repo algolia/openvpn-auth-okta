@@ -133,7 +133,7 @@ func TestOktaReq(t *testing.T) {
 				{
 					"/api/v1/authn",
 					map[string]string{"username": username, "password": password},
-					http.StatusOK,
+					http.StatusInternalServerError,
 					"invalid.json",
 				},
 			},
@@ -145,7 +145,7 @@ func TestOktaReq(t *testing.T) {
 				{
 					"/api/v1/authn",
 					nil,
-					http.StatusOK,
+					http.StatusInternalServerError,
 					"invalid.json",
 				},
 			},
@@ -196,7 +196,7 @@ func TestOktaReq(t *testing.T) {
 			gock.InterceptClient(a.pool)
 			// Lets ensure we wont reach the real okta API
 			gock.DisableNetworking()
-			_, err = a.oktaReq(http.MethodPost, test.requests[0].path, test.requests[0].payload)
+			_, _, err = a.oktaReq(http.MethodPost, test.requests[0].path, test.requests[0].payload)
 			if test.err == nil {
 				assert.Nil(t, err)
 			} else {
