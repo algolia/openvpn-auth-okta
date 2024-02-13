@@ -167,7 +167,7 @@ func (auth *OktaApiAuth) preAuth() (int, []byte, error) {
 	return auth.oktaReq(http.MethodPost, "/authn", data)
 }
 
-func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors int, stateToken string) (AuthResponse, error) {
+func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors int, stateToken string, ftype string) (AuthResponse, error) {
 	code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 	if err != nil {
 		if count == nbFactors-1 {
@@ -183,40 +183,34 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 	if code != 200 && code != 202 {
 		var authResErr ErrorResponse
 		err = json.Unmarshal(apiRes, &authResErr)
+		var errorSummary string
+		ferror := fmt.Sprintf("%s MFA failed", ftype)
+
 		if err == nil {
 			err = validate.Struct(authResErr)
 			if err == nil {
-				var errorSummary string
 				if len(authResErr.Causes) > 0 {
 					errorSummary = authResErr.Causes[0].Summary
 				} else {
 					errorSummary = authResErr.Summary
 				}
-				var ftype string
-				var ferror string
-				if factor.Type == "token:software:totp" {
-					ftype = "TOTP"
-					ferror = "TOTP MFA failed"
-				} else {
-					ftype = "push"
-					ferror = "Push MFA failed"
-				}
-				if count == nbFactors-1 {
-					log.Warningf("%s %s MFA authentication failed: %s",
-						factor.Provider,
-						ftype,
-						errorSummary)
-					_, _, _ = auth.cancelAuth(stateToken)
-					return AuthResponse{}, errors.New(ferror)
-				} else {
-					log.Errorf("%s %s MFA authentication failed: %s",
-						factor.Provider,
-						ftype,
-						errorSummary)
-					return AuthResponse{}, errors.New("continue")
-				}
 			}
+		} else {
+			errorSummary = fmt.Sprintf("HTTP status code %d", code)
 		}
+		if count == nbFactors-1 {
+			log.Warningf("%s %s MFA authentication failed: %s",
+				factor.Provider,
+				ftype,
+				errorSummary)
+			_, _, _ = auth.cancelAuth(stateToken)
+			return AuthResponse{}, errors.New(ferror)
+		}
+		log.Errorf("%s %s MFA authentication failed: %s",
+			factor.Provider,
+			ftype,
+			errorSummary)
+			return AuthResponse{}, errors.New("continue")
 	}
 
 	var authRes AuthResponse

@@ -47,7 +47,7 @@ func NewOktaApiAuth() *OktaApiAuth {
 func (auth *OktaApiAuth) verifyFactor(stateToken string, factors []AuthFactor, factorType string) (err error) {
 	nbFactors := len(factors)
 	for count, factor := range factors {
-		authRes, err := auth.doAuthFirstStep(factor, count, nbFactors, stateToken)
+		authRes, err := auth.doAuthFirstStep(factor, count, nbFactors, stateToken, factorType)
 		if err != nil {
 			if err.Error() == "continue" {
 				continue
