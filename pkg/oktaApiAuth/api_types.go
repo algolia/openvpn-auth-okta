@@ -23,8 +23,8 @@ type ErrorCauses struct {
 }
 
 type PreAuthResponse struct {
-	Token    string          `json:"stateToken"`
 	Status   string          `json:"status" validate:"required"`
+	Token    string          `json:"stateToken"`
 	Embedded PreAuthEmbedded `json:"_embedded"`
 }
 
@@ -39,16 +39,11 @@ type AuthFactor struct {
 }
 
 type AuthResponse struct {
+	Status string `json:"status" validate:"required"`
 	Token  string `json:"stateToken"`
-	Status string `json:"status"`
 	Result string `json:"factorResult"`
 }
 
-/*
-	type GroupResponse struct {
-		Groups []OktaGroup
-	}
-*/
 type OktaGroup struct {
 	Id      string           `json:"id"`
 	Profile OktaGroupProfile `json:"profile"`
