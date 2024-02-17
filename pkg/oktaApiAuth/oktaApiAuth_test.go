@@ -79,7 +79,7 @@ func commonAuthTest(authTests []authTest, t *testing.T) {
 				MFARequired:         test.mfaRequired,
 				AllowUntrustedUsers: true,
 				MFAPushMaxRetries:   test.pushRetries,
-				MFAPushDelaySeconds: 3,
+				MFAPushDelaySeconds: 0,
 				AllowedGroups:       test.allowedGroups,
 			}
 			userCfg := &OktaUserConfig{
@@ -237,6 +237,26 @@ func TestAuthPreAuth(t *testing.T) {
 			1,
 			fmt.Errorf("Key: 'PreAuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
 		},
+
+
+		{
+			"PreAuth with invalid response (json) - failure",
+			false,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"invalid.json",
+				},
+			},
+			false,
+			"",
+			1,
+			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+		},
+
 
 		{
 			"PreAuth with locked out user - failure",
@@ -455,6 +475,12 @@ func TestAuthPushMFA(t *testing.T) {
 					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
 					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
 					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
 					"auth_success.json",
 				},
 			},
@@ -465,7 +491,7 @@ func TestAuthPushMFA(t *testing.T) {
 		},
 
 		{
-			"Auth with push MFA required - rejected",
+			"Auth with push MFA rejected - failure",
 			true,
 			"",
 			[]authRequest{
@@ -495,6 +521,128 @@ func TestAuthPushMFA(t *testing.T) {
 		},
 
 		{
+			"Auth with push MFA rejected during wait - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_push_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_rejected_push.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			1,
+			fmt.Errorf("Push MFA failed"),
+		},
+
+		{
+			"Auth with 2 push MFA required - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_rejected_push.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_rejected_push.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			1,
+			fmt.Errorf("Push MFA failed"),
+		},
+
+		{
+			"Auth with 2 push MFA rejected - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_rejected_push.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_rejected_push.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			1,
+			fmt.Errorf("Push MFA failed"),
+		},
+
+
+
+		{
 			"Auth with push timeout err - failure",
 			true,
 			"",
@@ -519,7 +667,109 @@ func TestAuthPushMFA(t *testing.T) {
 		},
 
 		{
-			"Auth with push timeout - rejected",
+			"Auth with push, missing status - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_push_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_missing_status.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			true,
+			"",
+			1,
+			fmt.Errorf("Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
+		},
+
+		{
+			"Auth with push, missing status during wait - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_push_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_missing_status.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			2,
+			fmt.Errorf("Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
+		},
+
+		{
+			"Auth with push, http error during wait - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_push_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusInternalServerError,
+					"empty.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			true,
+			"",
+			1,
+			fmt.Errorf("Push MFA failed"),
+		},
+
+		{
+			"Auth with push timeout during wait - failure",
 			true,
 			"",
 			[]authRequest{
@@ -581,6 +831,258 @@ func TestAuthPushMFA(t *testing.T) {
 					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
 					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
 					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			1,
+			nil,
+		},
+
+		{
+			"Auth with 2 push, first missing status - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_missing_status.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			2,
+			nil,
+		},
+
+		{
+			"Auth with 2 push, first no answer during wait - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			true,
+			"",
+			2,
+			nil,
+		},
+
+		{
+			"Auth with 2 push, first missing status during wait - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_missing_status.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			2,
+			nil,
+		},
+
+		{
+			"Auth with 2 push, both missing status during wait - failure",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_missing_status.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_missing_status.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			2,
+			fmt.Errorf("Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
+		},
+
+		{
+			"Auth with 2 push providers, first timeout - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			1,
+			nil,
+		},
+
+		{
+			"Auth with 2 push providers, first http error during wait - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusInternalServerError,
+					"empty.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
 					"auth_success.json",
 				},
 			},
@@ -611,10 +1113,82 @@ func TestAuthPushMFA(t *testing.T) {
 					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
 					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
 					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
 					"auth_success.json",
 				},
 			},
 			false,
+			"",
+			1,
+			nil,
+		},
+
+		{
+			"Auth with 2 push providers, first server error - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
+					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
+					http.StatusInternalServerError,
+					"invalid.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			false,
+			"",
+			1,
+			nil,
+		},
+
+		{
+			"Auth with 2 push providers, first no response - success",
+			true,
+			"",
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_push_mfa_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			true,
 			"",
 			1,
 			nil,
@@ -678,6 +1252,12 @@ func TestAuthPushMFA(t *testing.T) {
 					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": ""},
 					http.StatusOK,
 					"invalid.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
+					map[string]string{"fid": pushFID, "stateToken": stateToken, "passCode": ""},
+					http.StatusOK,
+					"auth_waiting.json",
 				},
 				{
 					fmt.Sprintf("/api/v1/authn/factors/%s/verify", pushFID),
@@ -806,6 +1386,36 @@ func TestAuthTOTPMFA(t *testing.T) {
 		},
 
 		{
+			"Auth with invalid TOTP MFA and no summary - failure",
+			true,
+			passcode,
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_totp_mfa_required.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
+					map[string]string{"fid": totpFID, "stateToken": stateToken, "passCode": passcode},
+					http.StatusForbidden,
+					"auth_invalid_totp_no_sum.json",
+				},
+				{
+					"/api/v1/authn/cancel",
+					map[string]string{"stateToken": stateToken},
+					http.StatusOK,
+					"empty.json",
+				},
+			},
+			false,
+			"",
+			1,
+			fmt.Errorf("TOTP MFA failed"),
+		},
+
+		{
 			"Auth with 2 invalid TOTP MFA - failure",
 			true,
 			passcode,
@@ -868,7 +1478,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			false,
 			"",
 			1,
-			fmt.Errorf("TOTP MFA failed"),
+			fmt.Errorf("Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
 		},
 
 		{
@@ -902,7 +1512,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 		},
 
 		{
-			"Auth with 2 TOTP MFA, first invalid passcode - success",
+			"Auth with 2 TOTP MFA, first invalid answer - success",
 			true,
 			passcode,
 			[]authRequest{
@@ -915,8 +1525,8 @@ func TestAuthTOTPMFA(t *testing.T) {
 				{
 					fmt.Sprintf("/api/v1/authn/factors/%s/verify", "rejected"),
 					map[string]string{"fid": "rejected", "stateToken": stateToken, "passCode": passcode},
-					http.StatusForbidden,
-					"auth_invalid_totp.json",
+					http.StatusOK,
+					"invalid.json",
 				},
 				{
 					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
@@ -926,6 +1536,30 @@ func TestAuthTOTPMFA(t *testing.T) {
 				},
 			},
 			false,
+			"",
+			1,
+			nil,
+		},
+
+		{
+			"Auth with 2 TOTP MFA, first no passcode - success",
+			true,
+			passcode,
+			[]authRequest{
+				{
+					"/api/v1/authn",
+					map[string]string{"username": username, "password": password},
+					http.StatusOK,
+					"preauth_2_totp_providers.json",
+				},
+				{
+					fmt.Sprintf("/api/v1/authn/factors/%s/verify", totpFID),
+					map[string]string{"fid": totpFID, "stateToken": stateToken, "passCode": passcode},
+					http.StatusOK,
+					"auth_success.json",
+				},
+			},
+			true,
 			"",
 			1,
 			nil,
