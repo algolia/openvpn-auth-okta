@@ -30,8 +30,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 			return err
 		}
 		if code != 200 && code != 202 {
-			log.Error()
-			// TODO: fix error management
+			return errors.New("invalid HTTP status code")
 		}
 
 		var groupRes []OktaGroup
@@ -82,7 +81,6 @@ func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
 		return PreAuthResponse{}, err
 	}
 
-	log.Errorf("HTTP CODE: %d", code)
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	if code != 200 && code != 202 {
 		if code == 429 {
@@ -107,6 +105,7 @@ func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
 		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		return PreAuthResponse{}, err
 	}
+
 	err = validate.Struct(preAuthRes)
 	if err != nil {
 		log.Errorf("Error unmarshaling Okta API response: %s", err)
