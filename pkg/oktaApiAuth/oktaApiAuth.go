@@ -44,26 +44,33 @@ func NewOktaApiAuth() *OktaApiAuth {
 	}
 }
 
-func (auth *OktaApiAuth) verifyFactor(stateToken string, factors []AuthFactor, factorType string) (err error) {
+func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, factorType string) (err error) {
 	nbFactors := len(factors)
 	for count, factor := range factors {
 		authRes, err := auth.doAuthFirstStep(factor, count, nbFactors, stateToken, factorType)
 		if err != nil {
-			if err.Error() == "continue" {
-				continue
-			} else {
+			if err.Error() != "continue" {
+				_, _, _ = auth.cancelAuth(stateToken)
 				return err
 			}
+			continue
 		}
 
 		if factorType == "Push" {
-			err = auth.waitForPush(factor, count, nbFactors, stateToken, &authRes)
+			if authRes.Result != "WAITING" {
+				if count == nbFactors-1 {
+					_, _, _ = auth.cancelAuth(stateToken)
+					return errors.New("Push MFA failed")
+				}
+				continue
+			}
+			authRes, err = auth.waitForPush(factor, count, nbFactors, stateToken)
 			if err != nil {
-				if err.Error() == "continue" {
-					continue
-				} else {
+				if err.Error() != "continue" {
+					_, _, _ = auth.cancelAuth(stateToken)
 					return err
 				}
+				continue
 			}
 		}
 
@@ -72,7 +79,7 @@ func (auth *OktaApiAuth) verifyFactor(stateToken string, factors []AuthFactor, f
 			return nil
 		}
 
-		if count == len(factors)-1 {
+		if count == nbFactors-1 {
 			log.Errorf("%s %s MFA authentication failed: %s",
 				factor.Provider,
 				factorType,
@@ -93,8 +100,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error)
 	factorsTOTP, factorsPush := auth.getUserFactors(preAuthRes)
 
 	if auth.UserConfig.Passcode != "" {
-		//if err = auth.verifyTOTPFactor(preAuthRes.Token, factorsTOTP); err != nil {
-		if err = auth.verifyFactor(preAuthRes.Token, factorsTOTP, "TOTP"); err != nil {
+		if err = auth.verifyFactors(preAuthRes.Token, factorsTOTP, "TOTP"); err != nil {
 			if err.Error() != "No TOTP MFA available" {
 				return err
 			}
@@ -103,8 +109,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error)
 		return nil
 	}
 
-	//if err = auth.verifyPushFactor(preAuthRes.Token, factorsPush); err == nil {
-	if err = auth.verifyFactor(preAuthRes.Token, factorsPush, "Push"); err == nil {
+	if err = auth.verifyFactors(preAuthRes.Token, factorsPush, "Push"); err == nil {
 		return nil
 	} else if err.Error() != "No Push MFA available" {
 		return err
@@ -130,9 +135,8 @@ func (auth *OktaApiAuth) Auth() error {
 		if auth.ApiConfig.MFARequired {
 			log.Warningf("allowed without MFA but MFA is required - rejected")
 			return errors.New("MFA required")
-		} else {
-			return nil
 		}
+		return nil
 
 	case "LOCKED_OUT":
 		log.Warningf("is locked out")
