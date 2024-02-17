@@ -101,7 +101,7 @@ func (auth *OktaApiAuth) InitPool() error {
 	return nil
 }
 
-// only used validator_test.go
+// only used by validator_test.go
 // TODO: find a clean way to only export this for tests
 func (auth *OktaApiAuth) Pool() *http.Client {
 	return auth.pool
@@ -167,15 +167,34 @@ func (auth *OktaApiAuth) preAuth() (int, []byte, error) {
 	return auth.oktaReq(http.MethodPost, "/authn", data)
 }
 
+// Call the MFA auth Okta API endpoint
+func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (int, []byte, error) {
+	// https://developer.okta.com/docs/reference/api/authn/#verify-call-factor
+	path := fmt.Sprintf("/authn/factors/%s/verify", fid)
+	data := map[string]string{
+		"fid":        fid,
+		"stateToken": stateToken,
+		"passCode":   auth.UserConfig.Passcode,
+	}
+	return auth.oktaReq(http.MethodPost, path, data)
+}
+
+// Cancel an authentication transaction
+func (auth *OktaApiAuth) cancelAuth(stateToken string) (int, []byte, error) {
+	// https://developer.okta.com/docs/reference/api/authn/#cancel-transaction
+	data := map[string]string{
+		"stateToken": stateToken,
+	}
+	return auth.oktaReq(http.MethodPost, "/authn/cancel", data)
+}
+
 func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors int, stateToken string, ftype string) (AuthResponse, error) {
 	code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 	if err != nil {
 		if count == nbFactors-1 {
-			_, _, _ = auth.cancelAuth(stateToken)
 			return AuthResponse{}, err
-		} else {
-			return AuthResponse{}, errors.New("continue")
 		}
+		return AuthResponse{}, errors.New("continue")
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
@@ -203,14 +222,13 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 				factor.Provider,
 				ftype,
 				errorSummary)
-			_, _, _ = auth.cancelAuth(stateToken)
 			return AuthResponse{}, errors.New(ferror)
 		}
 		log.Errorf("%s %s MFA authentication failed: %s",
 			factor.Provider,
 			ftype,
 			errorSummary)
-			return AuthResponse{}, errors.New("continue")
+		return AuthResponse{}, errors.New("continue")
 	}
 
 	var authRes AuthResponse
@@ -218,39 +236,33 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 	if err != nil {
 		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		if count == nbFactors-1 {
-			_, _, _ = auth.cancelAuth(stateToken)
 			return AuthResponse{}, err
-		} else {
-			return AuthResponse{}, errors.New("continue")
 		}
+		return AuthResponse{}, errors.New("continue")
 	}
 
 	err = validate.Struct(authRes)
 	if err != nil {
 		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		if count == nbFactors-1 {
-			_, _, _ = auth.cancelAuth(stateToken)
 			return AuthResponse{}, err
-		} else {
-			return AuthResponse{}, errors.New("continue")
 		}
+		return AuthResponse{}, errors.New("continue")
 	}
 	return authRes, nil
 }
 
-func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int, stateToken string, authRes *AuthResponse) error {
+func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int, stateToken string) (authRes AuthResponse, err error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	checkCount := 0
-	for authRes.Result == "WAITING" {
+	for checkCount == 0 || authRes.Result == "WAITING" {
 		checkCount++
 		if checkCount > auth.ApiConfig.MFAPushMaxRetries {
 			log.Warningf("%s push MFA timed out", factor.Provider)
 			if count == nbFactors-1 {
-				_, _, _ = auth.cancelAuth(stateToken)
-				return errors.New("Push MFA timeout")
-			} else {
-				return errors.New("continue")
+				return AuthResponse{}, errors.New("Push MFA timeout")
 			}
+			return AuthResponse{}, errors.New("continue")
 		}
 
 		time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
@@ -258,63 +270,34 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 		code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 		if err != nil {
 			if count == nbFactors-1 {
-				_, _, _ = auth.cancelAuth(stateToken)
-				return err
-			} else {
-				continue
+				return AuthResponse{}, err
 			}
+			return AuthResponse{}, errors.New("continue")
 		}
 		if code != 200 && code != 202 {
 			if count == nbFactors-1 {
-				_, _, _ = auth.cancelAuth(stateToken)
-				// TODO: fix err
-				return err
-			} else {
-				continue
+				return AuthResponse{}, errors.New("Push MFA failed")
 			}
+			return AuthResponse{}, errors.New("continue")
 		}
 
 		err = json.Unmarshal(apiRes, &authRes)
 		if err != nil {
 			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			if count == nbFactors-1 {
-				_, _, _ = auth.cancelAuth(stateToken)
-				return err
-			} else {
-				continue
+				return AuthResponse{}, err
 			}
+			return AuthResponse{}, errors.New("continue")
 		}
+
 		err = validate.Struct(authRes)
 		if err != nil {
 			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			if count == nbFactors-1 {
-				_, _, _ = auth.cancelAuth(stateToken)
-				return errors.New("Push MFA failed")
-			} else {
-				continue
+				return AuthResponse{}, err
 			}
+			return AuthResponse{}, errors.New("continue")
 		}
 	}
-	return nil
-}
-
-// Call the MFA auth Okta API endpoint
-func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (int, []byte, error) {
-	// https://developer.okta.com/docs/reference/api/authn/#verify-call-factor
-	path := fmt.Sprintf("/authn/factors/%s/verify", fid)
-	data := map[string]string{
-		"fid":        fid,
-		"stateToken": stateToken,
-		"passCode":   auth.UserConfig.Passcode,
-	}
-	return auth.oktaReq(http.MethodPost, path, data)
-}
-
-// Cancel an authentication transaction
-func (auth *OktaApiAuth) cancelAuth(stateToken string) (int, []byte, error) {
-	// https://developer.okta.com/docs/reference/api/authn/#cancel-transaction
-	data := map[string]string{
-		"stateToken": stateToken,
-	}
-	return auth.oktaReq(http.MethodPost, "/authn/cancel", data)
+	return authRes, nil
 }
