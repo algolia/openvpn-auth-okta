@@ -23,6 +23,7 @@ type allowedGroupsTest struct {
 	testName      string
 	requests      []authRequest
 	allowedGroups string
+	token         string
 	err           error
 }
 
@@ -32,6 +33,20 @@ func TestCheckAllowedGroups(t *testing.T) {
 	//gock.Observe(gock.DumpRequest)
 
 	tests := []allowedGroupsTest{
+		{
+			"no response - failure",
+			[]authRequest{
+				{
+					fmt.Sprintf("/api/v1/users/%s/groups", username),
+					map[string]string{"username": "TEST", "password": "TEST"},
+					http.StatusOK,
+					"invalid_groups.json",
+				},
+			},
+			"test1, test2",
+			"FAKE_TOKEN",
+			fmt.Errorf("Get \"https://example.oktapreview.com/api/v1/users/dade.murphy@example.com/groups\": gock: cannot match any request"),
+		},
 		{
 			"invalid json response - failure",
 			[]authRequest{
@@ -43,7 +58,22 @@ func TestCheckAllowedGroups(t *testing.T) {
 				},
 			},
 			"test1, test2",
+			token,
 			fmt.Errorf("invalid character '-' in numeric literal"),
+		},
+		{
+			"invalid HTTP status code - failure",
+			[]authRequest{
+				{
+					fmt.Sprintf("/api/v1/users/%s/groups", username),
+					map[string]string{"username": username, "password": password},
+					http.StatusInternalServerError,
+					"invalid_groups.json",
+				},
+			},
+			"test1, test2",
+			token,
+			fmt.Errorf("invalid HTTP status code"),
 		},
 		{
 			"Member of AllowedGroups - success",
@@ -56,6 +86,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 				},
 			},
 			"Cloud App Users, test2",
+			token,
 			nil,
 		},
 		{
@@ -69,6 +100,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 				},
 			},
 			"test1, test2",
+			token,
 			fmt.Errorf("Not mmember of an AllowedGroup"),
 		},
 	}
@@ -80,7 +112,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 
 			apiCfg := &OktaAPIConfig{
 				Url:                 oktaEndpoint,
-				Token:               token,
+				Token:               test.token,
 				UsernameSuffix:      "algolia.com",
 				AssertPin:           pin,
 				MFARequired:         false,
