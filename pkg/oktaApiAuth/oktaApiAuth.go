@@ -50,7 +50,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 		authRes, err := auth.doAuthFirstStep(factor, count, nbFactors, stateToken, factorType)
 		if err != nil {
 			if err.Error() != "continue" {
-				_, _, _ = auth.cancelAuth(stateToken)
+				auth.cancelAuth(stateToken)
 				return err
 			}
 			continue
@@ -59,7 +59,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 		if factorType == "Push" {
 			if authRes.Result != "WAITING" {
 				if count == nbFactors-1 {
-					_, _, _ = auth.cancelAuth(stateToken)
+					auth.cancelAuth(stateToken)
 					return errors.New("Push MFA failed")
 				}
 				continue
@@ -67,7 +67,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 			authRes, err = auth.waitForPush(factor, count, nbFactors, stateToken)
 			if err != nil {
 				if err.Error() != "continue" {
-					_, _, _ = auth.cancelAuth(stateToken)
+					auth.cancelAuth(stateToken)
 					return err
 				}
 				continue
@@ -84,7 +84,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				factor.Provider,
 				factorType,
 				authRes.Result)
-			_, _, _ = auth.cancelAuth(stateToken)
+			auth.cancelAuth(stateToken)
 			return fmt.Errorf("%s MFA failed", factorType)
 		}
 		log.Warningf("%s %s MFA authentication failed: %s",
@@ -117,7 +117,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error)
 
 ERR:
 	log.Errorf("No MFA factor available")
-	_, _, _ = auth.cancelAuth(preAuthRes.Token)
+	auth.cancelAuth(preAuthRes.Token)
 	return errors.New("No MFA factor available")
 }
 
@@ -145,14 +145,14 @@ func (auth *OktaApiAuth) Auth() error {
 	case "PASSWORD_EXPIRED":
 		log.Warningf("password is expired")
 		if preAuthRes.Token != "" {
-			_, _, _ = auth.cancelAuth(preAuthRes.Token)
+			auth.cancelAuth(preAuthRes.Token)
 		}
 		return errors.New("User password expired")
 
 	case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
 		log.Warningf("needs to enroll first")
 		if preAuthRes.Token != "" {
-			_, _, _ = auth.cancelAuth(preAuthRes.Token)
+			auth.cancelAuth(preAuthRes.Token)
 		}
 		return errors.New("Needs to enroll")
 
@@ -163,7 +163,7 @@ func (auth *OktaApiAuth) Auth() error {
 	default:
 		log.Errorf("unknown preauth status: %s", preAuthRes.Status)
 		if preAuthRes.Token != "" {
-			_, _, _ = auth.cancelAuth(preAuthRes.Token)
+			auth.cancelAuth(preAuthRes.Token)
 		}
 		return errors.New("Unknown preauth status")
 	}
