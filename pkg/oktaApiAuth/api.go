@@ -180,12 +180,12 @@ func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (int, []byte, err
 }
 
 // Cancel an authentication transaction
-func (auth *OktaApiAuth) cancelAuth(stateToken string) (int, []byte, error) {
+func (auth *OktaApiAuth) cancelAuth(stateToken string) {
 	// https://developer.okta.com/docs/reference/api/authn/#cancel-transaction
 	data := map[string]string{
 		"stateToken": stateToken,
 	}
-	return auth.oktaReq(http.MethodPost, "/authn/cancel", data)
+	_, _, _ = auth.oktaReq(http.MethodPost, "/authn/cancel", data)
 }
 
 func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors int, stateToken string, ftype string) (AuthResponse, error) {
