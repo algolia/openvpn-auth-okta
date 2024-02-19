@@ -218,13 +218,13 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 			errorSummary = fmt.Sprintf("HTTP status code %d", code)
 		}
 		if count == nbFactors-1 {
-			log.Warningf("%s %s MFA authentication failed: %s",
+			log.Errorf("%s %s MFA authentication failed: %s",
 				factor.Provider,
 				ftype,
 				errorSummary)
 			return AuthResponse{}, errors.New(ferror)
 		}
-		log.Errorf("%s %s MFA authentication failed: %s",
+		log.Warningf("%s %s MFA authentication failed: %s",
 			factor.Provider,
 			ftype,
 			errorSummary)
@@ -234,19 +234,21 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 	var authRes AuthResponse
 	err = json.Unmarshal(apiRes, &authRes)
 	if err != nil {
-		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		if count == nbFactors-1 {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			return AuthResponse{}, err
 		}
+		log.Warningf("Error unmarshaling Okta API response: %s", err)
 		return AuthResponse{}, errors.New("continue")
 	}
 
 	err = validate.Struct(authRes)
 	if err != nil {
-		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		if count == nbFactors-1 {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			return AuthResponse{}, err
 		}
+		log.Warningf("Error unmarshaling Okta API response: %s", err)
 		return AuthResponse{}, errors.New("continue")
 	}
 	return authRes, nil
@@ -258,10 +260,11 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 	for checkCount == 0 || authRes.Result == "WAITING" {
 		checkCount++
 		if checkCount > auth.ApiConfig.MFAPushMaxRetries {
-			log.Warningf("%s push MFA timed out", factor.Provider)
 			if count == nbFactors-1 {
+				log.Errorf("%s push MFA timed out", factor.Provider)
 				return AuthResponse{}, errors.New("Push MFA timeout")
 			}
+			log.Warningf("%s push MFA timed out", factor.Provider)
 			return AuthResponse{}, errors.New("continue")
 		}
 
@@ -276,26 +279,30 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 		}
 		if code != 200 && code != 202 {
 			if count == nbFactors-1 {
+				log.Errorf("%s push MFA invalid HTTP status code %d", factor.Provider, code)
 				return AuthResponse{}, errors.New("Push MFA failed")
 			}
+			log.Warningf("%s push MFA invalid HTTP status code %d", factor.Provider, code)
 			return AuthResponse{}, errors.New("continue")
 		}
 
 		err = json.Unmarshal(apiRes, &authRes)
 		if err != nil {
-			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			if count == nbFactors-1 {
+				log.Errorf("Error unmarshaling Okta API response: %s", err)
 				return AuthResponse{}, err
 			}
+			log.Warningf("Error unmarshaling Okta API response: %s", err)
 			return AuthResponse{}, errors.New("continue")
 		}
 
 		err = validate.Struct(authRes)
 		if err != nil {
-			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			if count == nbFactors-1 {
+				log.Errorf("Error unmarshaling Okta API response: %s", err)
 				return AuthResponse{}, err
 			}
+			log.Warningf("Error unmarshaling Okta API response: %s", err)
 			return AuthResponse{}, errors.New("continue")
 		}
 	}
