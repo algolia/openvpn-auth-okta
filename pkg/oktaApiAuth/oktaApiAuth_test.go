@@ -238,7 +238,6 @@ func TestAuthPreAuth(t *testing.T) {
 			fmt.Errorf("Key: 'PreAuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
 		},
 
-
 		{
 			"PreAuth with invalid response (json) - failure",
 			false,
@@ -256,7 +255,6 @@ func TestAuthPreAuth(t *testing.T) {
 			1,
 			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
 		},
-
 
 		{
 			"PreAuth with locked out user - failure",
@@ -639,8 +637,6 @@ func TestAuthPushMFA(t *testing.T) {
 			1,
 			fmt.Errorf("Push MFA failed"),
 		},
-
-
 
 		{
 			"Auth with push timeout err - failure",

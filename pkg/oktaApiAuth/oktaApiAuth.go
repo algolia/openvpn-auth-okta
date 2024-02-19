@@ -47,6 +47,7 @@ func NewOktaApiAuth() *OktaApiAuth {
 func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, factorType string) (err error) {
 	nbFactors := len(factors)
 	for count, factor := range factors {
+		log.Debugf("verifying %s factor nb %d", factorType, count)
 		authRes, err := auth.doAuthFirstStep(factor, count, nbFactors, stateToken, factorType)
 		if err != nil {
 			if err.Error() != "continue" {
@@ -55,6 +56,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 			}
 			continue
 		}
+		log.Debugf("%s factor nb %d, factorResult: %s", factorType, count, authRes.Result)
 
 		if factorType == "Push" {
 			if authRes.Result != "WAITING" {
@@ -72,6 +74,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				}
 				continue
 			}
+			log.Debugf("Push factor nb %d, waitForPush factorResult: %s", count, authRes.Result)
 		}
 
 		if authRes.Status == "SUCCESS" {
@@ -92,6 +95,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 			factorType,
 			authRes.Result)
 	}
+	log.Debugf("No %s MFA available", factorType)
 	// We'll only be there if a passcode is provided and no TOTP factor is available
 	return fmt.Errorf("No %s MFA available", factorType)
 }
