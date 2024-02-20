@@ -286,6 +286,7 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 			return AuthResponse{}, errors.New("continue")
 		}
 
+		authRes = AuthResponse{}
 		err = json.Unmarshal(apiRes, &authRes)
 		if err != nil {
 			if count == nbFactors-1 {
