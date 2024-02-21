@@ -39,13 +39,16 @@ type OktaAPIConfig struct {
 	AllowUntrustedUsers bool // default: false
 
 	// Number of retries when waiting for MFA result
-	MFAPushMaxRetries int // default = 20
+	MFAPushMaxRetries int // default: 20
 
 	// Number of seconds to wait between MFA result retrieval tries
-	MFAPushDelaySeconds int // default = 3
+	MFAPushDelaySeconds int // default: 3
 
 	// List (comma separated) of groups allowed to connect
 	AllowedGroups string
+
+	// If a passcode is provided and TOTP MFA fails, try Push MFA
+	TOTPFallbackToPush bool // default: false
 }
 
 // User credentials and informations

@@ -38,3 +38,7 @@ Token:
 ## Configure how many seconds to wait between Okta Verify Push retries
 ## (Optional, default: 3)
 # MFAPushDelaySeconds: 3
+
+# If a passcode is provided and TOTP MFA fails, try Push MFA
+## (Optional, default: False)
+TOTPFallbackToPush: False
