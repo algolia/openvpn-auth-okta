@@ -38,6 +38,7 @@ func NewOktaApiAuth() *OktaApiAuth {
 			MFAPushMaxRetries:   20,
 			MFAPushDelaySeconds: 3,
 			AllowedGroups:       "",
+			TOTPFallbackToPush:  false,
 		},
 		UserConfig: &OktaUserConfig{},
 		userAgent:  userAgent,
@@ -51,7 +52,6 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 		authRes, err := auth.doAuthFirstStep(factor, count, nbFactors, stateToken, factorType)
 		if err != nil {
 			if err.Error() != "continue" {
-				auth.cancelAuth(stateToken)
 				return err
 			}
 			continue
@@ -61,7 +61,6 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 		if factorType == "Push" {
 			if authRes.Result != "WAITING" {
 				if count == nbFactors-1 {
-					auth.cancelAuth(stateToken)
 					return errors.New("Push MFA failed")
 				}
 				continue
@@ -69,7 +68,6 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 			authRes, err = auth.waitForPush(factor, count, nbFactors, stateToken)
 			if err != nil {
 				if err.Error() != "continue" {
-					auth.cancelAuth(stateToken)
 					return err
 				}
 				continue
@@ -87,7 +85,6 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				factor.Provider,
 				factorType,
 				authRes.Result)
-			auth.cancelAuth(stateToken)
 			return fmt.Errorf("%s MFA failed", factorType)
 		}
 		log.Warningf("%s %s MFA authentication failed: %s",
@@ -105,7 +102,11 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error)
 
 	if auth.UserConfig.Passcode != "" {
 		if err = auth.verifyFactors(preAuthRes.Token, factorsTOTP, "TOTP"); err != nil {
+			if auth.ApiConfig.TOTPFallbackToPush {
+				goto PUSH
+			}
 			if err.Error() != "No TOTP MFA available" {
+				auth.cancelAuth(preAuthRes.Token)
 				return err
 			}
 			goto ERR
@@ -113,11 +114,15 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error)
 		return nil
 	}
 
-	if err = auth.verifyFactors(preAuthRes.Token, factorsPush, "Push"); err == nil {
-		return nil
-	} else if err.Error() != "No Push MFA available" {
-		return err
+PUSH:
+	if err = auth.verifyFactors(preAuthRes.Token, factorsPush, "Push"); err != nil {
+		if err.Error() != "No Push MFA available" {
+			auth.cancelAuth(preAuthRes.Token)
+			return err
+		}
+		goto ERR
 	}
+	return nil
 
 ERR:
 	log.Errorf("No MFA factor available")
