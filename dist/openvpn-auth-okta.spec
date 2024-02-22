@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.6.1
+Version: 2.7.0
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,31 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Thu Feb 22 2024 Jeremy Jacque <jeremy.jacque@algolia.com> 2.7.0-1
+- chore(go): add go-playground/validator for API response validation
+- chore(go): use proper json unmarshaling/validation instead of string parsing for API responses
+- refacto(oktaApiAuth): factorize common (first step) MFA verification code
+- chore(oktaApiAuth/test): test MFA with multiple push retries
+- refacto(oktaApiAuth/test): split TestAuth function
+- chore(oktaApiAuth) respect API spec anf honor HTTP codes
+- chore(oktaApiAuth/test): respect API spec anf honor HTTP codes
+- chore(oktaApiAuth): factorize TOTP and Push MFA verification code
+- refacto(oktaApiAuth): dedup and simplify doAuthFirstStep code
+- fix(oktaApiAuth): Okta will never answer success at first push MFA verify call
+- fix(oktaApiAuth): status is mandatory in a AuthResponse
+- fix(oktaApiAuth): add missing cancel in verifyFactors, simplify if/else with return
+- fix(oktaApiAuth): return proper error for checkAllowedGroups HTTP error
+- chore(oktaApiAuth/test): cover all Auth scenarii
+- chore(oktaApiAuth/test): increase coverage of CheckAllowedGroups
+- chore(doc): update coverage badge
+- chore(oktaApiAuth/test): add auth_invalid_totp_no_sum fixture file
+- chore(oktaApiAuth): cancelAuth is a fire & forget, no need for return values
+- chore(oktaApiAuth): add some debug messages
+- chore(doc): update coverage badge
+- fix(oktaApiAuth): reset AuthResponse at each loop iteration to prevent persistency issues
+- chore: make TOTP to Push fallback configurable
+- refacto: simplify code - remove else when not needed
+
 * Fri Feb 09 2024 vagrant <jeremy.jacque@algolia.com> 2.6.1-1
 - chore(go): fmt
 - chore(ci): remove snyk jobs as we are decommissioning it
