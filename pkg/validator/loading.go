@@ -45,38 +45,39 @@ func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
 	if _, err := os.Stat(path); err != nil {
 		log.Errorf("OpenVPN via-file \"%s\" does not exists", path)
 		return err
-	} else {
-		if viaFileBuf, err := os.ReadFile(path); err != nil {
-			log.Errorf("Can not read OpenVPN via-file \"%s\": %s",
-				path,
-				err)
-			return err
-		} else {
-			viaFileInfos := strings.Split(string(viaFileBuf), "\n")
-			viaFileInfos = removeEmptyStrings(viaFileInfos)
-			if len(viaFileInfos) < 2 {
-				log.Errorf("Invalid OpenVPN via-file \"%s\" content", path)
-				return errors.New("Invalid via-file")
-			}
-			username := viaFileInfos[0]
-			password := viaFileInfos[1]
-
-			if !checkUsernameFormat(username) {
-				log.Error("Username or CN invalid format")
-				return errors.New("Invalid CN or username format")
-			}
-
-			apiConfig := validator.api.ApiConfig
-			validator.usernameTrusted = true
-			if apiConfig.UsernameSuffix != "" && !strings.Contains(username, "@") {
-				username = fmt.Sprintf("%s@%s", username, apiConfig.UsernameSuffix)
-			}
-			userConfig := validator.api.UserConfig
-			userConfig.Username = username
-			userConfig.Password = password
-			return nil
-		}
 	}
+
+	viaFileBuf, err := os.ReadFile(path)
+	if err != nil {
+		log.Errorf("Can not read OpenVPN via-file \"%s\": %s",
+			path,
+			err)
+		return err
+	}
+
+	viaFileInfos := strings.Split(string(viaFileBuf), "\n")
+	viaFileInfos = removeEmptyStrings(viaFileInfos)
+	if len(viaFileInfos) < 2 {
+		log.Errorf("Invalid OpenVPN via-file \"%s\" content", path)
+		return errors.New("Invalid via-file")
+	}
+	username := viaFileInfos[0]
+	password := viaFileInfos[1]
+
+	if !checkUsernameFormat(username) {
+		log.Error("Username or CN invalid format")
+		return errors.New("Invalid CN or username format")
+	}
+
+	apiConfig := validator.api.ApiConfig
+	validator.usernameTrusted = true
+	if apiConfig.UsernameSuffix != "" && !strings.Contains(username, "@") {
+		username = fmt.Sprintf("%s@%s", username, apiConfig.UsernameSuffix)
+	}
+	userConfig := validator.api.UserConfig
+	userConfig.Username = username
+	userConfig.Password = password
+	return nil
 }
 
 // Get user credentials and info from the environment set by OpenVPN

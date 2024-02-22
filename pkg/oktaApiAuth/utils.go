@@ -34,8 +34,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 		}
 
 		var groupRes []OktaGroup
-		err = json.Unmarshal(apiRes, &groupRes)
-		if err != nil {
+		if err = json.Unmarshal(apiRes, &groupRes); err != nil {
 			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			return err
 		}
@@ -69,8 +68,7 @@ func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP
 }
 
 func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
-	err := auth.checkAllowedGroups()
-	if err != nil {
+	if err := auth.checkAllowedGroups(); err != nil {
 		log.Errorf("allowed group verification error: %s", err)
 		return PreAuthResponse{}, err
 	}
@@ -89,10 +87,8 @@ func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
 		}
 
 		var preAuthResErr ErrorResponse
-		err = json.Unmarshal(apiRes, &preAuthResErr)
-		if err == nil {
-			err = validate.Struct(preAuthResErr)
-			if err == nil {
+		if err = json.Unmarshal(apiRes, &preAuthResErr); err == nil {
+			if err = validate.Struct(preAuthResErr); err == nil {
 				log.Warningf("pre-authentication failed: %s", preAuthResErr.Summary)
 				return PreAuthResponse{}, errors.New("pre-authentication failed")
 			}
@@ -100,14 +96,12 @@ func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
 	}
 
 	var preAuthRes PreAuthResponse
-	err = json.Unmarshal(apiRes, &preAuthRes)
-	if err != nil {
+	if err = json.Unmarshal(apiRes, &preAuthRes); err != nil {
 		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		return PreAuthResponse{}, err
 	}
 
-	err = validate.Struct(preAuthRes)
-	if err != nil {
+	if err = validate.Struct(preAuthRes); err != nil {
 		log.Errorf("Error unmarshaling Okta API response: %s", err)
 		return PreAuthResponse{}, err
 	}

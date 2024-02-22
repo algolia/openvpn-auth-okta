@@ -46,37 +46,40 @@ func (validator *OktaOpenVPNValidator) readConfigFile() error {
 	} else {
 		cfgPaths = append(cfgPaths, validator.configFile)
 	}
+
 	for _, cfgFile := range cfgPaths {
-		if info, err := os.Stat(cfgFile); err != nil {
+		info, err := os.Stat(cfgFile)
+		if err != nil {
 			continue
-		} else {
-			if info.IsDir() {
-				continue
-			} else {
-				// should never fail as err would be not nil only if cfgFile is not a string (or a []byte, a Reader)
-				cfg, err := ini.Load(cfgFile)
-				if err != nil {
-					log.Errorf("Error loading ini file \"%s\": %s",
-						cfgFile,
-						err)
-					return err
-				}
-				apiConfig := validator.api.ApiConfig
-				if err := cfg.Section("OktaAPI").StrictMapTo(apiConfig); err != nil {
-					log.Errorf("Error parsing ini file \"%s\": %s",
-						cfgFile,
-						err)
-					return err
-				}
-				if apiConfig.Url == "" || apiConfig.Token == "" {
-					log.Errorf("Missing Url or Token parameter in \"%s\"",
-						cfgFile)
-					return errors.New("Missing param Url or Token")
-				}
-				validator.configFile = cfgFile
-				return nil
-			}
 		}
+
+		if info.IsDir() {
+			continue
+		}
+
+		// should never fail as err would be not nil only if cfgFile is not a string (or a []byte, a Reader)
+		cfg, err := ini.Load(cfgFile)
+		if err != nil {
+			log.Errorf("Error loading ini file \"%s\": %s",
+				cfgFile,
+				err)
+			return err
+		}
+
+		apiConfig := validator.api.ApiConfig
+		if err := cfg.Section("OktaAPI").StrictMapTo(apiConfig); err != nil {
+			log.Errorf("Error parsing ini file \"%s\": %s",
+				cfgFile,
+				err)
+			return err
+		}
+		if apiConfig.Url == "" || apiConfig.Token == "" {
+			log.Errorf("Missing Url or Token parameter in \"%s\"",
+				cfgFile)
+			return errors.New("Missing param Url or Token")
+		}
+		validator.configFile = cfgFile
+		return nil
 	}
 	log.Errorf("No ini file found in %v", cfgPaths)
 	return errors.New("No ini file found")
@@ -92,27 +95,30 @@ func (validator *OktaOpenVPNValidator) loadPinset() error {
 	} else {
 		pinsetPaths = append(pinsetPaths, validator.pinsetFile)
 	}
+
 	for _, pinsetFile := range pinsetPaths {
-		if info, err := os.Stat(pinsetFile); err != nil {
+		info, err := os.Stat(pinsetFile)
+		if err != nil {
 			continue
-		} else {
-			if info.IsDir() {
-				continue
-			} else {
-				if pinset, err := os.ReadFile(pinsetFile); err != nil {
-					log.Errorf("Can not read pinset config file \"%s\": %s",
-						pinsetFile,
-						err)
-					return err
-				} else {
-					pinsetArray := strings.Split(string(pinset), "\n")
-					cleanPinset := removeComments(removeEmptyStrings(pinsetArray))
-					validator.api.ApiConfig.AssertPin = cleanPinset
-					validator.pinsetFile = pinsetFile
-					return nil
-				}
-			}
 		}
+
+		if info.IsDir() {
+			continue
+		}
+
+		pinset, err := os.ReadFile(pinsetFile)
+		if err != nil {
+			log.Errorf("Can not read pinset config file \"%s\": %s",
+				pinsetFile,
+				err)
+			return err
+		}
+
+		pinsetArray := strings.Split(string(pinset), "\n")
+		cleanPinset := removeComments(removeEmptyStrings(pinsetArray))
+		validator.api.ApiConfig.AssertPin = cleanPinset
+		validator.pinsetFile = pinsetFile
+		return nil
 	}
 	return errors.New("No pinset file found")
 }
