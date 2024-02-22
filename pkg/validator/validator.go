@@ -106,12 +106,13 @@ func (validator *OktaOpenVPNValidator) Authenticate() error {
 		log.Warningf("is not trusted - failing")
 		return errors.New("User not trusted")
 	}
-	if err := validator.api.Auth(); err == nil {
-		validator.isUserValid = true
-		return nil
-	} else {
+
+	if err := validator.api.Auth(); err != nil {
 		return errors.New("Authentication failed")
 	}
+
+	validator.isUserValid = true
+	return nil
 }
 
 // Write the authentication result in the OpenVPN control file (only used in deferred mode)
