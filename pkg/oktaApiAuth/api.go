@@ -129,7 +129,7 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 		jsonData, err := json.Marshal(data)
 		if err != nil {
 			log.Errorf("Error marshaling request payload: %s", err)
-			return 500, nil, err
+			return 0, nil, err
 		}
 		dataReader = bytes.NewReader(jsonData)
 	} else {
@@ -138,20 +138,20 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	r, err = http.NewRequest(method, u.String(), dataReader)
 	if err != nil {
 		log.Errorf("Error creating http request: %s", err)
-		return 500, nil, err
+		return 0, nil, err
 	}
 	for k, v := range headers {
 		r.Header.Add(k, v)
 	}
 	resp, err := auth.pool.Do(r)
 	if err != nil {
-		return 500, nil, err
+		return 0, nil, err
 	}
 	defer resp.Body.Close()
 	jsonBody, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("Error reading Okta API response: %s", err)
-		return 500, nil, err
+		return 0, nil, err
 	}
 
 	return resp.StatusCode, jsonBody, nil
