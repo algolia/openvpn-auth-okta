@@ -43,6 +43,7 @@ func NewOktaOpenVPNValidator() *OktaOpenVPNValidator {
 // Setup the validator depending on the way it's invoked
 func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []string, pluginEnv *PluginEnv) bool {
 	setLogFormatter(debug, "")
+	log.Trace("validator.Setup()")
 	if err := validator.readConfigFile(); err != nil {
 		log.Error("ReadConfigFile failure")
 		if deferred {
@@ -102,6 +103,7 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []s
 
 // Authenticate the user against Okta API
 func (validator *OktaOpenVPNValidator) Authenticate() error {
+	log.Trace("validator.Authenticate()")
 	if !validator.usernameTrusted {
 		log.Warningf("is not trusted - failing")
 		return errors.New("User not trusted")
@@ -117,6 +119,7 @@ func (validator *OktaOpenVPNValidator) Authenticate() error {
 
 // Write the authentication result in the OpenVPN control file (only used in deferred mode)
 func (validator *OktaOpenVPNValidator) WriteControlFile() {
+	log.Trace("validator.WriteControlFile()")
 	if err := validator.checkControlFilePerm(); err != nil {
 		return
 	}

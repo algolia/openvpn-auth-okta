@@ -28,6 +28,7 @@ const passcodeLen int = 6
 
 // Parse the password looking for an TOTP
 func (validator *OktaOpenVPNValidator) parsePassword() {
+	log.Trace("validator.parsePassword()")
 	// If the password provided by the user is longer than a OTP (6 cars)
 	// and the last 6 caracters are digits
 	// then extract the user password (first) and the OTP
@@ -45,6 +46,7 @@ func (validator *OktaOpenVPNValidator) parsePassword() {
 
 // Validate the OpenVPN control file and its directory permissions
 func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
+	log.Trace("validator.checkControlFilePerm()")
 	if validator.controlFile == "" {
 		return errors.New("Unknow control file")
 	}
@@ -73,6 +75,7 @@ func getEnv(key, fallback string) string {
 
 // check that username respects OpenVPN recomandation
 func checkUsernameFormat(name string) bool {
+	log.Trace("validator.checkUsernameFormat()")
 	/* OpenVPN doc says:
 	To protect against a client passing a maliciously formed username or password string,
 	the username string must consist only of these characters:

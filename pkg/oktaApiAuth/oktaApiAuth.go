@@ -45,7 +45,10 @@ func NewOktaApiAuth() *OktaApiAuth {
 	}
 }
 
+// Iterates on the factor list provided and tries to authenticate the user
+// exit with no error at the first successfull factor auth
 func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, factorType string) (err error) {
+	log.Tracef("oktaApiAuth.verifyFactors() %s", factorType)
 	nbFactors := len(factors)
 	for count, factor := range factors {
 		log.Debugf("verifying %s factor nb %d", factorType, count)
@@ -56,7 +59,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 			}
 			continue
 		}
-		log.Debugf("%s factor nb %d, factorResult: %s", factorType, count, authRes.Result)
+		log.Debugf("%s %s MFA, Result: %s", factor.Provider, factorType, authRes.Result)
 
 		if factorType == "Push" {
 			if authRes.Result != "WAITING" {
@@ -72,7 +75,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				}
 				continue
 			}
-			log.Debugf("Push factor nb %d, waitForPush factorResult: %s", count, authRes.Result)
+			log.Debugf("%s Push MFA, waitForPush Result: %s", factor.Provider, authRes.Result)
 		}
 
 		if authRes.Status == "SUCCESS" {
@@ -92,17 +95,24 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 			factorType,
 			authRes.Result)
 	}
+	// Reached only when the list of factors provided is empty
 	log.Debugf("No %s MFA available", factorType)
-	// We'll only be there if a passcode is provided and no TOTP factor is available
 	return fmt.Errorf("No %s MFA available", factorType)
 }
 
+// Gather the list of factors available from the pre authentication api response,
+// if the user provided a TOTP in its passwordd string, try TOTP MFA
+// otherwise try Push MFA
 func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error) {
+	log.Trace("oktaApiAuth.validateUserMFA()")
+
 	factorsTOTP, factorsPush := auth.getUserFactors(preAuthRes)
 
 	if auth.UserConfig.Passcode != "" {
 		if err = auth.verifyFactors(preAuthRes.Token, factorsTOTP, "TOTP"); err != nil {
 			if auth.ApiConfig.TOTPFallbackToPush {
+				// If all TOTP factors failed and fallback to push has been enabled in config
+				// try Push MFA authentication
 				goto PUSH
 			}
 			if err.Error() != "No TOTP MFA available" {
@@ -133,6 +143,7 @@ ERR:
 // Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
 // returns nil if has been validated by Okta API, an error otherwise
 func (auth *OktaApiAuth) Auth() error {
+	log.Trace("oktaApiAuth.Auth()")
 	log.Infof("Authenticating")
 	preAuthRes, err := auth.preChecks()
 	if err != nil {

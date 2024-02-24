@@ -32,6 +32,7 @@ import (
 // Prepare an http client with a safe TLS config
 // validate the server public key against our list of pinned key fingerprint
 func (auth *OktaApiAuth) InitPool() error {
+	log.Trace("oktaApiAuth.InitPool()")
 	if rawURL, err := url.Parse(auth.ApiConfig.Url); err != nil {
 		return err
 	} else {
@@ -160,6 +161,7 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 // Call the preauth Okta API endpoint
 func (auth *OktaApiAuth) preAuth() (int, []byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application
+	log.Trace("oktaApiAuth.preAuth()")
 	data := map[string]string{
 		"username": auth.UserConfig.Username,
 		"password": auth.UserConfig.Password,
@@ -170,6 +172,7 @@ func (auth *OktaApiAuth) preAuth() (int, []byte, error) {
 // Call the MFA auth Okta API endpoint
 func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (int, []byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#verify-call-factor
+	log.Trace("oktaApiAuth.doAuth()")
 	path := fmt.Sprintf("/authn/factors/%s/verify", fid)
 	data := map[string]string{
 		"fid":        fid,
@@ -182,6 +185,7 @@ func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (int, []byte, err
 // Cancel an authentication transaction
 func (auth *OktaApiAuth) cancelAuth(stateToken string) {
 	// https://developer.okta.com/docs/reference/api/authn/#cancel-transaction
+	log.Trace("oktaApiAuth.cancelAuth()")
 	data := map[string]string{
 		"stateToken": stateToken,
 	}
@@ -189,6 +193,7 @@ func (auth *OktaApiAuth) cancelAuth(stateToken string) {
 }
 
 func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors int, stateToken string, ftype string) (AuthResponse, error) {
+	log.Tracef("oktaApiAuth.doAuthFirstStep() %s %s", factor.Type, factor.Provider)
 	code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 	if err != nil {
 		if count == nbFactors-1 {
@@ -254,7 +259,10 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 	return authRes, nil
 }
 
+// At first iteration and until the factorResult is different from WAITING
+// keep retrying the Push MFA (we are waiting here that the user either accept or reject auth)
 func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int, stateToken string) (authRes AuthResponse, err error) {
+	log.Tracef("oktaApiAuth.waitForPush() %s %s", factor.Type, factor.Provider)
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	checkCount := 0
 	for checkCount == 0 || authRes.Result == "WAITING" {
