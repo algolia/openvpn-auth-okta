@@ -44,11 +44,15 @@ type AuthResponse struct {
 	Result string `json:"factorResult"`
 }
 
+type OktaGroups struct {
+	Groups []OktaGroup `json:"groups" validate:"omitempty,dive"`
+}
+
 type OktaGroup struct {
-	Id      string           `json:"id"`
-	Profile OktaGroupProfile `json:"profile"`
+	Id      string           `json:"id" validate:"required"`
+	Profile OktaGroupProfile `json:"profile" validate:"required"`
 }
 
 type OktaGroupProfile struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required"`
 }
