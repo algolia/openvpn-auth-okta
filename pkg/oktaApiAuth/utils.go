@@ -27,11 +27,18 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 	log.Trace("oktaApiAuth.checkAllowedGroups()")
 	// https://developer.okta.com/docs/reference/api/users/#request-parameters-8
 	if auth.ApiConfig.AllowedGroups != "" {
+		validate := validator.New(validator.WithRequiredStructEnabled())
 		code, apiRes, err := auth.oktaReq(http.MethodGet, fmt.Sprintf("/users/%s/groups", auth.UserConfig.Username), nil)
 		if err != nil {
 			return err
 		}
 		if code != 200 && code != 202 {
+			var authResErr ErrorResponse
+			if err = json.Unmarshal(apiRes, &authResErr); err == nil {
+				if err = validate.Struct(authResErr); err == nil {
+					log.Errorf("error fetching user's group list: %s", authResErr.Summary)
+				}
+			}
 			return errors.New("invalid HTTP status code")
 		}
 
@@ -39,6 +46,12 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 		if err = json.Unmarshal(apiRes, &groupRes); err != nil {
 			log.Errorf("Error unmarshaling Okta API response: %s", err)
 			return err
+		}
+
+		var groups = OktaGroups{Groups: groupRes}
+		if err = validate.Struct(groups); err != nil {
+			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			return errors.New("invalid group list return by API")
 		}
 
 		var aGroups []string = strings.Split(auth.ApiConfig.AllowedGroups, ",")
