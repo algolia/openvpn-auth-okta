@@ -22,7 +22,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Checks that the user belongs to the allowed groups list provided in the conf
 func (auth *OktaApiAuth) checkAllowedGroups() error {
+	log.Trace("oktaApiAuth.checkAllowedGroups()")
 	// https://developer.okta.com/docs/reference/api/users/#request-parameters-8
 	if auth.ApiConfig.AllowedGroups != "" {
 		code, apiRes, err := auth.oktaReq(http.MethodGet, fmt.Sprintf("/users/%s/groups", auth.UserConfig.Username), nil)
@@ -52,7 +54,10 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 	return nil
 }
 
+// Parse the pre authentication api response and create 2 factor lists:
+// one for the TOTP factors and one for the Push factors
 func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP []AuthFactor, factorsPush []AuthFactor) {
+	log.Trace("oktaApiAuth.getUserFactors()")
 	for _, f := range preAuthRes.Embedded.Factors {
 		if f.Type == "token:software:totp" {
 			if auth.UserConfig.Passcode != "" {
@@ -68,6 +73,7 @@ func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP
 }
 
 func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
+	log.Trace("oktaApiAuth.preChecks()")
 	if err := auth.checkAllowedGroups(); err != nil {
 		log.Errorf("allowed group verification error: %s", err)
 		return PreAuthResponse{}, err

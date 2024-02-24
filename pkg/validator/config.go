@@ -38,6 +38,7 @@ var (
 
 // Read the ini file containing the API config
 func (validator *OktaOpenVPNValidator) readConfigFile() error {
+	log.Trace("validator.readConfigFile()")
 	var cfgPaths []string
 	if validator.configFile == "" {
 		for _, v := range cfgDefaultPaths {
@@ -87,6 +88,7 @@ func (validator *OktaOpenVPNValidator) readConfigFile() error {
 
 // Read all allowed pubkey fingerprints for the API server from pinset file
 func (validator *OktaOpenVPNValidator) loadPinset() error {
+	log.Trace("validator.loadPinset()")
 	var pinsetPaths []string
 	if validator.pinsetFile == "" {
 		for _, v := range pinsetDefaultPaths {
