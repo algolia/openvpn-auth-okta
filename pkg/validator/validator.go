@@ -26,23 +26,39 @@ type OktaOpenVPNValidator struct {
 	usernameTrusted bool
 	isUserValid     bool
 	controlFile     string
+	logLevel        log.Level
 	api             *OktaApiAuth
 }
 
 func NewOktaOpenVPNValidator() *OktaOpenVPNValidator {
 	api := oktaApiAuth.NewOktaApiAuth()
+	logLevel, _ := log.ParseLevel("INFO")
 	return &OktaOpenVPNValidator{
 		usernameTrusted: false,
 		isUserValid:     false,
 		controlFile:     "",
 		configFile:      "",
+		logLevel:        logLevel,
+		api:             api,
+	}
+}
+
+func NewOktaOpenVPNValidatorWithLog(logLevel string) *OktaOpenVPNValidator {
+	api := oktaApiAuth.NewOktaApiAuth()
+	level, _ := log.ParseLevel(logLevel)
+	return &OktaOpenVPNValidator{
+		usernameTrusted: false,
+		isUserValid:     false,
+		controlFile:     "",
+		configFile:      "",
+		logLevel:        level,
 		api:             api,
 	}
 }
 
 // Setup the validator depending on the way it's invoked
-func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []string, pluginEnv *PluginEnv) bool {
-	setLogFormatter(debug, "")
+func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, pluginEnv *PluginEnv) bool {
+	validator.setLogFormatter("")
 	log.Trace("validator.Setup()")
 	if err := validator.readConfigFile(); err != nil {
 		log.Error("ReadConfigFile failure")
@@ -97,7 +113,7 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, debug bool, args []s
 		log.Error("Initpool failure")
 		return false
 	}
-	setLogFormatter(debug, validator.api.UserConfig.Username)
+	validator.setLogFormatter(validator.api.UserConfig.Username)
 	return true
 }
 
