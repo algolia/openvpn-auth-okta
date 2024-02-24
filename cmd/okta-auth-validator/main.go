@@ -15,13 +15,23 @@ var (
 type OktaOpenVPNValidator = validator.OktaOpenVPNValidator
 
 func main() {
+	logLevel := "INFO"
 	debug = flag.Bool("d", false, "enable debugging")
+	trace := flag.Bool("dd", false, "enable heavy debugging")
 	deferred = flag.Bool("deferred", false, "does this run as a deferred OpenVPN plugin")
 	flag.Parse()
 	args := flag.Args()
 
-	oktaValidator := validator.NewOktaOpenVPNValidator()
-	if res := oktaValidator.Setup(*deferred, *debug, args, nil); !res {
+
+	if *debug {
+		logLevel = "DEBUG"
+	}
+	if *trace {
+		logLevel = "TRACE"
+	}
+
+	oktaValidator := validator.NewOktaOpenVPNValidatorWithLog(logLevel)
+	if res := oktaValidator.Setup(*deferred, args, nil); !res {
 		if *deferred {
 			os.Exit(0)
 		} else {

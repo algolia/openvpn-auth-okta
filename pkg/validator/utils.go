@@ -125,7 +125,7 @@ func removeComments(s []string) []string {
 	return r
 }
 
-func setLogFormatter(debug bool, username string) {
+func (validator *OktaOpenVPNValidator) setLogFormatter(username string) {
 	luuid := uuid.NewString()
 	var format string
 	if username == "" {
@@ -140,7 +140,5 @@ func setLogFormatter(debug bool, username string) {
 		TimestampFormat: time.ANSIC,
 		LogFormat:       format,
 	})
-	if debug {
-		log.SetLevel(log.DebugLevel)
-	}
+	log.SetLevel(validator.logLevel)
 }

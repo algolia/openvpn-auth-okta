@@ -30,7 +30,7 @@ func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass 
 	}
 
 	v := validator.NewOktaOpenVPNValidator()
-	if res := v.Setup(true, false, nil, pluginEnv); !res {
+	if res := v.Setup(true, nil, pluginEnv); !res {
 		return
 	}
 	_ = v.Authenticate()

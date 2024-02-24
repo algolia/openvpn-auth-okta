@@ -1,3 +1,9 @@
+[General]
+## Set the out log level
+## Allowed values: TRACE, DEBUG, INFO, WARN, ERROR
+## (Optional, default: INFO)
+LogLevel: INFO
+
 [OktaAPI]
 ## The URL for your Okta instance
 ## (Required)

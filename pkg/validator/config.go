@@ -67,6 +67,9 @@ func (validator *OktaOpenVPNValidator) readConfigFile() error {
 			return err
 		}
 
+		logLevel := cfg.Section("General").Key("LogLevel").In("INFO",[]string{"TRACE","DEBUG","INFO","WARN","WARNING","ERROR"})
+		validator.logLevel, _ = log.ParseLevel(logLevel)
+
 		apiConfig := validator.api.ApiConfig
 		if err := cfg.Section("OktaAPI").StrictMapTo(apiConfig); err != nil {
 			log.Errorf("Error parsing ini file \"%s\": %s",
