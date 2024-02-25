@@ -29,7 +29,7 @@ func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass 
 		ControlFile: C.GoString(ctrF),
 	}
 
-	v := validator.NewOktaOpenVPNValidator()
+	v := validator.New()
 	if res := v.Setup(true, nil, pluginEnv); !res {
 		return
 	}

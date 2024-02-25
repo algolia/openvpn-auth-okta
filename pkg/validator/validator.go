@@ -13,6 +13,7 @@ package validator
 import (
 	"errors"
 	"os"
+	"slices"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
@@ -30,28 +31,24 @@ type OktaOpenVPNValidator struct {
 	api             *OktaApiAuth
 }
 
-func NewOktaOpenVPNValidator() *OktaOpenVPNValidator {
+// Returns a validator:
+// if no args is provided LogLevel will be INFO
+// if a arg is provided and in ["TRACE","DEBUG","INFO","WARN","WARNING","ERROR"] use it as LogLevel
+func New(args ...string) *OktaOpenVPNValidator {
 	api := oktaApiAuth.NewOktaApiAuth()
-	logLevel, _ := log.ParseLevel("INFO")
+	defaultLevel := "INFO"
+	if len(args) > 0 {
+		if slices.Contains([]string{"TRACE","DEBUG","INFO","WARN","WARNING","ERROR"}, args[0]) {
+			defaultLevel = args[0]
+		}
+	}
+	logLevel, _ := log.ParseLevel(defaultLevel)
 	return &OktaOpenVPNValidator{
 		usernameTrusted: false,
 		isUserValid:     false,
 		controlFile:     "",
 		configFile:      "",
 		logLevel:        logLevel,
-		api:             api,
-	}
-}
-
-func NewOktaOpenVPNValidatorWithLog(logLevel string) *OktaOpenVPNValidator {
-	api := oktaApiAuth.NewOktaApiAuth()
-	level, _ := log.ParseLevel(logLevel)
-	return &OktaOpenVPNValidator{
-		usernameTrusted: false,
-		isUserValid:     false,
-		controlFile:     "",
-		configFile:      "",
-		logLevel:        level,
 		api:             api,
 	}
 }

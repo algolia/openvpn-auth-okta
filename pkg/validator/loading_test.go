@@ -93,7 +93,7 @@ func TestLoadViaFile(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			v := NewOktaOpenVPNValidator()
+			v := New()
 			v.api = oktaApiAuth.NewOktaApiAuth()
 			v.api.ApiConfig.UsernameSuffix = test.usernameSuffix
 			err := v.loadViaFile(test.path)
@@ -225,7 +225,7 @@ func TestLoadEnvVars(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			setEnv(test.env)
-			v := NewOktaOpenVPNValidator()
+			v := New()
 			v.api.ApiConfig.UsernameSuffix = test.usernameSuffix
 			v.api.ApiConfig.AllowUntrustedUsers = test.allowUntrustedUsers
 			err := v.loadEnvVars(nil)
