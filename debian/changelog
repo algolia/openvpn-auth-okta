@@ -1,3 +1,25 @@
+openvpn-auth-okta (2.8.0) stable; urgency=medium
+
+  [ dependabot[bot] ]
+  * chore(deps): bump golang.org/x/crypto from 0.7.0 to 0.17.0
+
+  [ dependabot[bot] ]
+  * chore(deps): bump golang.org/x/net from 0.8.0 to 0.17.0
+
+  [ Jeremy JACQUE ]
+  * fix(oktaApiAuth): do not return "valid" http 500 on request error
+  * chore: add comments and basic traces
+  * chore(oktaApiAuth): add validity checks on Okta groups
+  * feat(validator): allow various log level and to set it up in the conf file
+  * chore(doc): update coverage badge
+  * chore: normalize validator constructor name
+  * chore: normalize oktaApiAuth constructor name
+  * chore(validator): if log level has been set in constructor, use it as default if not provided in config
+  * refacto: use phuslu/log instead of logrus for better perf/memory usage
+  * chore(go): clean sums
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Sun, 25 Feb 2024 21:56:40 +0000
+
 openvpn-auth-okta (2.7.0) stable; urgency=medium
 
   [ Jeremy JACQUE ]
