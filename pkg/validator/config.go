@@ -16,7 +16,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/phuslu/log"
 )
 
 var (
@@ -38,7 +38,7 @@ var (
 
 // Read the ini file containing the API config
 func (validator *OktaOpenVPNValidator) readConfigFile() error {
-	log.Trace("validator.readConfigFile()")
+	log.Trace().Msg("validator.readConfigFile()")
 	var cfgPaths []string
 	if validator.configFile == "" {
 		for _, v := range cfgDefaultPaths {
@@ -61,37 +61,39 @@ func (validator *OktaOpenVPNValidator) readConfigFile() error {
 		// should never fail as err would be not nil only if cfgFile is not a string (or a []byte, a Reader)
 		cfg, err := ini.Load(cfgFile)
 		if err != nil {
-			log.Errorf("Error loading ini file \"%s\": %s",
+			log.Error().Msgf("Error loading ini file \"%s\": %s",
 				cfgFile,
 				err)
 			return err
 		}
 
-		logLevel := cfg.Section("General").Key("LogLevel").In(validator.logLevel.String(), []string{"TRACE", "DEBUG", "INFO", "WARN", "WARNING", "ERROR"})
-		validator.logLevel, _ = log.ParseLevel(logLevel)
+		log.DefaultLogger.Level = log.ParseLevel(
+			cfg.Section("General").Key("LogLevel").In(
+				log.DefaultLogger.Level.String(),
+				[]string{"TRACE", "DEBUG", "INFO", "WARN", "WARNING", "ERROR"}))
 
 		apiConfig := validator.api.ApiConfig
 		if err := cfg.Section("OktaAPI").StrictMapTo(apiConfig); err != nil {
-			log.Errorf("Error parsing ini file \"%s\": %s",
+			log.Error().Msgf("Error parsing ini file \"%s\": %s",
 				cfgFile,
 				err)
 			return err
 		}
 		if apiConfig.Url == "" || apiConfig.Token == "" {
-			log.Errorf("Missing Url or Token parameter in \"%s\"",
+			log.Error().Msgf("Missing Url or Token parameter in \"%s\"",
 				cfgFile)
 			return errors.New("Missing param Url or Token")
 		}
 		validator.configFile = cfgFile
 		return nil
 	}
-	log.Errorf("No ini file found in %v", cfgPaths)
+	log.Error().Msgf("No ini file found in %v", cfgPaths)
 	return errors.New("No ini file found")
 }
 
 // Read all allowed pubkey fingerprints for the API server from pinset file
 func (validator *OktaOpenVPNValidator) loadPinset() error {
-	log.Trace("validator.loadPinset()")
+	log.Trace().Msg("validator.loadPinset()")
 	var pinsetPaths []string
 	if validator.pinsetFile == "" {
 		for _, v := range pinsetDefaultPaths {
@@ -113,7 +115,7 @@ func (validator *OktaOpenVPNValidator) loadPinset() error {
 
 		pinset, err := os.ReadFile(pinsetFile)
 		if err != nil {
-			log.Errorf("Can not read pinset config file \"%s\": %s",
+			log.Error().Msgf("Can not read pinset config file \"%s\": %s",
 				pinsetFile,
 				err)
 			return err
