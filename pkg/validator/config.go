@@ -67,7 +67,7 @@ func (validator *OktaOpenVPNValidator) readConfigFile() error {
 			return err
 		}
 
-		logLevel := cfg.Section("General").Key("LogLevel").In("INFO",[]string{"TRACE","DEBUG","INFO","WARN","WARNING","ERROR"})
+		logLevel := cfg.Section("General").Key("LogLevel").In(validator.logLevel.String(), []string{"TRACE", "DEBUG", "INFO", "WARN", "WARNING", "ERROR"})
 		validator.logLevel, _ = log.ParseLevel(logLevel)
 
 		apiConfig := validator.api.ApiConfig
