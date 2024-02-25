@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.7.0
+Version: 2.8.0
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,20 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Sun Feb 25 2024 Jeremy Jacque <jeremy.jacque@algolia.com> 2.8.0-1
+- chore(deps): bump golang.org/x/crypto from 0.7.0 to 0.17.0
+- chore(deps): bump golang.org/x/net from 0.8.0 to 0.17.0
+- fix(oktaApiAuth): do not return "valid" http 500 on request error
+- chore: add comments and basic traces
+- chore(oktaApiAuth): add validity checks on Okta groups
+- feat(validator): allow various log level and to set it up in the conf file
+- chore(doc): update coverage badge
+- chore: normalize validator constructor name
+- chore: normalize oktaApiAuth constructor name
+- chore(validator): if log level has been set in constructor, use it as default if not provided in config
+- refacto: use phuslu/log instead of logrus for better perf/memory usage
+- chore(go): clean sums
+
 * Thu Feb 22 2024 Jeremy Jacque <jeremy.jacque@algolia.com> 2.7.0-1
 - chore(go): add go-playground/validator for API response validation
 - chore(go): use proper json unmarshaling/validation instead of string parsing for API responses
