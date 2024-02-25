@@ -105,7 +105,7 @@ func TestInitPool(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			a := NewOktaApiAuth()
+			a := New()
 			a.ApiConfig.Url = fmt.Sprintf("https://%s:%s", test.host, test.port)
 			a.ApiConfig.AssertPin = test.pinset
 			err := a.InitPool()
@@ -187,7 +187,7 @@ func TestOktaReq(t *testing.T) {
 					File(reqponseFile)
 			}
 
-			a := NewOktaApiAuth()
+			a := New()
 			assert.NotNil(t, a)
 			a.ApiConfig = apiCfg
 			a.UserConfig = userCfg

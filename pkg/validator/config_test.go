@@ -132,7 +132,7 @@ func TestLoadPinset(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			v := New()
-			v.api = oktaApiAuth.NewOktaApiAuth()
+			v.api = oktaApiAuth.New()
 			v.pinsetFile = test.path
 			if test.path == "" {
 				_ = os.Symlink(test.link, "pinset.cfg")
