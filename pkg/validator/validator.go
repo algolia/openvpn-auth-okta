@@ -15,7 +15,8 @@ import (
 	"os"
 	"slices"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/google/uuid"
+	"github.com/phuslu/log"
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
 )
 
@@ -27,7 +28,7 @@ type OktaOpenVPNValidator struct {
 	usernameTrusted bool
 	isUserValid     bool
 	controlFile     string
-	logLevel        log.Level
+	sessionId       string
 	api             *OktaApiAuth
 }
 
@@ -36,29 +37,30 @@ type OktaOpenVPNValidator struct {
 // if a arg is provided and in ["TRACE","DEBUG","INFO","WARN","WARNING","ERROR"] use it as LogLevel
 func New(args ...string) *OktaOpenVPNValidator {
 	api := oktaApiAuth.New()
+	luuid := uuid.NewString()
 	defaultLevel := "INFO"
 	if len(args) > 0 {
 		if slices.Contains([]string{"TRACE", "DEBUG", "INFO", "WARN", "WARNING", "ERROR"}, args[0]) {
 			defaultLevel = args[0]
 		}
 	}
-	logLevel, _ := log.ParseLevel(defaultLevel)
-	return &OktaOpenVPNValidator{
+	v := &OktaOpenVPNValidator{
 		usernameTrusted: false,
 		isUserValid:     false,
 		controlFile:     "",
 		configFile:      "",
-		logLevel:        logLevel,
+		sessionId:       luuid,
 		api:             api,
 	}
+	v.initLogFormatter(log.ParseLevel(defaultLevel))
+	return v
 }
 
 // Setup the validator depending on the way it's invoked
 func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, pluginEnv *PluginEnv) bool {
-	validator.setLogFormatter("")
-	log.Trace("validator.Setup()")
+	log.Trace().Msg("validator.Setup()")
 	if err := validator.readConfigFile(); err != nil {
-		log.Error("ReadConfigFile failure")
+		log.Error().Msg("ReadConfigFile failure")
 		if deferred {
 			/*
 			 * if invoked as a deferred plugin, we should always exit 0 and write result
@@ -78,13 +80,13 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
 		if len(args) > 0 {
 			// via-file" method
 			if err := validator.loadViaFile(args[0]); err != nil {
-				log.Error("LoadViaFile failure")
+				log.Error().Msg("LoadViaFile failure")
 				return false
 			}
 		} else {
 			// "via-env" method
 			if err := validator.loadEnvVars(nil); err != nil {
-				log.Error("LoadEnvVars failure")
+				log.Error().Msg("LoadEnvVars failure")
 				return false
 			}
 		}
@@ -92,14 +94,14 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
 		// We're running in "Shared Object Plugin" mode
 		// see https://openvpn.net/community-resources/using-alternative-authentication-methods/
 		if err := validator.loadEnvVars(pluginEnv); err != nil {
-			log.Error("LoadEnvVars (deferred) failure")
+			log.Error().Msg("LoadEnvVars (deferred) failure")
 			validator.WriteControlFile()
 			return false
 		}
 	}
 
 	if err := validator.loadPinset(); err != nil {
-		log.Error("LoadPinset failure")
+		log.Error().Msg("LoadPinset failure")
 		if deferred {
 			validator.WriteControlFile()
 		}
@@ -107,18 +109,18 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
 	}
 	validator.parsePassword()
 	if err := validator.api.InitPool(); err != nil {
-		log.Error("Initpool failure")
+		log.Error().Msg("Initpool failure")
 		return false
 	}
-	validator.setLogFormatter(validator.api.UserConfig.Username)
+	validator.setLogUser()
 	return true
 }
 
 // Authenticate the user against Okta API
 func (validator *OktaOpenVPNValidator) Authenticate() error {
-	log.Trace("validator.Authenticate()")
+	log.Trace().Msg("validator.Authenticate()")
 	if !validator.usernameTrusted {
-		log.Warningf("is not trusted - failing")
+		log.Warn().Msgf("is not trusted - failing")
 		return errors.New("User not trusted")
 	}
 
@@ -132,7 +134,7 @@ func (validator *OktaOpenVPNValidator) Authenticate() error {
 
 // Write the authentication result in the OpenVPN control file (only used in deferred mode)
 func (validator *OktaOpenVPNValidator) WriteControlFile() {
-	log.Trace("validator.WriteControlFile()")
+	log.Trace().Msg("validator.WriteControlFile()")
 	if err := validator.checkControlFilePerm(); err != nil {
 		return
 	}
@@ -142,7 +144,7 @@ func (validator *OktaOpenVPNValidator) WriteControlFile() {
 		valToWrite = []byte("1")
 	}
 	if err := os.WriteFile(validator.controlFile, valToWrite, 0600); err != nil {
-		log.Errorf("Failed to write to OpenVPN control file \"%s\": %s",
+		log.Error().Msgf("Failed to write to OpenVPN control file \"%s\": %s",
 			validator.controlFile,
 			err)
 	}

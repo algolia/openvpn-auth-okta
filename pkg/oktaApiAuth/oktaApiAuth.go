@@ -14,7 +14,7 @@ import (
 	"errors"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/phuslu/log"
 )
 
 // Returns an initialized oktaApiAuth
@@ -49,10 +49,10 @@ func New() *OktaApiAuth {
 // Iterates on the factor list provided and tries to authenticate the user
 // exit with no error at the first successfull factor auth
 func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, factorType string) (err error) {
-	log.Tracef("oktaApiAuth.verifyFactors() %s", factorType)
+	log.Trace().Msgf("oktaApiAuth.verifyFactors() %s", factorType)
 	nbFactors := len(factors)
 	for count, factor := range factors {
-		log.Debugf("verifying %s factor nb %d", factorType, count)
+		log.Debug().Msgf("verifying %s factor nb %d", factorType, count)
 		authRes, err := auth.doAuthFirstStep(factor, count, nbFactors, stateToken, factorType)
 		if err != nil {
 			if err.Error() != "continue" {
@@ -60,7 +60,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 			}
 			continue
 		}
-		log.Debugf("%s %s MFA, Result: %s", factor.Provider, factorType, authRes.Result)
+		log.Debug().Msgf("%s %s MFA, Result: %s", factor.Provider, factorType, authRes.Result)
 
 		if factorType == "Push" {
 			if authRes.Result != "WAITING" {
@@ -76,28 +76,28 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				}
 				continue
 			}
-			log.Debugf("%s Push MFA, waitForPush Result: %s", factor.Provider, authRes.Result)
+			log.Debug().Msgf("%s Push MFA, waitForPush Result: %s", factor.Provider, authRes.Result)
 		}
 
 		if authRes.Status == "SUCCESS" {
-			log.Infof("authenticated with %s %s MFA", factor.Provider, factorType)
+			log.Info().Msgf("authenticated with %s %s MFA", factor.Provider, factorType)
 			return nil
 		}
 
 		if count == nbFactors-1 {
-			log.Errorf("%s %s MFA authentication failed: %s",
+			log.Error().Msgf("%s %s MFA authentication failed: %s",
 				factor.Provider,
 				factorType,
 				authRes.Result)
 			return fmt.Errorf("%s MFA failed", factorType)
 		}
-		log.Warningf("%s %s MFA authentication failed: %s",
+		log.Warn().Msgf("%s %s MFA authentication failed: %s",
 			factor.Provider,
 			factorType,
 			authRes.Result)
 	}
 	// Reached only when the list of factors provided is empty
-	log.Debugf("No %s MFA available", factorType)
+	log.Debug().Msgf("No %s MFA available", factorType)
 	return fmt.Errorf("No %s MFA available", factorType)
 }
 
@@ -105,7 +105,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 // if the user provided a TOTP in its passwordd string, try TOTP MFA
 // otherwise try Push MFA
 func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error) {
-	log.Trace("oktaApiAuth.validateUserMFA()")
+	log.Trace().Msg("oktaApiAuth.validateUserMFA()")
 
 	factorsTOTP, factorsPush := auth.getUserFactors(preAuthRes)
 
@@ -136,7 +136,7 @@ PUSH:
 	return nil
 
 ERR:
-	log.Errorf("No MFA factor available")
+	log.Error().Msgf("No MFA factor available")
 	auth.cancelAuth(preAuthRes.Token)
 	return errors.New("No MFA factor available")
 }
@@ -144,8 +144,8 @@ ERR:
 // Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
 // returns nil if has been validated by Okta API, an error otherwise
 func (auth *OktaApiAuth) Auth() error {
-	log.Trace("oktaApiAuth.Auth()")
-	log.Infof("Authenticating")
+	log.Trace().Msg("oktaApiAuth.Auth()")
+	log.Info().Msgf("Authenticating")
 	preAuthRes, err := auth.preChecks()
 	if err != nil {
 		return err
@@ -154,35 +154,35 @@ func (auth *OktaApiAuth) Auth() error {
 	switch preAuthRes.Status {
 	case "SUCCESS":
 		if auth.ApiConfig.MFARequired {
-			log.Warningf("allowed without MFA but MFA is required - rejected")
+			log.Warn().Msgf("allowed without MFA but MFA is required - rejected")
 			return errors.New("MFA required")
 		}
 		return nil
 
 	case "LOCKED_OUT":
-		log.Warningf("is locked out")
+		log.Warn().Msgf("is locked out")
 		return errors.New("User locked out")
 
 	case "PASSWORD_EXPIRED":
-		log.Warningf("password is expired")
+		log.Warn().Msgf("password is expired")
 		if preAuthRes.Token != "" {
 			auth.cancelAuth(preAuthRes.Token)
 		}
 		return errors.New("User password expired")
 
 	case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
-		log.Warningf("needs to enroll first")
+		log.Warn().Msgf("needs to enroll first")
 		if preAuthRes.Token != "" {
 			auth.cancelAuth(preAuthRes.Token)
 		}
 		return errors.New("Needs to enroll")
 
 	case "MFA_REQUIRED", "MFA_CHALLENGE":
-		log.Debugf("checking second factor")
+		log.Debug().Msgf("checking second factor")
 		return auth.validateUserMFA(preAuthRes)
 
 	default:
-		log.Errorf("unknown preauth status: %s", preAuthRes.Status)
+		log.Error().Msgf("unknown preauth status: %s", preAuthRes.Status)
 		if preAuthRes.Token != "" {
 			auth.cancelAuth(preAuthRes.Token)
 		}

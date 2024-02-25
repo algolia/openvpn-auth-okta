@@ -19,12 +19,12 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	log "github.com/sirupsen/logrus"
+	"github.com/phuslu/log"
 )
 
 // Checks that the user belongs to the allowed groups list provided in the conf
 func (auth *OktaApiAuth) checkAllowedGroups() error {
-	log.Trace("oktaApiAuth.checkAllowedGroups()")
+	log.Trace().Msg("oktaApiAuth.checkAllowedGroups()")
 	// https://developer.okta.com/docs/reference/api/users/#request-parameters-8
 	if auth.ApiConfig.AllowedGroups != "" {
 		validate := validator.New(validator.WithRequiredStructEnabled())
@@ -36,7 +36,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 			var authResErr ErrorResponse
 			if err = json.Unmarshal(apiRes, &authResErr); err == nil {
 				if err = validate.Struct(authResErr); err == nil {
-					log.Errorf("error fetching user's group list: %s", authResErr.Summary)
+					log.Error().Msgf("error fetching user's group list: %s", authResErr.Summary)
 				}
 			}
 			return errors.New("invalid HTTP status code")
@@ -44,13 +44,13 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 
 		var groupRes []OktaGroup
 		if err = json.Unmarshal(apiRes, &groupRes); err != nil {
-			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
 			return err
 		}
 
 		var groups = OktaGroups{Groups: groupRes}
 		if err = validate.Struct(groups); err != nil {
-			log.Errorf("Error unmarshaling Okta API response: %s", err)
+			log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
 			return errors.New("invalid group list return by API")
 		}
 
@@ -58,7 +58,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 		for _, uGroup := range groupRes {
 			gName := uGroup.Profile.Name
 			if slices.Contains(aGroups, gName) {
-				log.Debugf("is a member of AllowedGroup %s", gName)
+				log.Debug().Msgf("is a member of AllowedGroup %s", gName)
 				return nil
 			}
 		}
@@ -70,7 +70,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 // Parse the pre authentication api response and create 2 factor lists:
 // one for the TOTP factors and one for the Push factors
 func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP []AuthFactor, factorsPush []AuthFactor) {
-	log.Trace("oktaApiAuth.getUserFactors()")
+	log.Trace().Msg("oktaApiAuth.getUserFactors()")
 	for _, f := range preAuthRes.Embedded.Factors {
 		if f.Type == "token:software:totp" {
 			if auth.UserConfig.Passcode != "" {
@@ -79,36 +79,36 @@ func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP
 		} else if f.Type == "push" {
 			factorsPush = append(factorsPush, f)
 		} else {
-			log.Debugf("unsupported factortype: %s, skipping", f.Type)
+			log.Debug().Msgf("unsupported factortype: %s, skipping", f.Type)
 		}
 	}
 	return
 }
 
 func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
-	log.Trace("oktaApiAuth.preChecks()")
+	log.Trace().Msg("oktaApiAuth.preChecks()")
 	if err := auth.checkAllowedGroups(); err != nil {
-		log.Errorf("allowed group verification error: %s", err)
+		log.Error().Msgf("allowed group verification error: %s", err)
 		return PreAuthResponse{}, err
 	}
 
 	code, apiRes, err := auth.preAuth()
 	if err != nil {
-		log.Errorf("Error connecting to the Okta API: %s", err)
+		log.Error().Msgf("Error connecting to the Okta API: %s", err)
 		return PreAuthResponse{}, err
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	if code != 200 && code != 202 {
 		if code == 429 {
-			log.Warning("pre-authentication failed: rate limited")
+			log.Warn().Msg("pre-authentication failed: rate limited")
 			return PreAuthResponse{}, errors.New("pre-authentication rate limited")
 		}
 
 		var preAuthResErr ErrorResponse
 		if err = json.Unmarshal(apiRes, &preAuthResErr); err == nil {
 			if err = validate.Struct(preAuthResErr); err == nil {
-				log.Warningf("pre-authentication failed: %s", preAuthResErr.Summary)
+				log.Warn().Msgf("pre-authentication failed: %s", preAuthResErr.Summary)
 				return PreAuthResponse{}, errors.New("pre-authentication failed")
 			}
 		}
@@ -116,12 +116,12 @@ func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
 
 	var preAuthRes PreAuthResponse
 	if err = json.Unmarshal(apiRes, &preAuthRes); err != nil {
-		log.Errorf("Error unmarshaling Okta API response: %s", err)
+		log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
 		return PreAuthResponse{}, err
 	}
 
 	if err = validate.Struct(preAuthRes); err != nil {
-		log.Errorf("Error unmarshaling Okta API response: %s", err)
+		log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
 		return PreAuthResponse{}, err
 	}
 

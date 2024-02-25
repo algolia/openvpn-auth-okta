@@ -16,7 +16,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/phuslu/log"
 )
 
 // PluginEnv represents the information passed to the validator when it's running as
@@ -42,15 +42,15 @@ type PluginEnv struct {
 
 // Get user credentials from the OpenVPN via-file
 func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
-	log.Trace("validator.loadViaFile()")
+	log.Trace().Msg("validator.loadViaFile()")
 	if _, err := os.Stat(path); err != nil {
-		log.Errorf("OpenVPN via-file \"%s\" does not exists", path)
+		log.Error().Msgf("OpenVPN via-file \"%s\" does not exists", path)
 		return err
 	}
 
 	viaFileBuf, err := os.ReadFile(path)
 	if err != nil {
-		log.Errorf("Can not read OpenVPN via-file \"%s\": %s",
+		log.Error().Msgf("Can not read OpenVPN via-file \"%s\": %s",
 			path,
 			err)
 		return err
@@ -59,14 +59,14 @@ func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
 	viaFileInfos := strings.Split(string(viaFileBuf), "\n")
 	viaFileInfos = removeEmptyStrings(viaFileInfos)
 	if len(viaFileInfos) < 2 {
-		log.Errorf("Invalid OpenVPN via-file \"%s\" content", path)
+		log.Error().Msgf("Invalid OpenVPN via-file \"%s\" content", path)
 		return errors.New("Invalid via-file")
 	}
 	username := viaFileInfos[0]
 	password := viaFileInfos[1]
 
 	if !checkUsernameFormat(username) {
-		log.Error("Username or CN invalid format")
+		log.Error().Msg("Username or CN invalid format")
 		return errors.New("Invalid CN or username format")
 	}
 
@@ -83,7 +83,7 @@ func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
 
 // Get user credentials and info from the environment set by OpenVPN
 func (validator *OktaOpenVPNValidator) loadEnvVars(pluginEnv *PluginEnv) error {
-	log.Trace("validator.loadEnvVars()")
+	log.Trace().Msg("validator.loadEnvVars()")
 	if pluginEnv == nil {
 		pluginEnv = &PluginEnv{
 			Username:   os.Getenv("username"),
@@ -97,7 +97,7 @@ func (validator *OktaOpenVPNValidator) loadEnvVars(pluginEnv *PluginEnv) error {
 	validator.controlFile = pluginEnv.ControlFile
 
 	if validator.controlFile == "" {
-		log.Warning("No control file found, if using a deferred plugin auth will stall and fail.")
+		log.Warn().Msg("No control file found, if using a deferred plugin auth will stall and fail.")
 	}
 	// if the username comes from a certificate and AllowUntrustedUsers is false:
 	// user is trusted
@@ -110,17 +110,17 @@ func (validator *OktaOpenVPNValidator) loadEnvVars(pluginEnv *PluginEnv) error {
 
 	// if username is empty, there is an issue somewhere
 	if pluginEnv.Username == "" {
-		log.Error("No username or CN provided")
+		log.Error().Msg("No username or CN provided")
 		return errors.New("No CN or username")
 	}
 
 	if pluginEnv.Password == "" {
-		log.Error("No password provided")
+		log.Error().Msg("No password provided")
 		return errors.New("No password")
 	}
 
 	if !checkUsernameFormat(pluginEnv.Username) {
-		log.Error("Username or CN invalid format")
+		log.Error().Msg("Username or CN invalid format")
 		return errors.New("Invalid CN or username format")
 	}
 
