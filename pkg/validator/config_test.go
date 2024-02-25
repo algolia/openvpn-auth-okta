@@ -31,7 +31,7 @@ type testCfgFile struct {
 func TestParsePassword(t *testing.T) {
 	t.Run("Parse password with passcode", func(t *testing.T) {
 		setEnv(setupEnv)
-		v := NewOktaOpenVPNValidator()
+		v := New()
 		_ = v.loadEnvVars(nil)
 		v.api.UserConfig.Password = "password123456"
 		unsetEnv(setupEnv)
@@ -83,7 +83,7 @@ func TestReadConfigFile(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			v := NewOktaOpenVPNValidator()
+			v := New()
 			v.configFile = test.path
 			if test.path == "" {
 				_ = os.Symlink(test.link, "api.ini")
@@ -131,7 +131,7 @@ func TestLoadPinset(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			v := NewOktaOpenVPNValidator()
+			v := New()
 			v.api = oktaApiAuth.NewOktaApiAuth()
 			v.pinsetFile = test.path
 			if test.path == "" {

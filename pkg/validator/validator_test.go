@@ -142,7 +142,7 @@ func TestAuthenticate(t *testing.T) {
 			}
 
 			setEnv(setupEnv)
-			v := NewOktaOpenVPNValidator()
+			v := New()
 			v.configFile = test.cfgFile
 			v.pinsetFile = test.pinsetFile
 			err := v.Setup(true, nil, nil)
@@ -290,7 +290,7 @@ func TestSetup(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			setEnv(test.env)
-			v := NewOktaOpenVPNValidatorWithLog("INFO")
+			v := New("INFO")
 			v.configFile = test.cfgFile
 			v.pinsetFile = test.pinsetFile
 			ret := v.Setup(test.deferred, test.args, nil)
@@ -329,7 +329,7 @@ func TestWriteControlFile(t *testing.T) {
 		}
 		_ = os.Chmod(controlFile, mode)
 		t.Run(test.testName, func(t *testing.T) {
-			v := NewOktaOpenVPNValidator()
+			v := New()
 			v.controlFile = controlFile
 			v.isUserValid = test.userValid
 			v.WriteControlFile()

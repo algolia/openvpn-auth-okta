@@ -103,7 +103,7 @@ func TestCheckControlFilePerm(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
-			v := NewOktaOpenVPNValidator()
+			v := New()
 			if test.path != "" {
 				v.controlFile = test.path
 				_, _ = os.Create(test.path)

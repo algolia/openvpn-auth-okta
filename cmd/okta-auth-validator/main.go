@@ -30,7 +30,7 @@ func main() {
 		logLevel = "TRACE"
 	}
 
-	oktaValidator := validator.NewOktaOpenVPNValidatorWithLog(logLevel)
+	oktaValidator := validator.New(logLevel)
 	if res := oktaValidator.Setup(*deferred, args, nil); !res {
 		if *deferred {
 			os.Exit(0)
