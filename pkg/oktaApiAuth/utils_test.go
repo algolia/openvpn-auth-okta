@@ -167,7 +167,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 					File(reqponseFile)
 			}
 
-			a := NewOktaApiAuth()
+			a := New()
 			assert.NotNil(t, a)
 			a.ApiConfig = apiCfg
 			a.UserConfig = userCfg

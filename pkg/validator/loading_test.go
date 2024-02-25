@@ -94,7 +94,7 @@ func TestLoadViaFile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			v := New()
-			v.api = oktaApiAuth.NewOktaApiAuth()
+			v.api = oktaApiAuth.New()
 			v.api.ApiConfig.UsernameSuffix = test.usernameSuffix
 			err := v.loadViaFile(test.path)
 			if test.err == nil {

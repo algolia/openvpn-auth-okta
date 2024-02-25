@@ -17,7 +17,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func NewOktaApiAuth() *OktaApiAuth {
+// Returns an initialized oktaApiAuth
+func New() *OktaApiAuth {
 	/*
 		utsname := unix.Utsname{}
 		_ = unix.Uname(&utsname)

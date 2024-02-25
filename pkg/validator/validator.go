@@ -35,7 +35,7 @@ type OktaOpenVPNValidator struct {
 // if no args is provided LogLevel will be INFO
 // if a arg is provided and in ["TRACE","DEBUG","INFO","WARN","WARNING","ERROR"] use it as LogLevel
 func New(args ...string) *OktaOpenVPNValidator {
-	api := oktaApiAuth.NewOktaApiAuth()
+	api := oktaApiAuth.New()
 	defaultLevel := "INFO"
 	if len(args) > 0 {
 		if slices.Contains([]string{"TRACE","DEBUG","INFO","WARN","WARNING","ERROR"}, args[0]) {
