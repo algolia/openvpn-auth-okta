@@ -22,7 +22,6 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 
-
 	if *debug {
 		logLevel = "DEBUG"
 	}
