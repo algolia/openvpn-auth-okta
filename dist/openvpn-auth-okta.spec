@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.8.0
+Version: 2.8.1
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,12 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Mon Feb 26 2024 Jeremy Jacque <jeremy.jacque@algolia.com> 2.8.1-1
+- chore(deps): bump github.com/google/uuid from 1.5.0 to 1.6.0
+- chore(deps): bump github.com/go-playground/validator/v10
+- chore(ci): check go fmt
+- fix(cmd): gofmt
+
 * Sun Feb 25 2024 Jeremy Jacque <jeremy.jacque@algolia.com> 2.8.0-1
 - chore(deps): bump golang.org/x/crypto from 0.7.0 to 0.17.0
 - chore(deps): bump golang.org/x/net from 0.8.0 to 0.17.0
