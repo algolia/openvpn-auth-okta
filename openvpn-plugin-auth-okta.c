@@ -196,14 +196,9 @@ deferred_auth_handler(const char *argv[], const char *envp[])
    */
 
   /* do mighty complicated work that will really take time here... */
-  const char *ctrF = get_env("auth_control_file", envp);
-  const char *ip = get_env("untrusted_ip", envp);
-  const char *cn = get_env("common_name", envp);
-  const char *user = get_env("username", envp);
-  const char *pass = get_env("password", envp);
-
   void *handle;
   char *error;
+
   // Load the Golang c-shared lib
   // dlopen is needed here, otherwise Go runtime wont respect alredy set signal handlers
   handle = dlopen ("libokta-auth-validator.so", RTLD_LAZY);
@@ -214,16 +209,24 @@ deferred_auth_handler(const char *argv[], const char *envp[])
   // Clear any existing error
   dlerror();
 
-  void (*OktaAuthValidator)(char*, char*, char*, char*, char*) = dlsym(handle, "OktaAuthValidator");
+  void (*OktaAuthValidator_V2)(ArgsOktaAuthValidatorV2*) = dlsym(handle, "OktaAuthValidatorV2");
   if ((error = dlerror()) != NULL)
   {
     plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error loading OktaAuthValidator symbol from lib: %s", error);
     exit(127);
   }
 
-  // Call the Golang c-shared lib function
-  (*OktaAuthValidator)((char*)ctrF, (char*)ip, (char*)cn, (char*)user, (char*)pass);
+  ArgsOktaAuthValidatorV2* go_args = (ArgsOktaAuthValidatorV2 *) calloc(1, sizeof(ArgsOktaAuthValidatorV2));
+  go_args->CtrFile = get_env("auth_control_file", envp);
+  go_args->IP = get_env("untrusted_ip", envp);
+  go_args->CN = get_env("common_name", envp);
+  go_args->User = get_env("username", envp);
+  go_args->Pass = get_env("password", envp);
+
+   // Call the Golang c-shared lib function
+  (*OktaAuthValidator_V2)(go_args);
   dlclose(handle);
+  free(go_args);
   exit(0);
 }
 

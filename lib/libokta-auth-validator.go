@@ -10,13 +10,41 @@
 
 package main
 
-import "C"
 
 import (
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
 )
 
+/*
+typedef struct {
+	const char *CtrFile;
+	const char *IP;
+	const char *CN;
+	const char *User;
+	const char *Pass;
+} ArgsOktaAuthValidatorV2;
+*/
+import "C"
+
 type PluginEnv = validator.PluginEnv
+
+//export OktaAuthValidatorV2
+func OktaAuthValidatorV2(args *C.ArgsOktaAuthValidatorV2) {
+	pluginEnv := &PluginEnv{
+		Username:    C.GoString(args.User),
+		CommonName:  C.GoString(args.CN),
+		Password:    C.GoString(args.Pass),
+		ClientIp:    C.GoString(args.IP),
+		ControlFile: C.GoString(args.CtrFile),
+	}
+
+	v := validator.New()
+	if res := v.Setup(true, nil, pluginEnv); !res {
+		return
+	}
+	_ = v.Authenticate()
+	v.WriteControlFile()
+}
 
 //export OktaAuthValidator
 func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
