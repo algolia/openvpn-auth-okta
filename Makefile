@@ -7,7 +7,8 @@ UNAME_S := $(shell uname -s)
 
 INSTALL := install
 CC := gcc
-CFLAGS := -fPIC -I. -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+INC := -I. -I./build
+CFLAGS := -fPIC $(INC) -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong
 LDFLAGS := -shared -fPIC
 
 DESTDIR :=
@@ -87,7 +88,7 @@ $(BUILDDIR)/cover-badge.out: $(BUILDDIR)/cover.out
 # https://github.com/golangci/golangci-lint#install-golangci-lint
 lint:
 	golangci-lint run
-	cppcheck --enable=all *.c
+	cppcheck $(INC) --enable=all --disable=missingInclude --check-level=exhaustive *.c
 
 install: all
 	mkdir -p $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)

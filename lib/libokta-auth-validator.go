@@ -10,7 +10,6 @@
 
 package main
 
-
 import (
 	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
 )
