@@ -16,6 +16,39 @@ import (
 )
 
 /*
+
+#include <stdlib.h>
+#include <string.h>
+
+// Given an environmental variable name, search
+// the envp array for its value, returning it
+// if found or NULL otherwise.
+// From https://github.com/OpenVPN/openvpn/blob/master/sample/sample-plugins/log/log_v3.c
+static const char *
+get_env(const char *name, const char *envp[])
+{
+  if (envp)
+  {
+    int i;
+    const int namelen = strlen(name);
+    for (i = 0; envp[i]; ++i)
+    {
+      if (!strncmp(envp[i], name, namelen))
+      {
+        const char *cp = envp[i] + namelen;
+        if (*cp == '=')
+        {
+          return cp + 1;
+        }
+      }
+    }
+  }
+  // Return an empty string here (as expected by the Golang c-shared lib)
+  return "";
+}
+
+// Used to pass arguments to OktaAuthValidatorV2()
+// None of this should be null, an empty string is at least expected
 typedef struct {
 	const char *CtrFile;
 	const char *IP;
@@ -23,6 +56,24 @@ typedef struct {
 	const char *User;
 	const char *Pass;
 } ArgsOktaAuthValidatorV2;
+
+// Extract from envp all what's needed to populate a struct suitable
+// for OktaAuthValidatorV2
+static ArgsOktaAuthValidatorV2 *
+compute_go_args_v2(const char *envp[])
+{
+  ArgsOktaAuthValidatorV2* go_args = (ArgsOktaAuthValidatorV2 *) calloc(1, sizeof(ArgsOktaAuthValidatorV2));
+  if(go_args)
+  {
+    go_args->CtrFile = get_env("auth_control_file", envp);
+    go_args->IP = get_env("untrusted_ip", envp);
+    go_args->CN = get_env("common_name", envp);
+    go_args->User = get_env("username", envp);
+    go_args->Pass = get_env("password", envp);
+  }
+  return go_args;
+}
+
 */
 import "C"
 
@@ -46,9 +97,11 @@ func OktaAuthValidatorV2(args *C.ArgsOktaAuthValidatorV2) {
 	v.WriteControlFile()
 }
 
+/*
+ * Deprecated: replaced by OktaAuthValidatorV2
+ */
 //export OktaAuthValidator
 func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
-	// TODO: find an elegant way to pass a const char** from C plugin
 	pluginEnv := &PluginEnv{
 		Username:    C.GoString(user),
 		CommonName:  C.GoString(cn),

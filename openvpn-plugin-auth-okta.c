@@ -31,8 +31,8 @@
 #include <signal.h>
 #include <dlfcn.h>
 
-#include "openvpn-plugin.h"
-#include "build/libokta-auth-validator.h"
+#include <openvpn-plugin.h>
+#include <libokta-auth-validator.h>
 
 /* Pointers to functions exported from openvpn */
 static plugin_log_t plugin_log = NULL;
@@ -59,35 +59,6 @@ struct plugin_context {};
 
 /* module name for plugin_log() */
 static char *MODULE = "openvpn-plugin-auth-okta";
-
-/*
- * Given an environmental variable name, search
- * the envp array for its value, returning it
- * if found or NULL otherwise.
- * From https://github.com/OpenVPN/openvpn/blob/master/sample/sample-plugins/log/log_v3.c
- */
-static const char *
-get_env(const char *name, const char *envp[])
-{
-  if (envp)
-  {
-    int i;
-    const int namelen = strlen(name);
-    for (i = 0; envp[i]; ++i)
-    {
-      if (!strncmp(envp[i], name, namelen))
-      {
-        const char *cp = envp[i] + namelen;
-        if (*cp == '=')
-        {
-          return cp + 1;
-        }
-      }
-    }
-  }
-  // Return an empty string here (as expected by the Golang c-shared lib
-  return "";
-}
 
 void handle_sigchld(int sig)
 {
@@ -212,16 +183,18 @@ deferred_auth_handler(const char *argv[], const char *envp[])
   void (*OktaAuthValidator_V2)(ArgsOktaAuthValidatorV2*) = dlsym(handle, "OktaAuthValidatorV2");
   if ((error = dlerror()) != NULL)
   {
-    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error loading OktaAuthValidator symbol from lib: %s", error);
+    dlclose(handle);
+    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error loading OktaAuthValidatorV2 symbol from lib: %s", error);
     exit(127);
   }
 
-  ArgsOktaAuthValidatorV2* go_args = (ArgsOktaAuthValidatorV2 *) calloc(1, sizeof(ArgsOktaAuthValidatorV2));
-  go_args->CtrFile = get_env("auth_control_file", envp);
-  go_args->IP = get_env("untrusted_ip", envp);
-  go_args->CN = get_env("common_name", envp);
-  go_args->User = get_env("username", envp);
-  go_args->Pass = get_env("password", envp);
+  ArgsOktaAuthValidatorV2* go_args = compute_go_args_v2(envp);
+  if(!go_args)
+  {
+    dlclose(handle);
+    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error allocating ArgsOktaAuthValidatorV2");
+    exit(127);
+  }
 
    // Call the Golang c-shared lib function
   (*OktaAuthValidator_V2)(go_args);
