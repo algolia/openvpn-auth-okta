@@ -3,7 +3,7 @@ module gopkg.in/algolia/openvpn-auth-okta.v2
 go 1.21
 
 require (
-	github.com/go-playground/validator/v10 v10.18.0
+	github.com/go-playground/validator/v10 v10.19.0
 	github.com/google/uuid v1.6.0
 	github.com/phuslu/log v1.0.88
 	gopkg.in/h2non/gock.v1 v1.1.2
