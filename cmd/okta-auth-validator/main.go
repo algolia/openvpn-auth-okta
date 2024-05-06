@@ -1,3 +1,6 @@
+/*
+CLI tool to test/request Okta MFA validation
+*/
 package main
 
 import (
