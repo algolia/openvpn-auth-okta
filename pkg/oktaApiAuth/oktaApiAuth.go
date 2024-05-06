@@ -47,7 +47,7 @@ func New() *OktaApiAuth {
 }
 
 // Iterates on the factor list provided and tries to authenticate the user
-// exit with no error at the first successfull factor auth
+// exit with no error at the first successful factor auth
 func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, factorType string) (err error) {
 	log.Trace().Msgf("oktaApiAuth.verifyFactors() %s", factorType)
 	nbFactors := len(factors)
