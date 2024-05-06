@@ -8,17 +8,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-
 /*
 This lib is meant to be used along with OpenVPN:
 it's purpose is to be dynamically loaded (using dlopen/dlsyms/...)
 by a C "plugin wrapper".
 The following C functions are exported (and interesting):
- - ArgsOktaAuthValidatorV2 * oav_args_from_env_v2(const char *envp[])
-   that creates an plugin argument dedicated struct from the OPENVPN_PLUGIN env
- - extern void OktaAuthValidatorV2(ArgsOktaAuthValidatorV2* args)
-   that run the Go OktaAuthValidator authentication (using the previously created struct)
-
+  - ArgsOktaAuthValidatorV2 * oav_args_from_env_v2(const char *envp[])
+    that creates an plugin argument dedicated struct from the OPENVPN_PLUGIN env
+  - extern void OktaAuthValidatorV2(ArgsOktaAuthValidatorV2* args)
+    that run the Go OktaAuthValidator authentication (using the previously created struct)
 */
 package main
 
@@ -110,8 +108,9 @@ func OktaAuthValidatorV2(args *C.ArgsOktaAuthValidatorV2) {
 	v.WriteControlFile()
 }
 
-//export OktaAuthValidator
 // Deprecated: replaced by OktaAuthValidatorV2
+//
+//export OktaAuthValidator
 func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
 	pluginEnv := &PluginEnv{
 		Username:    C.GoString(user),
