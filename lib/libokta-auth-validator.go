@@ -8,6 +8,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+
+/*
+This lib is meant to be used along with OpenVPN:
+it's purpose is to be dynamically loaded (using dlopen/dlsyms/...)
+by a C "plugin wrapper".
+The following C functions are exported (and interesting):
+ - ArgsOktaAuthValidatorV2 * oav_args_from_env_v2(const char *envp[])
+   that creates an plugin argument dedicated struct from the OPENVPN_PLUGIN env
+ - extern void OktaAuthValidatorV2(ArgsOktaAuthValidatorV2* args)
+   that run the Go OktaAuthValidator authentication (using the previously created struct)
+
+*/
 package main
 
 import (
@@ -15,7 +27,8 @@ import (
 )
 
 /*
-
+#ifndef _OKTA_AUTH_VALIDATOR_
+#define _OKTA_AUTH_VALIDATOR_
 #include <stdlib.h>
 #include <string.h>
 
@@ -58,8 +71,9 @@ typedef struct {
 
 // Extract from envp all what's needed to populate a struct suitable
 // for OktaAuthValidatorV2
+// The returned object has to be freed
 static ArgsOktaAuthValidatorV2 *
-compute_go_args_v2(const char *envp[])
+oav_args_from_env_v2(const char *envp[])
 {
   ArgsOktaAuthValidatorV2* go_args = (ArgsOktaAuthValidatorV2 *) calloc(1, sizeof(ArgsOktaAuthValidatorV2));
   if(go_args)
@@ -72,7 +86,7 @@ compute_go_args_v2(const char *envp[])
   }
   return go_args;
 }
-
+#endif
 */
 import "C"
 
@@ -96,10 +110,8 @@ func OktaAuthValidatorV2(args *C.ArgsOktaAuthValidatorV2) {
 	v.WriteControlFile()
 }
 
-/*
- * Deprecated: replaced by OktaAuthValidatorV2
- */
 //export OktaAuthValidator
+// Deprecated: replaced by OktaAuthValidatorV2
 func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
 	pluginEnv := &PluginEnv{
 		Username:    C.GoString(user),

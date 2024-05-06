@@ -188,7 +188,7 @@ deferred_auth_handler(const char *argv[], const char *envp[])
     exit(127);
   }
 
-  ArgsOktaAuthValidatorV2* go_args = compute_go_args_v2(envp);
+  ArgsOktaAuthValidatorV2* go_args = oav_args_from_env_v2(envp);
   if(!go_args)
   {
     dlclose(handle);
