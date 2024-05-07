@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.8.1
+Version: 2.8.2
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,28 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Tue May 07 2024 Jeremy Jacque <jeremy.jacque@algolia.com> 2.8.2-1
+- chore(deps): bump github.com/stretchr/testify from 1.8.4 to 1.9.0
+- chore(deps): bump github.com/go-playground/validator/v10
+- chore(deps): bump github.com/phuslu/log from 1.0.88 to 1.0.89
+- chore(deps): bump github.com/phuslu/log from 1.0.89 to 1.0.90
+- chore(deps): bump golang.org/x/net from 0.21.0 to 0.23.0
+- chore(deps): bump github.com/phuslu/log from 1.0.90 to 1.0.91
+- chore(deps): bump github.com/go-playground/validator/v10
+- chore(deps): bump github.com/phuslu/log from 1.0.91 to 1.0.92
+- chore(deps): bump github.com/phuslu/log from 1.0.92 to 1.0.93
+- chore(deps): bump github.com/phuslu/log from 1.0.93 to 1.0.96
+- chore(deps): bump github.com/phuslu/log from 1.0.96 to 1.0.97
+- feat(lib): allow to use a struct for PluginEnv
+- feat(lib): provide a way to compute lib args from plugin envp, args passed as a struct
+- fix(Makefile): use proper inc dirs for gcc and cppcheck
+- feat(lib): rename the C function computing args
+- doc: add some comments
+- fix(lib): gotfmt
+- chore(lib): let the user allocate and free himself the ArgsOktaAuthValidatorV2 struct
+- refacto(plugin): mutualize error code during lib related calls
+- chore(cmd): add missing license header
+
 * Mon Feb 26 2024 Jeremy Jacque <jeremy.jacque@algolia.com> 2.8.1-1
 - chore(deps): bump github.com/google/uuid from 1.5.0 to 1.6.0
 - chore(deps): bump github.com/go-playground/validator/v10
