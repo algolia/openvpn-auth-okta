@@ -9,7 +9,7 @@ Source0: %{name}-%{version}.tar.xz
 Source1: vendor.tar.gz
 Source99: %{name}.rpmlintrc
 
-BuildRequires: golang-1.21
+BuildRequires: golang-1.22
 BuildRequires: gcc
 BuildRequires: make
 Requires: libokta-auth-validator = %{version}
