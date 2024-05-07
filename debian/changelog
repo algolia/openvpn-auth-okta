@@ -1,3 +1,31 @@
+openvpn-auth-okta (2.8.2) stable; urgency=medium
+
+  [ dependabot[bot] ]
+  * chore(deps): bump github.com/stretchr/testify from 1.8.4 to 1.9.0
+  * chore(deps): bump github.com/go-playground/validator/v10
+  * chore(deps): bump github.com/phuslu/log from 1.0.88 to 1.0.89
+  * chore(deps): bump github.com/phuslu/log from 1.0.89 to 1.0.90
+  * chore(deps): bump golang.org/x/net from 0.21.0 to 0.23.0
+  * chore(deps): bump github.com/phuslu/log from 1.0.90 to 1.0.91
+  * chore(deps): bump github.com/go-playground/validator/v10
+  * chore(deps): bump github.com/phuslu/log from 1.0.91 to 1.0.92
+  * chore(deps): bump github.com/phuslu/log from 1.0.92 to 1.0.93
+  * chore(deps): bump github.com/phuslu/log from 1.0.93 to 1.0.96
+  * chore(deps): bump github.com/phuslu/log from 1.0.96 to 1.0.97
+
+  [ Jeremy JACQUE ]
+  * feat(lib): allow to use a struct for PluginEnv
+  * feat(lib): provide a way to compute lib args from plugin envp, args passed as a struct
+  * fix(Makefile): use proper inc dirs for gcc and cppcheck
+  * feat(lib): rename the C function computing args
+  * doc: add some comments
+  * fix(lib): gotfmt
+  * chore(lib): let the user allocate and free himself the ArgsOktaAuthValidatorV2 struct
+  * refacto(plugin): mutualize error code during lib related calls
+  * chore(cmd): add missing license header
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Tue, 07 May 2024 12:47:00 +0000
+
 openvpn-auth-okta (2.8.1) stable; urgency=medium
 
   [ dependabot[bot] ]
