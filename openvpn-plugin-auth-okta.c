@@ -188,11 +188,19 @@ deferred_auth_handler(const char *argv[], const char *envp[])
     exit(127);
   }
 
-  ArgsOktaAuthValidatorV2* go_args = oav_args_from_env_v2(envp);
+  ArgsOktaAuthValidatorV2* go_args = (ArgsOktaAuthValidatorV2 *) calloc(1, sizeof(ArgsOktaAuthValidatorV2));
   if(!go_args)
   {
     dlclose(handle);
     plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error allocating ArgsOktaAuthValidatorV2");
+    exit(127);
+  }
+
+  if (!oav_args_from_env_v2(envp, go_args))
+  {
+    dlclose(handle);
+    free(go_args);
+    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error parsing plugin env with oav_args_from_env_v2");
     exit(127);
   }
 

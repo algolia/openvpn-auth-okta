@@ -27,12 +27,13 @@ import (
 /*
 #ifndef _OKTA_AUTH_VALIDATOR_
 #define _OKTA_AUTH_VALIDATOR_
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
 // Given an environmental variable name, search
 // the envp array for its value, returning it
-// if found or NULL otherwise.
+// if found or an empty string otherwise.
 // From https://github.com/OpenVPN/openvpn/blob/master/sample/sample-plugins/log/log_v3.c
 static const char *
 get_env(const char *name, const char *envp[])
@@ -69,11 +70,10 @@ typedef struct {
 
 // Extract from envp all what's needed to populate a struct suitable
 // for OktaAuthValidatorV2
-// The returned object has to be freed
-static ArgsOktaAuthValidatorV2 *
-oav_args_from_env_v2(const char *envp[])
+// The go_args pointer has to be allocated
+static bool
+oav_args_from_env_v2(const char *envp[], ArgsOktaAuthValidatorV2 *go_args)
 {
-  ArgsOktaAuthValidatorV2* go_args = (ArgsOktaAuthValidatorV2 *) calloc(1, sizeof(ArgsOktaAuthValidatorV2));
   if(go_args)
   {
     go_args->CtrFile = get_env("auth_control_file", envp);
@@ -81,8 +81,9 @@ oav_args_from_env_v2(const char *envp[])
     go_args->CN = get_env("common_name", envp);
     go_args->User = get_env("username", envp);
     go_args->Pass = get_env("password", envp);
+    return true;
   }
-  return go_args;
+  return false;
 }
 #endif
 */
