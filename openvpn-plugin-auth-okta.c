@@ -169,45 +169,60 @@ deferred_auth_handler(const char *argv[], const char *envp[])
   /* do mighty complicated work that will really take time here... */
   void *handle;
   char *error;
+  char *err_msg = NULL;
 
   // Load the Golang c-shared lib
   // dlopen is needed here, otherwise Go runtime wont respect alredy set signal handlers
   handle = dlopen ("libokta-auth-validator.so", RTLD_LAZY);
   if (!handle) {
-    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Can not load libopenvpn-auth-okta.so");
-    exit(127);
+    err_msg =  "Can not load libopenvpn-auth-okta.so";
+    goto clean_exit;
   }
+
   // Clear any existing error
   dlerror();
 
   void (*OktaAuthValidator_V2)(ArgsOktaAuthValidatorV2*) = dlsym(handle, "OktaAuthValidatorV2");
   if ((error = dlerror()) != NULL)
   {
-    dlclose(handle);
-    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error loading OktaAuthValidatorV2 symbol from lib: %s", error);
-    exit(127);
+    err_msg = "Error loading OktaAuthValidatorV2 symbol from lib";
+    goto clean_exit;
   }
 
+  // Allocate the struct needed to store OktaAuthValidatorV2 args
   ArgsOktaAuthValidatorV2* go_args = (ArgsOktaAuthValidatorV2 *) calloc(1, sizeof(ArgsOktaAuthValidatorV2));
   if(!go_args)
   {
-    dlclose(handle);
-    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error allocating ArgsOktaAuthValidatorV2");
-    exit(127);
+    err_msg = "Error allocating ArgsOktaAuthValidatorV2 struct";
+    goto clean_exit;
   }
 
+  // Fill an ArgsOktaAuthValidatorV2 struct from the plugin env
   if (!oav_args_from_env_v2(envp, go_args))
   {
-    dlclose(handle);
-    free(go_args);
-    plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error parsing plugin env with oav_args_from_env_v2");
-    exit(127);
+    err_msg = "Error parsing plugin env with oav_args_from_env_v2";
+    goto clean_exit;
   }
+
+  plugin_log(PLOG_DEBUG, MODULE, "Initialization of the OktaAuthValidator lib succeeded");
 
    // Call the Golang c-shared lib function
   (*OktaAuthValidator_V2)(go_args);
-  dlclose(handle);
-  free(go_args);
+
+clean_exit:
+  if (handle)
+  {
+    dlclose(handle);
+  }
+  if(go_args)
+  {
+    free(go_args);
+  }
+  if(err_msg != NULL)
+  {
+    plugin_log(PLOG_ERR, MODULE, "%s", err_msg);
+    exit(127);
+  }
   exit(0);
 }
 
