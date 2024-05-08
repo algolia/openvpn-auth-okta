@@ -4,6 +4,12 @@ SHELL := bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 UNAME_S := $(shell uname -s)
+OSDESC := $(shell . /etc/os-release && echo $$ID)
+ifeq ($(OSDESC),raspbian)
+CGO := 1
+else
+CGO := 0
+endif
 
 INSTALL := install
 CC := gcc
@@ -44,7 +50,7 @@ $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
 # Build the plugin as a standalone binary
 binary: $(BUILDDIR)/okta-auth-validator
 $(BUILDDIR)/okta-auth-validator: cmd/okta-auth-validator/main.go $(PKG_SRC) | $(BUILDDIR)
-	CGO_ENABLED=0 go build $(GOPLUGIN_FLAGS) -o $(BUILDDIR)/okta-auth-validator cmd/okta-auth-validator/main.go
+	CGO_ENABLED=$(CGO) go build $(GOPLUGIN_FLAGS) -o $(BUILDDIR)/okta-auth-validator cmd/okta-auth-validator/main.go
 
 # Build the openvpn-plugin-auth-okta plugin (linked against the Go c-shared lib)
 $(BUILDDIR)/openvpn-plugin-auth-okta.so: $(PLUGIN_DEPS)
