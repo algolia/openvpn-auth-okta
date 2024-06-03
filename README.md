@@ -23,9 +23,7 @@ The plugin requires that OpenVPN Community Edition to be configured or used in o
 
 For TOTP, if a user's password is `correcthorsebatterystaple` and their six-digit MFA TOTP is `123456`, he should use `correcthorsebatterystaple123456` as the password for their OpenVPN client
 
-
 # Installation
-
 
 ## Install the Okta OpenVPN plugin
 
@@ -45,20 +43,19 @@ Choose the proper instructions for your Linux distribution [here](https://softwa
 - openSUSE: `15.4`, `15.5`
 - Ubuntu: `Focal Fossa` (20.04), `Jammy Jellyfish` (22.04), `Lunar Lobster` (23.04), `Mantic Minotaur` (23.10)
 
-
 ### 2.  For default setups, use `sudo make install` to run the install for you
 
 Build requirements:
-  - gcc
-  - golang (>= 1.21)
-  - make
+
+- gcc
+- golang (>= 1.21)
+- make
 
 If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openvpn/plugins` and configuration files are stored in `/etc/okta-auth-validator`, then you can use the `make install` command to install the Okta OpenVPN plugin:
 
 ```shell
 sudo make install
 ```
-
 
 ### 3.  For custom setups, follow the manual installation instructions below
 
@@ -82,21 +79,17 @@ Compile the Golang binary from this repository using this command:
 make binary
 ```
 
-
 #### Manually installing the Okta OpenVPN plugin
 
 If you have a custom setup, follow the instructions below to install the C plugin and Golang library that constitute the Okta OpenVPN plugin.
-
 
 #### Manually installing the C Plugin
 
 To manually install the C plugin, copy the `build/openvpn-plugin-auth-okta.so` file to the location where your OpenVPN plugins are stored and the `libokta-auth-validator.so` file to your system libdir.
 
-
 #### Manually installing the Golang binary
 
 To manually install the binary, copy the `okta-auth-validator` to your system bin dir; the `pinset.cfg`, and `api.ini` files to the location where your OpenVPN plugin scripts are stored.
-
 
 ## Make sure that OpenVPN has a tempory directory
 
@@ -107,7 +100,6 @@ sudo mkdir /etc/openvpn/tmp
 ```
 
 Use the [chown](https://en.wikipedia.org/wiki/Chown) and [chmod](https://en.wikipedia.org/wiki/Chmod) commands to set permissions approprate to your setup (The user that runs OpenVPN should be owner and only writer).
-
 
 # Configuration
 
@@ -124,7 +116,6 @@ sudo $EDITOR /etc/okta-auth-validator/api.ini
 
 See [api.ini](https://github.com/algolia/openvpn-auth-okta/blob/v2/api.ini.inc) for configuration options.
 
-
 ## Configure OpenVPN to use the C `Shared Object Plugin`
 
 Set up OpenVPN to call the Okta plugin by adding the following lines to your OpenVPN `server.conf` configuration file:
@@ -136,7 +127,6 @@ tmp-dir "/etc/openvpn/tmp"
 
 The default location for the OpenVPN configuration file is `/etc/openvpn/server.conf`.  
 This method is considered the safest as no credential is exported to a process environment or written to disk.
-
 
 ## Configure OpenVPN to use the binary in `Script Plugin` mode
 
@@ -162,7 +152,6 @@ tmp-dir "/etc/openvpn/tmp"
 ```
 
 Please check the OpenVPN [manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-0/#options) for security considerations regarding this mode.
-
 
 # Log outputs
 
@@ -192,7 +181,6 @@ DATESTAMP_OKTA %{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{YEAR}
 - [Okta API - PreAuth](https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application)
 - [Okta API - Auth with TOTP MFA](https://developer.okta.com/docs/reference/api/authn/#verify-totp-factor)
 - [Okta API - Auth with Push MFA](https://developer.okta.com/docs/reference/api/authn/#verify-push-factor)
-
 
 # Contact
 
