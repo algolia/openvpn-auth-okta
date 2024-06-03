@@ -91,6 +91,15 @@ import "C"
 
 type PluginEnv = validator.PluginEnv
 
+func RunValidator(pluginEnv *PluginEnv) {
+	v := validator.New()
+	if res := v.Setup(true, nil, pluginEnv); !res {
+		return
+	}
+	_ = v.Authenticate()
+	v.WriteControlFile()
+}
+
 //export OktaAuthValidatorV2
 func OktaAuthValidatorV2(args *C.ArgsOktaAuthValidatorV2) {
 	pluginEnv := &PluginEnv{
@@ -100,13 +109,7 @@ func OktaAuthValidatorV2(args *C.ArgsOktaAuthValidatorV2) {
 		ClientIp:    C.GoString(args.IP),
 		ControlFile: C.GoString(args.CtrFile),
 	}
-
-	v := validator.New()
-	if res := v.Setup(true, nil, pluginEnv); !res {
-		return
-	}
-	_ = v.Authenticate()
-	v.WriteControlFile()
+	RunValidator(pluginEnv)
 }
 
 // Deprecated: replaced by OktaAuthValidatorV2
@@ -120,13 +123,7 @@ func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass 
 		ClientIp:    C.GoString(ip),
 		ControlFile: C.GoString(ctrF),
 	}
-
-	v := validator.New()
-	if res := v.Setup(true, nil, pluginEnv); !res {
-		return
-	}
-	_ = v.Authenticate()
-	v.WriteControlFile()
+	RunValidator(pluginEnv)
 }
 
 func main() {
