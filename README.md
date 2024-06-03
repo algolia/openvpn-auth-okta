@@ -12,14 +12,13 @@ It also offers a plugin for OpenVPN (Community Edition) using the lib mentionned
 
 > :exclamation: Note: The plugin does not work with OpenVPN Access Server (OpenVPN-AS)
 
-
 # Requirements
 
 The plugin requires that OpenVPN Community Edition to be configured or used in one the following ways:
 
-1.  OpenVPN can be configured to call plugins via a deferred call (aka `Shared Object Plugin` mode) or call the binary directly (aka `Script Plugin` mode).
-2.  By default, OpenVPN clients *must* authenticate using client SSL certificates.
-3.  If authenticating requires MFA, the end user will authenticate by appending their six-digit MFA TOTP to the end of its password or by validating Push notifications.
+1. OpenVPN can be configured to call plugins via a deferred call (aka `Shared Object Plugin` mode) or call the binary directly (aka `Script Plugin` mode).
+2. By default, OpenVPN clients *must* authenticate using client SSL certificates.
+3. If authenticating requires MFA, the end user will authenticate by appending their six-digit MFA TOTP to the end of its password or by validating Push notifications.
 
 For TOTP, if a user's password is `correcthorsebatterystaple` and their six-digit MFA TOTP is `123456`, he should use `correcthorsebatterystaple123456` as the password for their OpenVPN client
 
@@ -37,15 +36,16 @@ Thanks to the [OpenSUSE Build Service](https://build.opensuse.org/) packages are
 
 Choose the proper instructions for your Linux distribution [here](https://software.opensuse.org/download/package?package=openvpn-auth-okta&project=home%3AAlgolia%3AOSS).
 
-##### Packages are available for:
- - CentOS: `8`, `8 Stream`
- - Debian: `Bullseye` (11), `Bookworm` (12)
- - Fedora: `38`, `39`
- - openSUSE: `15.4`, `15.5`
- - Ubuntu: `Focal Fossa` (20.04), `Jammy Jellyfish` (22.04), `Lunar Lobster` (23.04), `Mantic Minotaur` (23.10)
+#### Packages are available for
+
+- CentOS: `8`, `8 Stream`
+- Debian: `Bullseye` (11), `Bookworm` (12)
+- Fedora: `38`, `39`
+- openSUSE: `15.4`, `15.5`
+- Ubuntu: `Focal Fossa` (20.04), `Jammy Jellyfish` (22.04), `Lunar Lobster` (23.04), `Mantic Minotaur` (23.10)
 
 
-### 2.  For default setups, use `sudo make install` to run the install for you.
+### 2.  For default setups, use `sudo make install` to run the install for you
 
 Build requirements:
   - gcc
@@ -55,29 +55,30 @@ Build requirements:
 If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openvpn/plugins` and configuration files are stored in `/etc/okta-auth-validator`, then you can use the `make install` command to install the Okta OpenVPN plugin:
 
 ```shell
-$ sudo make install
+sudo make install
 ```
 
 
-### 3.  For custom setups, follow the manual installation instructions below.
+### 3.  For custom setups, follow the manual installation instructions below
 
 #### Compile the plugin
 
 Build requirements:
-  - gcc
-  - golang (>= 1.21)
-  - make
+
+- gcc
+- golang (>= 1.21)
+- make
 
 Compile the plugin from this directory using this command:
 
 ```shell
-$ make plugin
+make plugin
 ```
 
 Compile the Golang binary from this repository using this command:
 
 ```shell
-$ make binary
+make binary
 ```
 
 
@@ -101,7 +102,7 @@ To manually install the binary, copy the `okta-auth-validator` to your system bi
 In OpenVPN, the "deferred plugin" model requires the use of temporary files to work. It is recommended that these temporary files are stored in a directory that only OpenVPN has access to. The default location for this directory is `/etc/openvpn/tmp`. If this directory doesn't exist, create it using this command:
 
 ```shell
-$ sudo mkdir /etc/openvpn/tmp
+sudo mkdir /etc/openvpn/tmp
 ```
 
 Use the [chown](https://en.wikipedia.org/wiki/Chown) and [chmod](https://en.wikipedia.org/wiki/Chmod) commands to set permissions approprate to your setup (The user that runs OpenVPN should be owner and only writer).
@@ -116,7 +117,7 @@ The Okta OpenVPN plugin is configured using the `api.ini` file. You **must** upd
 If you installed the Okta OpenVPN plugin to the default location, run this command to edit your configuration file.
 
 ```shell
-$ sudo $EDITOR /etc/okta-auth-validator/api.ini
+sudo $EDITOR /etc/okta-auth-validator/api.ini
 ```
 > :warning: As this file contains your Okta token, please ensure it has limited permissions (should only be readable by root or the user running OpenVPN) !
 
@@ -163,6 +164,7 @@ Please check the OpenVPN [manual](https://openvpn.net/community-resources/refere
 
 
 # Log outputs
+
 Outputs have been designed to be easily parsable, you'll find 2 different formats depending on wether the username has been set or not, ie:
 
 Before
