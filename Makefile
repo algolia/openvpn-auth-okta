@@ -4,7 +4,7 @@ SHELL := bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 UNAME_S := $(shell uname -s)
-OSDESC := $(shell . /etc/os-release && echo $$ID)
+OSDESC := $(shell [ -f /etc/os-release ] && . /etc/os-release && echo $$ID)
 ifeq ($(OSDESC),raspbian)
 CGO := 1
 else
