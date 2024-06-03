@@ -1,9 +1,15 @@
 version: 2.1
 
+orbs:
+  coverage-reporter: codacy/coverage-reporter@13.16.7
+
 executors:
   golang:
     docker:
       - image: cimg/go:1.22
+  codacy:
+    docker:
+      - image: cimg/openjdk:8.0
 
 jobs:
   golangci-lint:
@@ -50,14 +56,32 @@ jobs:
             go mod download
       - run:
           name: Test
-          command: make test
+          command: |
+            make test
+            cp -f build/cover.out /tmp/cover.out
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - "cover.out"
       - run:
           name: Coverage report
-          command: make coverage
+          command: |
+            make coverage
       - store_artifacts:
           path: build/coverage.html
       - save_cache:
           <<: *save-cache
+  codacy-coverage:
+    executor: codacy
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Publish coverage report to Codacy
+          command: |
+            sed -i -e 's@^gopkg.in/algolia/openvpn-auth-okta.v2/@@' /tmp/cover.out
+            bash <(curl -Ls https://coverage.codacy.com/get.sh) report --force-coverage-parser go -r /tmp/cover.out
 
 workflows:
   lint_test_build:
@@ -66,3 +90,6 @@ workflows:
       - test:
           requires:
             - golangci-lint
+      - codacy-coverage:
+          requires:
+            - test
