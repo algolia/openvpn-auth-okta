@@ -1,0 +1,4 @@
+---
+exclude_paths:
+  - "testing/**"
+  - "pkg/**/*test.go"
