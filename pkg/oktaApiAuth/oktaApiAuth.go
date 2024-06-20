@@ -76,7 +76,9 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				}
 				continue
 			}
-			log.Debug().Msgf("%s Push MFA, waitForPush Result: %s", factor.Provider, authRes.Result)
+			if authRes.Result != "" {
+				log.Debug().Msgf("%s Push MFA, waitForPush Result: %s", factor.Provider, authRes.Result)
+			}
 		}
 
 		if authRes.Status == "SUCCESS" {
