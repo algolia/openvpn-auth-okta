@@ -199,7 +199,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 		if count == nbFactors-1 {
 			return AuthResponse{}, err
 		}
-		return AuthResponse{}, errors.New("continue")
+		return AuthResponse{}, errContinue
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
@@ -233,7 +233,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 			factor.Provider,
 			ftype,
 			errorSummary)
-		return AuthResponse{}, errors.New("continue")
+		return AuthResponse{}, errContinue
 	}
 
 	var authRes AuthResponse
@@ -244,7 +244,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 			return AuthResponse{}, err
 		}
 		log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-		return AuthResponse{}, errors.New("continue")
+		return AuthResponse{}, errContinue
 	}
 
 	err = validate.Struct(authRes)
@@ -254,7 +254,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 			return AuthResponse{}, err
 		}
 		log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-		return AuthResponse{}, errors.New("continue")
+		return AuthResponse{}, errContinue
 	}
 	return authRes, nil
 }
@@ -273,7 +273,7 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 				return AuthResponse{}, errors.New("Push MFA timeout")
 			}
 			log.Warn().Msgf("%s push MFA timed out", factor.Provider)
-			return AuthResponse{}, errors.New("continue")
+			return AuthResponse{}, errContinue
 		}
 
 		time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
@@ -283,7 +283,7 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 			if count == nbFactors-1 {
 				return AuthResponse{}, err
 			}
-			return AuthResponse{}, errors.New("continue")
+			return AuthResponse{}, errContinue
 		}
 		if code != 200 && code != 202 {
 			if count == nbFactors-1 {
@@ -291,7 +291,7 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 				return AuthResponse{}, errors.New("Push MFA failed")
 			}
 			log.Warn().Msgf("%s push MFA invalid HTTP status code %d", factor.Provider, code)
-			return AuthResponse{}, errors.New("continue")
+			return AuthResponse{}, errContinue
 		}
 
 		authRes = AuthResponse{}
@@ -302,7 +302,7 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 				return AuthResponse{}, err
 			}
 			log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-			return AuthResponse{}, errors.New("continue")
+			return AuthResponse{}, errContinue
 		}
 
 		err = validate.Struct(authRes)
@@ -312,7 +312,7 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 				return AuthResponse{}, err
 			}
 			log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-			return AuthResponse{}, errors.New("continue")
+			return AuthResponse{}, errContinue
 		}
 	}
 	return authRes, nil
