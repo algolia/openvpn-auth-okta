@@ -55,7 +55,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 		log.Debug().Msgf("verifying %s factor nb %d", factorType, count)
 		authRes, err := auth.doAuthFirstStep(factor, count, nbFactors, stateToken, factorType)
 		if err != nil {
-			if err.Error() != "continue" {
+			if !errors.Is(err, errContinue) {
 				return err
 			}
 			continue
@@ -65,13 +65,13 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 		if factorType == "Push" {
 			if authRes.Result != "WAITING" {
 				if count == nbFactors-1 {
-					return errors.New("Push MFA failed")
+					return errPushFailed
 				}
 				continue
 			}
 			authRes, err = auth.waitForPush(factor, count, nbFactors, stateToken)
 			if err != nil {
-				if err.Error() != "continue" {
+				if !errors.Is(err, errContinue) {
 					return err
 				}
 				continue
@@ -138,7 +138,7 @@ PUSH:
 ERR:
 	log.Error().Msgf("No MFA factor available")
 	auth.cancelAuth(preAuthRes.Token)
-	return errors.New("No MFA factor available")
+	return errMFAUnavailable
 }
 
 // Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
@@ -155,27 +155,27 @@ func (auth *OktaApiAuth) Auth() error {
 	case "SUCCESS":
 		if auth.ApiConfig.MFARequired {
 			log.Warn().Msgf("allowed without MFA but MFA is required - rejected")
-			return errors.New("MFA required")
+			return errMFARequired
 		}
 		return nil
 
 	case "LOCKED_OUT":
 		log.Warn().Msgf("is locked out")
-		return errors.New("User locked out")
+		return errUserLocked
 
 	case "PASSWORD_EXPIRED":
 		log.Warn().Msgf("password is expired")
 		if preAuthRes.Token != "" {
 			auth.cancelAuth(preAuthRes.Token)
 		}
-		return errors.New("User password expired")
+		return errPasswordExpired
 
 	case "MFA_ENROLL", "MFA_ENROLL_ACTIVATE":
 		log.Warn().Msgf("needs to enroll first")
 		if preAuthRes.Token != "" {
 			auth.cancelAuth(preAuthRes.Token)
 		}
-		return errors.New("Needs to enroll")
+		return errEnrollNeeded
 
 	case "MFA_REQUIRED", "MFA_CHALLENGE":
 		log.Debug().Msgf("checking second factor")

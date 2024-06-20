@@ -280,7 +280,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("User locked out"),
+			errUserLocked,
 		},
 
 		{
@@ -305,7 +305,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("User password expired"),
+			errPasswordExpired,
 		},
 
 		{
@@ -343,7 +343,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("MFA required"),
+			errMFARequired,
 		},
 
 		{
@@ -368,7 +368,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Needs to enroll"),
+			errEnrollNeeded,
 		},
 
 		{
@@ -442,7 +442,7 @@ func TestAuthMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("No MFA factor available"),
+			errMFAUnavailable,
 		},
 
 		{
@@ -467,7 +467,7 @@ func TestAuthMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("No MFA factor available"),
+			errMFAUnavailable,
 		},
 	}
 	commonAuthTest(authTests, t)
@@ -534,7 +534,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Push MFA failed"),
+			errPushFailed,
 		},
 
 		{
@@ -571,7 +571,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Push MFA failed"),
+			errPushFailed,
 		},
 
 		{
@@ -620,7 +620,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Push MFA failed"),
+			errPushFailed,
 		},
 
 		{
@@ -657,7 +657,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Push MFA failed"),
+			errPushFailed,
 		},
 
 		{
@@ -787,7 +787,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Push MFA failed"),
+			errPushFailed,
 		},
 
 		{
@@ -1421,7 +1421,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("TOTP MFA failed"),
+			errTOTPFailed,
 		},
 
 		{
@@ -1452,7 +1452,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("TOTP MFA failed"),
+			errTOTPFailed,
 		},
 
 		{
@@ -1489,7 +1489,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("TOTP MFA failed"),
+			errTOTPFailed,
 		},
 
 		{
@@ -1691,7 +1691,7 @@ func TestAuthMFAFallback(t *testing.T) {
 			"",
 			1,
 			true,
-			fmt.Errorf("Push MFA failed"),
+			errPushFailed,
 		},
 	}
 	commonAuthTest(authTests, t)
