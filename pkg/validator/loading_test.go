@@ -11,7 +11,6 @@
 package validator
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -27,7 +26,7 @@ type testViaFile struct {
 	usernameSuffix   string
 	expectedUsername string
 	expectedPassword string
-	err              error
+	errMsg           string
 }
 
 type testEnvVar struct {
@@ -37,7 +36,7 @@ type testEnvVar struct {
 	expectedTrusted     bool
 	expectedUsername    string
 	env                 map[string]string
-	err                 error
+	errMsg              string
 }
 
 func TestLoadViaFile(t *testing.T) {
@@ -48,7 +47,7 @@ func TestLoadViaFile(t *testing.T) {
 			"example.com",
 			"dade.murphy@example.com",
 			"password",
-			nil,
+			"",
 		},
 		{
 			"Valid via file without suffix - success",
@@ -56,7 +55,7 @@ func TestLoadViaFile(t *testing.T) {
 			"",
 			"dade.murphy",
 			"password",
-			nil,
+			"",
 		},
 		{
 			"Invalid via file - failure",
@@ -64,7 +63,7 @@ func TestLoadViaFile(t *testing.T) {
 			"",
 			"dade.murphy",
 			"password",
-			fmt.Errorf("Invalid via-file"),
+			"Invalid via-file",
 		},
 		{
 			"Invalid username in via file - failure",
@@ -72,7 +71,7 @@ func TestLoadViaFile(t *testing.T) {
 			"",
 			"dade.murphy*",
 			"password",
-			fmt.Errorf("Invalid CN or username format"),
+			"Invalid CN or username format",
 		},
 		{
 			"Missing via file - failure",
@@ -80,7 +79,7 @@ func TestLoadViaFile(t *testing.T) {
 			"",
 			"dade.murphy",
 			"password",
-			fmt.Errorf("stat MISSING: no such file or directory"),
+			"stat MISSING: no such file or directory",
 		},
 		{
 			"Via file is a dir - failure",
@@ -88,7 +87,7 @@ func TestLoadViaFile(t *testing.T) {
 			"",
 			"dade.murphy",
 			"password",
-			fmt.Errorf("read ../../testing/fixtures/validator/: is a directory"),
+			"read ../../testing/fixtures/validator/: is a directory",
 		},
 	}
 	for _, test := range tests {
@@ -97,13 +96,15 @@ func TestLoadViaFile(t *testing.T) {
 			v.api = oktaApiAuth.New()
 			v.api.ApiConfig.UsernameSuffix = test.usernameSuffix
 			err := v.loadViaFile(test.path)
-			if test.err == nil {
-				assert.Nil(t, err)
+			if test.errMsg == "" {
+				assert.NoError(t, err)
 				assert.NotNil(t, v.api.UserConfig)
 				assert.Equal(t, test.expectedUsername, v.api.UserConfig.Username)
 				assert.Equal(t, test.expectedPassword, v.api.UserConfig.Password)
 			} else {
-				assert.Equal(t, test.err.Error(), err.Error())
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+				}
 			}
 		})
 	}
@@ -135,7 +136,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "password",
 				"untrusted_ip": "1.2.3.4",
 			},
-			nil,
+			"",
 		},
 		{
 			"Test username/no password - failure",
@@ -149,7 +150,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "",
 				"untrusted_ip": "1.2.3.4",
 			},
-			fmt.Errorf("No password"),
+			"No password",
 		},
 		{
 			"Test username/!allowUntrustedUsers/usernameSuffix - success",
@@ -163,7 +164,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "password",
 				"untrusted_ip": "1.2.3.4",
 			},
-			nil,
+			"",
 		},
 		{
 			"Test common_name/!allowUntrustedUsers/usernameSuffix - success",
@@ -177,7 +178,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "password",
 				"untrusted_ip": "1.2.3.4",
 			},
-			nil,
+			"",
 		},
 		{
 			"Test username/common_name/allowUntrustedUsers/usernameSuffix - success",
@@ -191,7 +192,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "password",
 				"untrusted_ip": "1.2.3.4",
 			},
-			nil,
+			"",
 		},
 		{
 			"Test empty username/common_name - failure",
@@ -205,7 +206,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "password",
 				"untrusted_ip": "1.2.3.4",
 			},
-			fmt.Errorf("No CN or username"),
+			"No CN or username",
 		},
 		{
 			"Test invalid username/common_name - failure",
@@ -219,7 +220,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "password",
 				"untrusted_ip": "1.2.3.4",
 			},
-			fmt.Errorf("Invalid CN or username format"),
+			"Invalid CN or username format",
 		},
 	}
 	for _, test := range tests {
@@ -231,11 +232,11 @@ func TestLoadEnvVars(t *testing.T) {
 			err := v.loadEnvVars(nil)
 			unsetEnv(test.env)
 			assert.Equal(t, test.expectedTrusted, v.usernameTrusted)
-			if test.err == nil {
-				assert.Nil(t, err)
+			if test.errMsg == "" {
+				assert.NoError(t, err)
 				assert.Equal(t, test.expectedUsername, v.api.UserConfig.Username)
 			} else {
-				assert.Equal(t, test.err.Error(), err.Error())
+				assert.EqualError(t, err, test.errMsg)
 			}
 		})
 	}
