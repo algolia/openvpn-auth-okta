@@ -11,7 +11,6 @@
 package validator
 
 import (
-	"fmt"
 	"os"
 	"slices"
 	"testing"
@@ -25,7 +24,7 @@ type testCfgFile struct {
 	testName string
 	path     string
 	link     string
-	err      error
+	errMsg   string
 }
 
 func TestParsePassword(t *testing.T) {
@@ -47,37 +46,37 @@ func TestReadConfigFile(t *testing.T) {
 			"Valid config file - success",
 			"../../testing/fixtures/validator/valid.ini",
 			"",
-			nil,
+			"",
 		},
 		{
 			"Valid config file link - success",
 			"",
 			"../../testing/fixtures/validator/valid.ini",
-			nil,
+			"",
 		},
 		{
 			"Invalid config file - failure",
 			"../../testing/fixtures/validator/invalid.ini",
 			"",
-			fmt.Errorf("Missing param Url or Token"),
+			"Missing param Url or Token",
 		},
 		{
 			"Invalid 2 config file - failure",
 			"../../testing/fixtures/validator/invalid2.ini",
 			"",
-			fmt.Errorf("key-value delimiter not found: UsernameSuffix\n"),
+			"key-value delimiter not found: UsernameSuffix\n",
 		},
 		{
 			"Missing config file - failure",
 			"MISSING",
 			"",
-			fmt.Errorf("No ini file found"),
+			"No ini file found",
 		},
 		{
 			"Config file is a dir - failure",
 			"../../testing/fixtures/validator/",
 			"",
-			fmt.Errorf("No ini file found"),
+			"No ini file found",
 		},
 	}
 
@@ -92,10 +91,12 @@ func TestReadConfigFile(t *testing.T) {
 			if test.path == "" {
 				_ = os.Remove("api.ini")
 			}
-			if test.err == nil {
-				assert.Nil(t, err)
+			if test.errMsg == "" {
+				assert.NoError(t, err)
 			} else {
-				assert.Equal(t, test.err.Error(), err.Error())
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+				}
 			}
 		})
 	}
@@ -107,25 +108,25 @@ func TestLoadPinset(t *testing.T) {
 			"Valid pinset file - success",
 			"../../testing/fixtures/validator/valid.cfg",
 			"",
-			nil,
+			"",
 		},
 		{
 			"Valid pinset link - success",
 			"",
 			"../../testing/fixtures/validator/valid.cfg",
-			nil,
+			"",
 		},
 		{
 			"Missing pinset file - failure",
 			"MISSING",
 			"",
-			fmt.Errorf("No pinset file found"),
+			"No pinset file found",
 		},
 		{
 			"Pinset file is a dir - failure",
 			"../../testing/fixtures/validator/",
 			"",
-			fmt.Errorf("No pinset file found"),
+			"No pinset file found",
 		},
 	}
 
@@ -141,11 +142,13 @@ func TestLoadPinset(t *testing.T) {
 			if test.path == "" {
 				_ = os.Remove("pinset.cfg")
 			}
-			if test.err == nil {
-				assert.Nil(t, err)
+			if test.errMsg == "" {
+				assert.NoError(t, err)
 				assert.True(t, slices.Contains(v.api.ApiConfig.AssertPin, pin))
 			} else {
-				assert.Equal(t, test.err.Error(), err.Error())
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+				}
 			}
 		})
 	}

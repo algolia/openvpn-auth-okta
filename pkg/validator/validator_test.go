@@ -66,7 +66,7 @@ type testAuthenticate struct {
 	userTrusted bool
 	requests    []authRequest
 	ret         bool
-	err         error
+	errMsg      string
 }
 
 func TestAuthenticate(t *testing.T) {
@@ -80,7 +80,7 @@ func TestAuthenticate(t *testing.T) {
 			false,
 			nil,
 			false,
-			fmt.Errorf("User not trusted"),
+			"User not trusted",
 		},
 
 		{
@@ -100,7 +100,7 @@ func TestAuthenticate(t *testing.T) {
 				},
 			},
 			true,
-			nil,
+			"",
 		},
 
 		{
@@ -120,7 +120,7 @@ func TestAuthenticate(t *testing.T) {
 				},
 			},
 			false,
-			fmt.Errorf("Authentication failed"),
+			"Authentication failed",
 		},
 	}
 
@@ -145,19 +145,21 @@ func TestAuthenticate(t *testing.T) {
 			v := New()
 			v.configFile = test.cfgFile
 			v.pinsetFile = test.pinsetFile
-			err := v.Setup(true, nil, nil)
+			ret := v.Setup(true, nil, nil)
 			unsetEnv(setupEnv)
-			assert.True(t, err)
+			assert.True(t, ret)
 			v.usernameTrusted = test.userTrusted
 			v.api.ApiConfig.MFARequired = false
 			gock.InterceptClient(v.api.Pool())
 			gock.DisableNetworking()
-			err2 := v.Authenticate()
+			err := v.Authenticate()
 			assert.Equal(t, test.ret, v.isUserValid)
-			if test.err == nil {
-				assert.Nil(t, err2)
+			if test.errMsg == "" {
+				assert.NoError(t, err)
 			} else {
-				assert.Equal(t, test.err.Error(), err2.Error())
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+				}
 			}
 		})
 	}

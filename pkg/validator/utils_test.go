@@ -11,7 +11,6 @@
 package validator
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -30,7 +29,7 @@ type testControlFile struct {
 	testName string
 	path     string
 	mode     fs.FileMode
-	err      error
+	errMsg   string
 }
 
 func TestCheckUsernameFormat(t *testing.T) {
@@ -80,25 +79,25 @@ func TestCheckControlFilePerm(t *testing.T) {
 			"Test empty control file path - failure",
 			"",
 			0600,
-			fmt.Errorf("Unknow control file"),
+			"Unknow control file",
 		},
 		{
 			"Test valid control file permissions - success",
 			"../../testing/fixtures/validator/valid_control_file",
 			0600,
-			nil,
+			"",
 		},
 		{
 			"Test invalid control file permissions - success",
 			"../../testing/fixtures/validator/invalid_control_file",
 			0660,
-			fmt.Errorf("control file writable by non-owners"),
+			"control file writable by non-owners",
 		},
 		{
 			"Test invalid control file dir permissions - success",
 			"../../testing/fixtures/validator/invalid_ctrlfile_dir_perm/ctrl",
 			0600,
-			fmt.Errorf("control file dir writable by non-owners"),
+			"control file dir writable by non-owners",
 		},
 	}
 	for _, test := range tests {
@@ -115,10 +114,12 @@ func TestCheckControlFilePerm(t *testing.T) {
 				_ = os.Chmod(test.path, test.mode)
 			}
 			err := v.checkControlFilePerm()
-			if test.err == nil {
-				assert.Nil(t, err)
+			if test.errMsg == "" {
+				assert.NoError(t, err)
 			} else {
-				assert.Equal(t, test.err.Error(), err.Error())
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+				}
 			}
 		})
 	}
