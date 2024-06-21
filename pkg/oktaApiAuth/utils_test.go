@@ -24,7 +24,7 @@ type allowedGroupsTest struct {
 	requests      []authRequest
 	allowedGroups string
 	token         string
-	err           error
+	errMsg        string
 }
 
 func TestCheckAllowedGroups(t *testing.T) {
@@ -45,7 +45,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 			},
 			"test1, test2",
 			"FAKE_TOKEN",
-			fmt.Errorf("Get \"https://example.oktapreview.com/api/v1/users/dade.murphy@example.com/groups\": gock: cannot match any request"),
+			"Get \"https://example.oktapreview.com/api/v1/users/dade.murphy@example.com/groups\": gock: cannot match any request",
 		},
 		{
 			"invalid json response - failure",
@@ -59,7 +59,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 			},
 			"test1, test2",
 			token,
-			fmt.Errorf("invalid character '-' in numeric literal"),
+			"invalid character '-' in numeric literal",
 		},
 		{
 			"invalid HTTP status code - failure",
@@ -73,7 +73,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 			},
 			"test1, test2",
 			token,
-			fmt.Errorf("invalid HTTP status code"),
+			"invalid HTTP status code",
 		},
 		{
 			"invalid token - failure",
@@ -87,7 +87,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 			},
 			"test1, test2",
 			token,
-			fmt.Errorf("invalid HTTP status code"),
+			"invalid HTTP status code",
 		},
 		{
 			"missing group name - failure",
@@ -101,7 +101,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 			},
 			"Cloud App Users, test2",
 			token,
-			fmt.Errorf("invalid group list return by API"),
+			"invalid group list return by API",
 		},
 		{
 			"Member of AllowedGroups - success",
@@ -115,7 +115,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 			},
 			"Cloud App Users, test2",
 			token,
-			nil,
+			"",
 		},
 		{
 			"Not member of AllowedGroups - failure",
@@ -129,7 +129,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 			},
 			"test1, test2",
 			token,
-			fmt.Errorf("Not mmember of an AllowedGroup"),
+			"Not mmember of an AllowedGroup",
 		},
 	}
 
@@ -172,15 +172,17 @@ func TestCheckAllowedGroups(t *testing.T) {
 			a.ApiConfig = apiCfg
 			a.UserConfig = userCfg
 			err := a.InitPool()
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			gock.InterceptClient(a.pool)
 			// Lets ensure we wont reach the real okta API
 			gock.DisableNetworking()
 			err = a.checkAllowedGroups()
-			if test.err == nil {
-				assert.Nil(t, err)
+			if test.errMsg == "" {
+				assert.NoError(t, err)
 			} else {
-				assert.Equal(t, test.err.Error(), err.Error())
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+				}
 			}
 		})
 	}
