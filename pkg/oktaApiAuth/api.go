@@ -192,6 +192,31 @@ func (auth *OktaApiAuth) cancelAuth(stateToken string) {
 	_, _, _ = auth.oktaReq(http.MethodPost, "/authn/cancel", data)
 }
 
+func processJsonAnswer(apiRes []byte, count int, nbFactors int) (AuthResponse, error) {
+	var authRes AuthResponse
+	err := json.Unmarshal(apiRes, &authRes)
+	if err != nil {
+		if count == nbFactors-1 {
+			log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
+			return AuthResponse{}, err
+		}
+		log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
+		return AuthResponse{}, errContinue
+	}
+
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	err = validate.Struct(authRes)
+	if err != nil {
+		if count == nbFactors-1 {
+			log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
+			return AuthResponse{}, err
+		}
+		log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
+		return AuthResponse{}, errContinue
+	}
+	return authRes, nil
+}
+
 func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors int, stateToken string, ftype string) (AuthResponse, error) {
 	log.Trace().Msgf("oktaApiAuth.doAuthFirstStep() %s %s", factor.Type, factor.Provider)
 	code, apiRes, err := auth.doAuth(factor.Id, stateToken)
@@ -206,11 +231,9 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 
 	if code != 200 && code != 202 {
 		var authResErr ErrorResponse
-		err = json.Unmarshal(apiRes, &authResErr)
 		var errorSummary string
-		ferror := fmt.Sprintf("%s MFA failed", ftype)
 
-		if err == nil {
+		if err = json.Unmarshal(apiRes, &authResErr); err == nil {
 			err = validate.Struct(authResErr)
 			if err == nil {
 				if len(authResErr.Causes) > 0 {
@@ -227,6 +250,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 				factor.Provider,
 				ftype,
 				errorSummary)
+			ferror := fmt.Sprintf("%s MFA failed", ftype)
 			return AuthResponse{}, errors.New(ferror)
 		}
 		log.Warn().Msgf("%s %s MFA authentication failed: %s",
@@ -236,34 +260,13 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 		return AuthResponse{}, errContinue
 	}
 
-	var authRes AuthResponse
-	err = json.Unmarshal(apiRes, &authRes)
-	if err != nil {
-		if count == nbFactors-1 {
-			log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
-			return AuthResponse{}, err
-		}
-		log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-		return AuthResponse{}, errContinue
-	}
-
-	err = validate.Struct(authRes)
-	if err != nil {
-		if count == nbFactors-1 {
-			log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
-			return AuthResponse{}, err
-		}
-		log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-		return AuthResponse{}, errContinue
-	}
-	return authRes, nil
+	return processJsonAnswer(apiRes, count, nbFactors)
 }
 
 // At first iteration and until the factorResult is different from WAITING
 // keep retrying the Push MFA (we are waiting here that the user either accept or reject auth)
 func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int, stateToken string) (authRes AuthResponse, err error) {
 	log.Trace().Msgf("oktaApiAuth.waitForPush() %s %s", factor.Type, factor.Provider)
-	validate := validator.New(validator.WithRequiredStructEnabled())
 	checkCount := 0
 	for checkCount == 0 || authRes.Result == "WAITING" {
 		checkCount++
@@ -294,25 +297,9 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 			return AuthResponse{}, errContinue
 		}
 
-		authRes = AuthResponse{}
-		err = json.Unmarshal(apiRes, &authRes)
+		authRes, err = processJsonAnswer(apiRes, count, nbFactors)
 		if err != nil {
-			if count == nbFactors-1 {
-				log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
-				return AuthResponse{}, err
-			}
-			log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-			return AuthResponse{}, errContinue
-		}
-
-		err = validate.Struct(authRes)
-		if err != nil {
-			if count == nbFactors-1 {
-				log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
-				return AuthResponse{}, err
-			}
-			log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-			return AuthResponse{}, errContinue
+			return authRes, err
 		}
 	}
 	return authRes, nil
