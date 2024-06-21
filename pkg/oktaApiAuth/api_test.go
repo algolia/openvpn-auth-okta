@@ -26,13 +26,13 @@ type poolTest struct {
 	host     string
 	port     string
 	pinset   []string
-	err      error
+	errMsg   string
 }
 
 type setupTest struct {
 	testName string
 	requests []authRequest
-	err      error
+	errMsg   string
 }
 
 func startTLS(t *testing.T) {
@@ -70,7 +70,7 @@ func TestInitPool(t *testing.T) {
 			tlsHost,
 			tlsPort,
 			[]string{validPinset},
-			nil,
+			"",
 		},
 
 		{
@@ -78,7 +78,7 @@ func TestInitPool(t *testing.T) {
 			tlsHost,
 			tlsPort,
 			[]string{invalidPinset},
-			fmt.Errorf("Server pubkey does not match pinned keys"),
+			"Server pubkey does not match pinned keys",
 		},
 
 		{
@@ -86,7 +86,7 @@ func TestInitPool(t *testing.T) {
 			tlsHost,
 			"1444",
 			[]string{},
-			fmt.Errorf(fmt.Sprintf("dial tcp %s:1444: connect: connection refused", tlsHost)),
+			fmt.Sprintf("dial tcp %s:1444: connect: connection refused", tlsHost),
 		},
 
 		{
@@ -94,7 +94,7 @@ func TestInitPool(t *testing.T) {
 			invalidHost,
 			tlsPort,
 			[]string{},
-			fmt.Errorf(invalidHostErr),
+			invalidHostErr,
 		},
 	}
 
@@ -109,13 +109,12 @@ func TestInitPool(t *testing.T) {
 			a.ApiConfig.Url = fmt.Sprintf("https://%s:%s", test.host, test.port)
 			a.ApiConfig.AssertPin = test.pinset
 			err := a.InitPool()
-			if test.err == nil {
-				if err != nil {
-					t.Logf(err.Error())
-				}
-				assert.Nil(t, err)
+			if test.errMsg == "" {
+				assert.NoError(t, err)
 			} else {
-				assert.Equal(t, test.err.Error(), err.Error())
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+				}
 			}
 		})
 	}
@@ -137,7 +136,7 @@ func TestOktaReq(t *testing.T) {
 					"invalid.json",
 				},
 			},
-			nil,
+			"",
 		},
 		{
 			"invalid payload - failure",
@@ -149,7 +148,7 @@ func TestOktaReq(t *testing.T) {
 					"invalid.json",
 				},
 			},
-			nil,
+			"",
 		},
 	}
 
@@ -197,10 +196,12 @@ func TestOktaReq(t *testing.T) {
 			// Lets ensure we wont reach the real okta API
 			gock.DisableNetworking()
 			_, _, err = a.oktaReq(http.MethodPost, test.requests[0].path, test.requests[0].payload)
-			if test.err == nil {
+			if test.errMsg == "" {
 				assert.Nil(t, err)
 			} else {
-				assert.Equal(t, test.err.Error(), err.Error())
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+				}
 			}
 		})
 	}

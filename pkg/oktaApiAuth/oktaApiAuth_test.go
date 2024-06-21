@@ -52,7 +52,7 @@ type authTest struct {
 	allowedGroups string
 	pushRetries   int
 	fallback      bool
-	err           error
+	errMsg        string
 }
 
 /*
@@ -123,11 +123,13 @@ func commonAuthTest(authTests []authTest, t *testing.T) {
 
 			gock.InterceptClient(a.pool)
 			gock.DisableNetworking()
-			err2 := a.Auth()
-			if test.err == nil {
-				assert.Nil(t, err2)
+			err = a.Auth()
+			if test.errMsg == "" {
+				assert.NoError(t, err)
 			} else {
-				assert.Equal(t, test.err.Error(), err2.Error())
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+				}
 			}
 			if !test.unmatchedReq {
 				assert.False(t, gock.HasUnmatchedRequest())
@@ -161,7 +163,7 @@ func TestAuthGroups(t *testing.T) {
 			"test1, test2",
 			1,
 			false,
-			fmt.Errorf("Not mmember of an AllowedGroup"),
+			"Not mmember of an AllowedGroup",
 		},
 	}
 	commonAuthTest(authTests, t)
@@ -185,7 +187,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn\": gock: cannot match any request"),
+			"Post \"https://example.oktapreview.com/api/v1/authn\": gock: cannot match any request",
 		},
 
 		{
@@ -204,7 +206,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("pre-authentication rate limited"),
+			"pre-authentication rate limited",
 		},
 
 		{
@@ -223,7 +225,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("pre-authentication failed"),
+			"pre-authentication failed",
 		},
 
 		{
@@ -242,7 +244,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Key: 'PreAuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
+			"Key: 'PreAuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag",
 		},
 
 		{
@@ -261,7 +263,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+			"invalid character '-' looking for beginning of object key string",
 		},
 
 		{
@@ -280,7 +282,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			errUserLocked,
+			errUserLocked.Error(),
 		},
 
 		{
@@ -305,7 +307,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			errPasswordExpired,
+			errPasswordExpired.Error(),
 		},
 
 		{
@@ -324,7 +326,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -343,7 +345,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			errMFARequired,
+			errMFARequired.Error(),
 		},
 
 		{
@@ -368,7 +370,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			errEnrollNeeded,
+			errEnrollNeeded.Error(),
 		},
 
 		{
@@ -393,7 +395,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Unknown preauth status"),
+			"Unknown preauth status",
 		},
 	}
 	commonAuthTest(authTests, t)
@@ -417,7 +419,7 @@ func TestAuthMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request"),
+			"Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request",
 		},
 
 		{
@@ -442,7 +444,7 @@ func TestAuthMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errMFAUnavailable,
+			errMFAUnavailable.Error(),
 		},
 
 		{
@@ -467,7 +469,7 @@ func TestAuthMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errMFAUnavailable,
+			errMFAUnavailable.Error(),
 		},
 	}
 	commonAuthTest(authTests, t)
@@ -503,7 +505,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -534,7 +536,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed,
+			errPushFailed.Error(),
 		},
 
 		{
@@ -571,7 +573,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed,
+			errPushFailed.Error(),
 		},
 
 		{
@@ -620,7 +622,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed,
+			errPushFailed.Error(),
 		},
 
 		{
@@ -657,7 +659,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed,
+			errPushFailed.Error(),
 		},
 
 		{
@@ -682,7 +684,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request"),
+			"Post \"https://example.oktapreview.com/api/v1/authn/factors/opf3hkfocI4JTLAju0g4/verify\": gock: cannot match any request",
 		},
 
 		{
@@ -713,7 +715,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
+			"Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag",
 		},
 
 		{
@@ -750,7 +752,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			2,
 			false,
-			fmt.Errorf("Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
+			"Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag",
 		},
 
 		{
@@ -787,7 +789,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed,
+			errPushFailed.Error(),
 		},
 
 		{
@@ -824,7 +826,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Push MFA timeout"),
+			"Push MFA timeout",
 		},
 
 		{
@@ -867,7 +869,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -904,7 +906,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			2,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -941,7 +943,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			2,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -984,7 +986,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			2,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1033,7 +1035,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			2,
 			false,
-			fmt.Errorf("Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
+			"Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag",
 		},
 
 		{
@@ -1076,7 +1078,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1119,7 +1121,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1156,7 +1158,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1193,7 +1195,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1224,7 +1226,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1261,7 +1263,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			2,
 			false,
-			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+			"invalid character '-' looking for beginning of object key string",
 		},
 
 		{
@@ -1304,7 +1306,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 	}
 	commonAuthTest(authTests, t)
@@ -1334,7 +1336,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1365,7 +1367,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("invalid character '-' looking for beginning of object key string"),
+			"invalid character '-' looking for beginning of object key string",
 		},
 
 		{
@@ -1390,7 +1392,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1421,7 +1423,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errTOTPFailed,
+			errTOTPFailed.Error(),
 		},
 
 		{
@@ -1452,7 +1454,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errTOTPFailed,
+			errTOTPFailed.Error(),
 		},
 
 		{
@@ -1489,7 +1491,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errTOTPFailed,
+			errTOTPFailed.Error(),
 		},
 
 		{
@@ -1520,7 +1522,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			fmt.Errorf("Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag"),
+			"Key: 'AuthResponse.Status' Error:Field validation for 'Status' failed on the 'required' tag",
 		},
 
 		{
@@ -1551,7 +1553,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1582,7 +1584,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 
 		{
@@ -1607,7 +1609,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			nil,
+			"",
 		},
 	}
 	commonAuthTest(authTests, t)
@@ -1649,7 +1651,7 @@ func TestAuthMFAFallback(t *testing.T) {
 			"",
 			1,
 			true,
-			nil,
+			"",
 		},
 		{
 			"Auth with invalid TOTP MFA, fallback to Push rejected - failure",
@@ -1691,7 +1693,7 @@ func TestAuthMFAFallback(t *testing.T) {
 			"",
 			1,
 			true,
-			errPushFailed,
+			errPushFailed.Error(),
 		},
 	}
 	commonAuthTest(authTests, t)
