@@ -116,7 +116,7 @@ func commonAuthTest(authTests []authTest, t *testing.T) {
 			a := &OktaApiAuth{
 				ApiConfig:  apiCfg,
 				UserConfig: userCfg,
-				userAgent:  userAgent,
+				userAgent:  "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/122.0 (OktaOpenVPN)",
 			}
 			err := a.InitPool()
 			assert.Nil(t, err)
