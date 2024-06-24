@@ -19,18 +19,6 @@ import (
 
 // Returns an initialized oktaApiAuth
 func New() *OktaApiAuth {
-	/*
-		utsname := unix.Utsname{}
-		_ = unix.Uname(&utsname)
-		userAgent := fmt.Sprintf("OktaOpenVPN/2.1.0 (%s %s) Go-http-client/%s",
-			utsname.Sysname,
-			utsname.Release,
-			runtime.Version()[2:])
-		fmt.Printf("agent: %s\n", userAgent)
-
-		using dynamic user agent does not work ....
-		so for now use a const var
-	*/
 
 	return &OktaApiAuth{
 		ApiConfig: &OktaAPIConfig{
@@ -42,7 +30,7 @@ func New() *OktaApiAuth {
 			TOTPFallbackToPush:  false,
 		},
 		UserConfig: &OktaUserConfig{},
-		userAgent:  userAgent,
+		userAgent:  "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/122.0 (OktaOpenVPN)",
 	}
 }
 
