@@ -71,7 +71,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 		}
 
 		var mfaErr error
-		if authRes.Status != "" {
+		if authRes.Result != "" {
 			mfaErr = fmt.Errorf("%s %s MFA authentication failed: %s, %w",
 				factor.Provider,
 				factorType,
