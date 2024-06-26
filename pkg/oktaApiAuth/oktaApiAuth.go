@@ -41,12 +41,10 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 	nbFactors := len(factors)
 	for count, factor := range factors {
 		log.Debug().Msgf("verifying %s factor nb %d", factorType, count)
-		authRes, err := auth.doAuthFirstStep(factor, count, nbFactors, stateToken, factorType)
+		authRes, err := auth.doAuthFirstStep(factor, stateToken, factorType)
+		err = parseOktaError(err, count, nbFactors)
 		if err != nil {
-			if !errors.Is(err, errContinue) {
-				return err
-			}
-			continue
+			return err
 		}
 		log.Debug().Msgf("%s %s MFA, Result: %s", factor.Provider, factorType, authRes.Result)
 
@@ -58,11 +56,9 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				continue
 			}
 			authRes, err = auth.waitForPush(factor, count, nbFactors, stateToken)
+			err = parseOktaError(err, count, nbFactors)
 			if err != nil {
-				if !errors.Is(err, errContinue) {
-					return err
-				}
-				continue
+				return err
 			}
 			if authRes.Result != "" {
 				log.Debug().Msgf("%s Push MFA, waitForPush Result: %s", factor.Provider, authRes.Result)
@@ -74,17 +70,24 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 			return nil
 		}
 
-		if count == nbFactors-1 {
-			log.Error().Msgf("%s %s MFA authentication failed: %s",
+		var mfaErr error
+		if authRes.Status != "" {
+			mfaErr = fmt.Errorf("%s %s MFA authentication failed: %s, %w",
 				factor.Provider,
 				factorType,
-				authRes.Result)
-			return fmt.Errorf("%s MFA failed", factorType)
+				authRes.Result,
+				fmt.Errorf("%s MFA failed", factorType))
+		} else {
+			mfaErr = fmt.Errorf("%s %s MFA authentication failed, %w",
+				factor.Provider,
+				factorType,
+				fmt.Errorf("%s MFA failed", factorType))
 		}
-		log.Warn().Msgf("%s %s MFA authentication failed: %s",
-			factor.Provider,
-			factorType,
-			authRes.Result)
+
+		err = parseOktaError(mfaErr, count, nbFactors)
+		if err != nil {
+			return err
+		}
 	}
 	// Reached only when the list of factors provided is empty
 	log.Debug().Msgf("No %s MFA available", factorType)
