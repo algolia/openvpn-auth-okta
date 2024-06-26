@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.8.2
+Version: 2.8.3
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,7 +84,39 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
-* Tue May 07 2024 Jeremy Jacque <jeremy.jacque@algolia.com> 2.8.2-1
+* Wed Jun 26 2024 Jeremy JACQUE <jeremy.jacque@algolia.com> - 2.8.3-1
+- chore(dist): build using Golang 1.22
+- fix(Makefile): raspbian always needs CGO
+- chore(deps): bump github.com/phuslu/log from 1.0.97 to 1.0.100
+- chore(deps): bump github.com/phuslu/log from 1.0.100 to 1.0.101
+- chore(deps): bump github.com/phuslu/log from 1.0.101 to 1.0.102
+- chore(deps): bump github.com/go-playground/validator/v10
+- chore(doc): fix codacy warnings in README
+- chore(ci): disable codacy checks for fixtures and test code
+- chore(doc): add codacy badge
+- fix(Makefile): /etc/os-release does not exist on MacOS, test before sourcing
+- chore(ci): push coverage report to Codacy
+- chore(lib): deduplicate identical piece of code
+- chore(doc): fix more markdown warnings
+- chore(deps): bump github.com/phuslu/log from 1.0.102 to 1.0.106
+- chore(deps): bump github.com/go-playground/validator/v10
+- chore: use sentinel errors when possible
+- fix(oktaApiAuth): do not print authRes.Result when it is empty
+- refacto(oktaApiAuth): dedup JSON api response processing
+- chore(doc): update coverage badge
+- fix(oktaApiAuth): gofmt
+- test(oktaApiAuth): use assert.EqualError instead of assert.Equal
+- test: use testify dedicated errors functions
+- fix: use a valid hardcoded user agent
+- chore(doc): update available package distros and archs
+- fix(oktaApiAuth): respect Go style guide
+- fix(oktaApiAuth): use fmt.Errorf instead of errors.New of fmt string
+- refacto(oktaApiAuth): simplify Okta Auth error handling using wrappers
+- chore(doc): update coverage badge
+- fix(oktaApiAuth): wrong authRes variable was tested
+- test(oktaApiAuth): add tests for parseOktaError
+
+* Tue May 07 2024 Jeremy Jacque <jeremy.jacque@algolia.com> - 2.8.2-1
 - chore(deps): bump github.com/stretchr/testify from 1.8.4 to 1.9.0
 - chore(deps): bump github.com/go-playground/validator/v10
 - chore(deps): bump github.com/phuslu/log from 1.0.88 to 1.0.89
