@@ -250,8 +250,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 				factor.Provider,
 				ftype,
 				errorSummary)
-			ferror := fmt.Sprintf("%s MFA failed", ftype)
-			return AuthResponse{}, errors.New(ferror)
+			return AuthResponse{}, fmt.Errorf("%s MFA failed", ftype)
 		}
 		log.Warn().Msgf("%s %s MFA authentication failed: %s",
 			factor.Provider,
