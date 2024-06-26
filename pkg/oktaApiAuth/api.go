@@ -192,39 +192,47 @@ func (auth *OktaApiAuth) cancelAuth(stateToken string) {
 	_, _, _ = auth.oktaReq(http.MethodPost, "/authn/cancel", data)
 }
 
-func processJSONAnswer(apiRes []byte, count int, nbFactors int) (AuthResponse, error) {
+// parseAuthResponse takes a doAuth response, unmarshalls it,
+// validate the struct fields and return it if validate
+func parseAuthResponse(apiRes []byte) (AuthResponse, error) {
 	var authRes AuthResponse
 	err := json.Unmarshal(apiRes, &authRes)
 	if err != nil {
-		if count == nbFactors-1 {
-			log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
-			return AuthResponse{}, err
-		}
-		log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-		return AuthResponse{}, errContinue
+		return AuthResponse{}, fmt.Errorf("Error unmarshaling Okta API response: %w", err)
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	err = validate.Struct(authRes)
 	if err != nil {
-		if count == nbFactors-1 {
-			log.Error().Msgf("Error unmarshaling Okta API response: %s", err)
-			return AuthResponse{}, err
-		}
-		log.Warn().Msgf("Error unmarshaling Okta API response: %s", err)
-		return AuthResponse{}, errContinue
+		return AuthResponse{}, fmt.Errorf("Error unmarshaling Okta API response: %w", err)
 	}
 	return authRes, nil
 }
 
-func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors int, stateToken string, ftype string) (AuthResponse, error) {
+// parseOktaError will depending on the fact that the current factor
+// is the last one either return the unrapped original error or nil
+// and log (error level for the last one, otherwise warn level)
+func parseOktaError(err error, count int, nbFactors int) error {
+	if err != nil {
+		if count == nbFactors-1 {
+			log.Error().Msgf("%s", err.Error())
+			if err2 := errors.Unwrap(err); err2 != nil {
+				return fmt.Errorf("%s", err2)
+			} else {
+				return fmt.Errorf("%s", err)
+			}
+		}
+		log.Warn().Msgf("%s", err.Error())
+		return nil
+	}
+	return nil
+}
+
+func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, stateToken string, ftype string) (AuthResponse, error) {
 	log.Trace().Msgf("oktaApiAuth.doAuthFirstStep() %s %s", factor.Type, factor.Provider)
 	code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 	if err != nil {
-		if count == nbFactors-1 {
-			return AuthResponse{}, err
-		}
-		return AuthResponse{}, errContinue
+		return AuthResponse{}, fmt.Errorf("Okta Authentication request error: %w", err)
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
@@ -241,25 +249,20 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 				} else {
 					errorSummary = authResErr.Summary
 				}
+			} else {
+				errorSummary = fmt.Sprintf("HTTP status code %d", code)
 			}
 		} else {
 			errorSummary = fmt.Sprintf("HTTP status code %d", code)
 		}
-		if count == nbFactors-1 {
-			log.Error().Msgf("%s %s MFA authentication failed: %s",
-				factor.Provider,
-				ftype,
-				errorSummary)
-			return AuthResponse{}, fmt.Errorf("%s MFA failed", ftype)
-		}
-		log.Warn().Msgf("%s %s MFA authentication failed: %s",
+		return AuthResponse{}, fmt.Errorf("%s %s (%s): %w",
 			factor.Provider,
 			ftype,
-			errorSummary)
-		return AuthResponse{}, errContinue
+			errorSummary,
+			fmt.Errorf("%s MFA failed", ftype))
 	}
 
-	return processJSONAnswer(apiRes, count, nbFactors)
+	return parseAuthResponse(apiRes)
 }
 
 // At first iteration and until the factorResult is different from WAITING
@@ -270,33 +273,23 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 	for checkCount == 0 || authRes.Result == "WAITING" {
 		checkCount++
 		if checkCount > auth.ApiConfig.MFAPushMaxRetries {
-			if count == nbFactors-1 {
-				log.Error().Msgf("%s push MFA timed out", factor.Provider)
-				return AuthResponse{}, errors.New("Push MFA timeout")
-			}
-			log.Warn().Msgf("%s push MFA timed out", factor.Provider)
-			return AuthResponse{}, errContinue
+			return AuthResponse{}, fmt.Errorf("%s %w", factor.Provider, errors.New("Push MFA timeout"))
 		}
 
 		time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
 
 		code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 		if err != nil {
-			if count == nbFactors-1 {
-				return AuthResponse{}, err
-			}
-			return AuthResponse{}, errContinue
+			return AuthResponse{}, fmt.Errorf("Okta Authentication request error: %w", err)
 		}
 		if code != 200 && code != 202 {
-			if count == nbFactors-1 {
-				log.Error().Msgf("%s push MFA invalid HTTP status code %d", factor.Provider, code)
-				return AuthResponse{}, errors.New("Push MFA failed")
-			}
-			log.Warn().Msgf("%s push MFA invalid HTTP status code %d", factor.Provider, code)
-			return AuthResponse{}, errContinue
+			return AuthResponse{}, fmt.Errorf("%s push MFA invalid HTTP status code %d, %w",
+				factor.Provider,
+				code,
+				errors.New("Push MFA failed"))
 		}
 
-		authRes, err = processJSONAnswer(apiRes, count, nbFactors)
+		authRes, err = parseAuthResponse(apiRes)
 		if err != nil {
 			return authRes, err
 		}

@@ -13,7 +13,6 @@ package oktaApiAuth
 import "errors"
 
 var (
-	errContinue        = errors.New("continue")
 	errPushFailed      = errors.New("Push MFA failed")
 	errTOTPFailed      = errors.New("TOTP MFA failed")
 	errMFAUnavailable  = errors.New("No MFA factor available")
