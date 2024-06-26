@@ -3,8 +3,8 @@ DEBTRANSFORM-RELEASE: 1
 Source: openvpn-auth-okta
 Binary: openvpn-auth-okta
 Architecture: any
-Version: 2.8.2
-DEBTRANSFORM-TAR: openvpn-auth-okta-2.8.2.tar.xz
+Version: 2.8.3
+DEBTRANSFORM-TAR: openvpn-auth-okta-2.8.3.tar.xz
 Maintainer: Foundation Squad <foundation@algolia.com>
 Homepage: https://github.com/algolia/openvpn-auth-okta
 Standards-Version: 4.5.10
