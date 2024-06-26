@@ -192,7 +192,7 @@ func (auth *OktaApiAuth) cancelAuth(stateToken string) {
 	_, _, _ = auth.oktaReq(http.MethodPost, "/authn/cancel", data)
 }
 
-func processJsonAnswer(apiRes []byte, count int, nbFactors int) (AuthResponse, error) {
+func processJSONAnswer(apiRes []byte, count int, nbFactors int) (AuthResponse, error) {
 	var authRes AuthResponse
 	err := json.Unmarshal(apiRes, &authRes)
 	if err != nil {
@@ -260,7 +260,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, count int, nbFactors
 		return AuthResponse{}, errContinue
 	}
 
-	return processJsonAnswer(apiRes, count, nbFactors)
+	return processJSONAnswer(apiRes, count, nbFactors)
 }
 
 // At first iteration and until the factorResult is different from WAITING
@@ -297,7 +297,7 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 			return AuthResponse{}, errContinue
 		}
 
-		authRes, err = processJsonAnswer(apiRes, count, nbFactors)
+		authRes, err = processJSONAnswer(apiRes, count, nbFactors)
 		if err != nil {
 			return authRes, err
 		}
