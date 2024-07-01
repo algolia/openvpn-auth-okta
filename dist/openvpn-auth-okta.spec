@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.8.3
+Version: 2.8.4
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,11 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Mon Jul 01 2024 Jeremy JACQUE <jeremy.jacque@algolia.com> - 2.8.4-1
+- chore(deps): bump github.com/phuslu/log from 1.0.106 to 1.0.107
+- chore(oktaApiAuth): use Chrome on Linux user agent along with Sec-CH headers
+- chore(oktaApiAuth): improve Push factor debugging
+
 * Wed Jun 26 2024 Jeremy JACQUE <jeremy.jacque@algolia.com> - 2.8.3-1
 - chore(dist): build using Golang 1.22
 - fix(Makefile): raspbian always needs CGO
