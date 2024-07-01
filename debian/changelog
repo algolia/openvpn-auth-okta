@@ -1,3 +1,14 @@
+openvpn-auth-okta (2.8.4) stable; urgency=medium
+
+  [ dependabot[bot] ]
+  * chore(deps): bump github.com/phuslu/log from 1.0.106 to 1.0.107
+
+  [ Jeremy JACQUE ]
+  * chore(oktaApiAuth): use Chrome on Linux user agent along with Sec-CH headers
+  * chore(oktaApiAuth): improve Push factor debugging
+
+ -- Jeremy JACQUE <jeremy.jacque@algolia.com>  Mon, 01 Jul 2024 11:56:41 +0000
+
 openvpn-auth-okta (2.8.3) stable; urgency=medium
 
   [ dependabot[bot] ]
