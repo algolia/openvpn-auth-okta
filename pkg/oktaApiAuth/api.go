@@ -298,7 +298,9 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 		if err != nil {
 			return authRes, err
 		}
-		log.Debug().Msgf("waiForPush Okta response: %+v", authRes)
+		log.Debug().Msgf("waiForPush Okta response: {Status: %s, Result:%s}",
+			authRes.Status,
+			authRes.Result)
 	}
 	return authRes, nil
 }
