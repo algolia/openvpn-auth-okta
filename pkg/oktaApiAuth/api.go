@@ -113,12 +113,17 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	u, _ := url.ParseRequestURI(auth.ApiConfig.Url)
 	u.Path = fmt.Sprintf("/api/v1%s", path)
 
+	userAgent := "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 (OktaOpenVPN)"
 	ssws := fmt.Sprintf("SSWS %s", auth.ApiConfig.Token)
+
 	headers := map[string]string{
-		"User-Agent":    auth.userAgent,
-		"Content-Type":  "application/json",
-		"Accept":        "application/json",
-		"Authorization": ssws,
+		"User-Agent":         userAgent,
+		"Sec-Ch-Ua":          `"Chromium";v="119", "Not?A_Brand";v="24"`,
+		"Sec-Ch-Ua-Platform": `"Linux"`,
+		"Sec-Ch-Ua-Mobile":   "?0",
+		"Content-Type":       "application/json",
+		"Accept":             "application/json",
+		"Authorization":      ssws,
 	}
 	if auth.UserConfig.ClientIp != "" {
 		headers["X-Forwarded-For"] = auth.UserConfig.ClientIp

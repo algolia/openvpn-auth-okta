@@ -61,5 +61,4 @@ type OktaApiAuth struct {
 	ApiConfig  *OktaAPIConfig
 	UserConfig *OktaUserConfig
 	pool       *http.Client
-	userAgent  string
 }
