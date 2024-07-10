@@ -1,0 +1,7 @@
+trigger_build:
+  steps:
+    - trigger_services:
+        project: home:Algolia:OSS
+        package: openvpn-auth-okta
+  filters:
+    event: tag_push
