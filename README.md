@@ -50,7 +50,7 @@ Choose the proper instructions for your Linux distribution [here](https://softwa
 Build requirements:
 
 - gcc
-- golang (>= 1.22)
+- golang (>= 1.23)
 - make
 
 If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openvpn/plugins` and configuration files are stored in `/etc/okta-auth-validator`, then you can use the `make install` command to install the Okta OpenVPN plugin:
@@ -66,7 +66,7 @@ sudo make install
 Build requirements:
 
 - gcc
-- golang (>= 1.22)
+- golang (>= 1.23)
 - make
 
 Compile the plugin from this directory using this command:
