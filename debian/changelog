@@ -1,3 +1,23 @@
+openvpn-auth-okta (2.8.5) stable; urgency=medium
+
+  [ dependabot[bot] ]
+  * chore(deps): bump github.com/go-playground/validator/v10
+  * chore(deps): bump github.com/phuslu/log from 1.0.107 to 1.0.110
+  * chore(deps): bump github.com/phuslu/log from 1.0.110 to 1.0.111
+  * chore(deps): bump github.com/phuslu/log from 1.0.111 to 1.0.112
+  * chore(deps): bump github.com/phuslu/log from 1.0.112 to 1.0.113
+  * chore(deps): bump github.com/go-playground/validator/v10
+  * chore(deps): bump github.com/stretchr/testify from 1.9.0 to 1.10.0
+  * chore(deps): bump golang.org/x/crypto from 0.21.0 to 0.31.0
+
+  [ Jeremy JACQUE ]
+  * chore(deps): set go version to 1.22
+  * chore(ci): update codacy-coverage-reporter orb to 14.0.2
+  * chore: update go to 1.23
+  * chore(ci): update golangci-lint to 1.62.2
+
+ -- Jeremy JACQUE <jeremy.jacque@algolia.com>  Thu, 12 Dec 2024 14:30:57 +0100
+
 openvpn-auth-okta (2.8.4) stable; urgency=medium
 
   [ dependabot[bot] ]
