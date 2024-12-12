@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.8.4
+Version: 2.8.5
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -84,6 +84,22 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Thu Dec 12 2024 Jeremy JACQUE <jeremy.jacque@algolia.com> - 2.8.5-1
+- chore(oktaApiAuth): do not output token during Push factor debugging
+- feat(ci): add an OBS workflow to trigger build on tag push
+- chore(deps): bump github.com/go-playground/validator/v10
+- chore(deps): bump github.com/phuslu/log from 1.0.107 to 1.0.110
+- chore(deps): bump github.com/phuslu/log from 1.0.110 to 1.0.111
+- chore(deps): bump github.com/phuslu/log from 1.0.111 to 1.0.112
+- chore(deps): bump github.com/phuslu/log from 1.0.112 to 1.0.113
+- chore(deps): bump github.com/go-playground/validator/v10
+- chore(deps): bump github.com/stretchr/testify from 1.9.0 to 1.10.0
+- chore(deps): bump golang.org/x/crypto from 0.21.0 to 0.31.0
+- chore(deps): set go version to 1.22
+- chore(ci): update codacy-coverage-reporter orb to 14.0.2
+- chore: update go to 1.23
+- chore(ci): update golangci-lint to 1.62.2
+
 * Mon Jul 01 2024 Jeremy JACQUE <jeremy.jacque@algolia.com> - 2.8.4-1
 - chore(deps): bump github.com/phuslu/log from 1.0.106 to 1.0.107
 - chore(oktaApiAuth): use Chrome on Linux user agent along with Sec-CH headers
