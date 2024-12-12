@@ -1,12 +1,12 @@
 version: 2.1
 
 orbs:
-  coverage-reporter: codacy/coverage-reporter@13.16.7
+  coverage-reporter: codacy/coverage-reporter@14.0.2
 
 executors:
   golang:
     docker:
-      - image: cimg/go:1.22
+      - image: cimg/go:1.23
   codacy:
     docker:
       - image: cimg/openjdk:8.0
