@@ -16,8 +16,10 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	_ "unsafe"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
 	"gopkg.in/h2non/gock.v1"
 )
 
@@ -68,6 +70,9 @@ type testAuthenticate struct {
 	ret         bool
 	errMsg      string
 }
+
+//go:linkname getPool gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth.(*OktaApiAuth).getPool
+func getPool(*oktaApiAuth.OktaApiAuth) *http.Client
 
 func TestAuthenticate(t *testing.T) {
 	defer gock.Off()
@@ -150,7 +155,7 @@ func TestAuthenticate(t *testing.T) {
 			assert.True(t, ret)
 			v.usernameTrusted = test.userTrusted
 			v.api.ApiConfig.MFARequired = false
-			gock.InterceptClient(v.api.Pool())
+			gock.InterceptClient(getPool(v.api))
 			gock.DisableNetworking()
 			err := v.Authenticate()
 			assert.Equal(t, test.ret, v.isUserValid)

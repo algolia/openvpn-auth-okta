@@ -103,8 +103,8 @@ func (auth *OktaApiAuth) InitPool() error {
 }
 
 // only used by validator_test.go
-// TODO: find a clean way to only export this for tests
-func (auth *OktaApiAuth) Pool() *http.Client {
+// nolint:unused
+func (auth *OktaApiAuth) getPool() *http.Client {
 	return auth.pool
 }
 
@@ -274,10 +274,9 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, stateToken string, f
 // keep retrying the Push MFA (we are waiting here that the user either accept or reject auth)
 func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int, stateToken string) (authRes AuthResponse, err error) {
 	log.Trace().Msgf("oktaApiAuth.waitForPush() %s %s", factor.Type, factor.Provider)
-	checkCount := 0
-	for checkCount == 0 || authRes.Result == "WAITING" {
-		checkCount++
-		if checkCount > auth.ApiConfig.MFAPushMaxRetries {
+
+	for checkCount := 0; checkCount == 0 || authRes.Result == "WAITING"; checkCount++ {
+		if checkCount >= auth.ApiConfig.MFAPushMaxRetries {
 			return AuthResponse{}, fmt.Errorf("%s %w", factor.Provider, errors.New("Push MFA timeout"))
 		}
 
