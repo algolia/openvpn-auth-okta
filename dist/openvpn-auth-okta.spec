@@ -9,7 +9,7 @@ Source0: %{name}-%{version}.tar.xz
 Source1: vendor.tar.gz
 Source99: %{name}.rpmlintrc
 
-BuildRequires: golang-1.23
+BuildRequires: golang-1.24
 BuildRequires: gcc
 BuildRequires: make
 Requires: libokta-auth-validator = %{version}
@@ -18,6 +18,8 @@ Requires: okta-auth-validator-common = %{version}
 BuildRoot: %{_tmppath}/%{name}-%{version}-build
 
 %define plugin_dir %{_libdir}/openvpn/plugins
+
+%global debug_package %{nil}
 
 %description
 This is a plugin for OpenVPN (Community Edition) that authenticates users directly against Okta, with support for MFA.
@@ -55,7 +57,7 @@ Config files for openvpn-auth-okta, okta-auth-validator, libokta-auth-validator
 
 %prep
 %setup -q -n %{name}-%{version}
-tar xf ../../SOURCES/vendor.tar.gz
+tar xf %{SOURCE1}
 
 %build
 make

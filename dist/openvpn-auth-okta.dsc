@@ -8,7 +8,7 @@ DEBTRANSFORM-TAR: openvpn-auth-okta-2.8.6.tar.xz
 Maintainer: Foundation Squad <foundation@algolia.com>
 Homepage: https://github.com/algolia/openvpn-auth-okta
 Standards-Version: 4.5.10
-Build-Depends: debhelper, make, gcc, golang-1.23
+Build-Depends: debhelper, make, gcc, golang-1.24
 Package-List:
  openvpn-auth-okta deb base optional arch=any
  okta-auth-validator deb base optional arch=any
