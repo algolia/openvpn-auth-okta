@@ -1,3 +1,26 @@
+openvpn-auth-okta (2.8.6) stable; urgency=medium
+
+  [ dependabot[bot] ]
+  * chore(deps): bump github.com/go-playground/validator/v10
+  * chore(deps): bump github.com/go-playground/validator/v10
+  * chore(deps): bump golang.org/x/net from 0.34.0 to 0.36.0
+
+  [ Jeremy JACQUE ]
+  * chore(test): use linkname to access OktaApiAuth pool in validator tests
+  * chore(deps): bump go to 1.24.1
+
+  [ dependabot[bot] ]
+  * chore(deps): bump github.com/phuslu/log from 1.0.113 to 1.0.117
+
+  [ dependabot[bot] ]
+  * chore(deps): bump golang.org/x/net from 0.36.0 to 0.38.0
+
+  [ dependabot[bot] ]
+  * chore(deps): bump github.com/go-playground/validator/v10
+  * chore(dist): Update changelog for 2.8.6 release
+
+ -- Jeremy JACQUE <jeremy.jacque@algolia.com>  Wed, 30 Apr 2025 20:22:00 +0200
+
 openvpn-auth-okta (2.8.5) stable; urgency=medium
 
   [ dependabot[bot] ]
