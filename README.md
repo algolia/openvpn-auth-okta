@@ -38,12 +38,16 @@ Choose the proper instructions for your Linux distribution [here](https://softwa
 #### Packages are available for
 
 - CentOS (amd64, arm64): `8`, `8 Stream`
+- CentOS (amd64, arm64, ppc64le): `9 Stream`, `10 Stream`
 - Fedora (amd64, arm64): `38`, `39`, `40`
+- Fedora (amd64, arm64, ppc64le): `41`, `42`
 - Mageia (amd64, arm64): `8`, `9`
-- openSUSE (amd64, arm64, ppc64le): `15.4`, `15.5`, `15.5`
-- Debian (amd64, arm64): `Buster` (10), `Bullseye` (11), `Bookworm` (12)
-- Raspbian(arm64): `10`, `11`, `12`
-- Ubuntu (amd64, arm64): `Focal Fossa` (20.04), `Jammy Jellyfish` (22.04), `Lunar Lobster` (23.04), `Mantic Minotaur` (23.10), `Noble Numbat` (24.04)
+- openSUSE (amd64, arm64, ppc64le): `15.4`, `15.5`, `15.6`, `Tumbleweed`
+- Debian (amd64, arm64): `Buster` (10)
+- Debian (amd64, arm64, ppc64le): `Bullseye` (11), `Bookworm` (12)
+- Raspbian(armv7l): `10`, `11`, `12`
+- Ubuntu (amd64, arm64): `Lunar Lobster` (23.04), `Mantic Minotaur` (23.10), `Oracular Oriole` (24.10)
+- Ubuntu (amd64, arm64, ppc64le): `Focal Fossa` (20.04), `Jammy Jellyfish` (22.04), `Noble Numbat` (24.04)
 
 ### 2.  For default setups, use `sudo make install` to run the install for you
 
