@@ -8,113 +8,41 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package oktaApiAuth
+package oktaAuthApi
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"slices"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/phuslu/log"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
 )
 
-// Prepare an http client with a safe TLS config
-// validate the server public key against our list of pinned key fingerprint
-func (auth *OktaApiAuth) InitPool() error {
-	log.Trace().Msg("oktaApiAuth.InitPool()")
-	if rawURL, err := url.Parse(auth.ApiConfig.Url); err != nil {
-		return err
-	} else {
-		var port string
-		if port = rawURL.Port(); port == "" {
-			port = "443"
-		}
-		// Connect to the server, fetch its public key and validate it against the
-		// base64 digest in pinset slice
-		tcpURL := fmt.Sprintf("%s:%s", rawURL.Hostname(), port)
-		conn, err := tls.Dial("tcp", tcpURL, &tls.Config{InsecureSkipVerify: true})
-		if err != nil {
-			log.Error().Msgf("Error in Dial: %s", err)
-			return err
-		}
-		defer conn.Close()
-		certs := conn.ConnectionState().PeerCertificates
-		for _, cert := range certs {
-			if !cert.IsCA {
-				// Compute public key base64 digest
-				derPubKey, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
-				if err != nil {
-					return err
-				}
-				pubKeySha := sha256.Sum256(derPubKey)
-				digest := base64.StdEncoding.EncodeToString([]byte(string(pubKeySha[:])))
-
-				if !slices.Contains(auth.ApiConfig.AssertPin, digest) {
-					log.Error().Msgf("Refusing to authenticate because host %s failed %s\n%s\n%s",
-						rawURL.Hostname(),
-						"a TLS public key pinning check.",
-						"Update your \"pinset.cfg\" file or ",
-						"contact support@okta.com with this error message")
-					return errors.New("Server pubkey does not match pinned keys")
-				}
-			}
-		}
-	}
-
-	tlsCfg := &tls.Config{
-		InsecureSkipVerify: false,
-		MinVersion:         tls.VersionTLS12,
-		CipherSuites: []uint16{
-			// TLS 1.2 safe cipher suites
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-			// TLS 1.3 cipher suites
-			tls.TLS_AES_128_GCM_SHA256,
-			tls.TLS_AES_256_GCM_SHA384,
-			tls.TLS_CHACHA20_POLY1305_SHA256,
-		},
-	}
-	t := &http.Transport{
-		MaxIdleConns:        5,
-		MaxConnsPerHost:     5,
-		MaxIdleConnsPerHost: 5,
-		TLSClientConfig:     tlsCfg,
-	}
-	auth.pool = &http.Client{
-		Timeout:   10 * time.Second,
-		Transport: t,
-	}
-	return nil
+func (auth *OktaAuthApi) Setup() (err error) {
+	auth.pool, err = authApi.ApiInitPool(auth.ApiConfig)
+	return err
 }
 
 // only used by validator_test.go
 // nolint:unused
-func (auth *OktaApiAuth) getPool() *http.Client {
+func (auth *OktaAuthApi) getPool() *http.Client {
 	return auth.pool
 }
 
 // Do an http request to the Okta API using the path and payload provided
-func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]string) (code int, jsonBody []byte, err error) {
+func (auth *OktaAuthApi) oktaReq(method string, path string, data map[string]string) (code int, jsonBody []byte, err error) {
 	u, _ := url.ParseRequestURI(auth.ApiConfig.Url)
 	u.Path = fmt.Sprintf("/api/v1%s", path)
 
 	userAgent := "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 (OktaOpenVPN)"
-	ssws := fmt.Sprintf("SSWS %s", auth.ApiConfig.Token)
+	ssws := fmt.Sprintf("SSWS %s", auth.ProviderConfig.Token)
 
 	headers := map[string]string{
 		"User-Agent":         userAgent,
@@ -164,9 +92,9 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 }
 
 // Call the preauth Okta API endpoint
-func (auth *OktaApiAuth) preAuth() (int, []byte, error) {
+func (auth *OktaAuthApi) preAuth() (int, []byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application
-	log.Trace().Msg("oktaApiAuth.preAuth()")
+	log.Trace().Msg("oktaAuthApi.preAuth()")
 	data := map[string]string{
 		"username": auth.UserConfig.Username,
 		"password": auth.UserConfig.Password,
@@ -175,9 +103,9 @@ func (auth *OktaApiAuth) preAuth() (int, []byte, error) {
 }
 
 // Call the MFA auth Okta API endpoint
-func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (int, []byte, error) {
+func (auth *OktaAuthApi) doAuth(fid string, stateToken string) (int, []byte, error) {
 	// https://developer.okta.com/docs/reference/api/authn/#verify-call-factor
-	log.Trace().Msg("oktaApiAuth.doAuth()")
+	log.Trace().Msg("oktaAuthApi.doAuth()")
 	path := fmt.Sprintf("/authn/factors/%s/verify", fid)
 	data := map[string]string{
 		"fid":        fid,
@@ -188,9 +116,9 @@ func (auth *OktaApiAuth) doAuth(fid string, stateToken string) (int, []byte, err
 }
 
 // Cancel an authentication transaction
-func (auth *OktaApiAuth) cancelAuth(stateToken string) {
+func (auth *OktaAuthApi) cancelAuth(stateToken string) {
 	// https://developer.okta.com/docs/reference/api/authn/#cancel-transaction
-	log.Trace().Msg("oktaApiAuth.cancelAuth()")
+	log.Trace().Msg("oktaAuthApi.cancelAuth()")
 	data := map[string]string{
 		"stateToken": stateToken,
 	}
@@ -214,27 +142,8 @@ func parseAuthResponse(apiRes []byte) (AuthResponse, error) {
 	return authRes, nil
 }
 
-// parseOktaError will depending on the fact that the current factor
-// is the last one either return the unrapped original error or nil
-// and log (error level for the last one, otherwise warn level)
-func parseOktaError(err error, count int, nbFactors int) error {
-	if err != nil {
-		if count == nbFactors-1 {
-			log.Error().Msgf("%s", err.Error())
-			if err2 := errors.Unwrap(err); err2 != nil {
-				return fmt.Errorf("%s", err2)
-			} else {
-				return fmt.Errorf("%s", err)
-			}
-		}
-		log.Warn().Msgf("%s", err.Error())
-		return nil
-	}
-	return nil
-}
-
-func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, stateToken string, ftype string) (AuthResponse, error) {
-	log.Trace().Msgf("oktaApiAuth.doAuthFirstStep() %s %s", factor.Type, factor.Provider)
+func (auth *OktaAuthApi) doAuthFirstStep(factor AuthFactor, stateToken string, ftype string) (AuthResponse, error) {
+	log.Trace().Msgf("oktaAuthApi.doAuthFirstStep() %s %s", factor.Type, factor.Provider)
 	code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 	if err != nil {
 		return AuthResponse{}, fmt.Errorf("Okta Authentication request error: %w", err)
@@ -272,15 +181,15 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, stateToken string, f
 
 // At first iteration and until the factorResult is different from WAITING
 // keep retrying the Push MFA (we are waiting here that the user either accept or reject auth)
-func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int, stateToken string) (authRes AuthResponse, err error) {
-	log.Trace().Msgf("oktaApiAuth.waitForPush() %s %s", factor.Type, factor.Provider)
+func (auth *OktaAuthApi) waitForPush(factor AuthFactor, stateToken string) (authRes AuthResponse, err error) {
+	log.Trace().Msgf("oktaAuthApi.waitForPush() %s %s", factor.Type, factor.Provider)
 
 	for checkCount := 0; checkCount == 0 || authRes.Result == "WAITING"; checkCount++ {
-		if checkCount >= auth.ApiConfig.MFAPushMaxRetries {
+		if checkCount >= auth.ProviderConfig.MFAPushMaxRetries {
 			return AuthResponse{}, fmt.Errorf("%s %w", factor.Provider, errors.New("Push MFA timeout"))
 		}
 
-		time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
+		time.Sleep(time.Duration(auth.ProviderConfig.MFAPushDelaySeconds) * time.Second)
 
 		code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 		if err != nil {

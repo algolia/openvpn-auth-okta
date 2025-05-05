@@ -8,7 +8,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package oktaApiAuth
+package oktaAuthApi
 
 import (
 	"encoding/json"
@@ -23,10 +23,10 @@ import (
 )
 
 // Checks that the user belongs to the allowed groups list provided in the conf
-func (auth *OktaApiAuth) checkAllowedGroups() error {
-	log.Trace().Msg("oktaApiAuth.checkAllowedGroups()")
+func (auth *OktaAuthApi) checkAllowedGroups() error {
+	log.Trace().Msg("oktaAuthApi.checkAllowedGroups()")
 	// https://developer.okta.com/docs/reference/api/users/#request-parameters-8
-	if auth.ApiConfig.AllowedGroups != "" {
+	if auth.ProviderConfig.AllowedGroups != "" {
 		validate := validator.New(validator.WithRequiredStructEnabled())
 		code, apiRes, err := auth.oktaReq(http.MethodGet, fmt.Sprintf("/users/%s/groups", auth.UserConfig.Username), nil)
 		if err != nil {
@@ -54,7 +54,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 			return errors.New("invalid group list return by API")
 		}
 
-		var aGroups []string = strings.Split(auth.ApiConfig.AllowedGroups, ",")
+		var aGroups []string = strings.Split(auth.ProviderConfig.AllowedGroups, ",")
 		for _, uGroup := range groupRes {
 			gName := uGroup.Profile.Name
 			if slices.Contains(aGroups, gName) {
@@ -69,8 +69,8 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 
 // Parse the pre authentication api response and create 2 factor lists:
 // one for the TOTP factors and one for the Push factors
-func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP []AuthFactor, factorsPush []AuthFactor) {
-	log.Trace().Msg("oktaApiAuth.getUserFactors()")
+func (auth *OktaAuthApi) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP []AuthFactor, factorsPush []AuthFactor) {
+	log.Trace().Msg("oktaAuthApi.getUserFactors()")
 	for _, f := range preAuthRes.Embedded.Factors {
 		if f.Type == "token:software:totp" {
 			if auth.UserConfig.Passcode != "" {
@@ -85,8 +85,8 @@ func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP
 	return
 }
 
-func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
-	log.Trace().Msg("oktaApiAuth.preChecks()")
+func (auth *OktaAuthApi) preChecks() (PreAuthResponse, error) {
+	log.Trace().Msg("oktaAuthApi.preChecks()")
 	if err := auth.checkAllowedGroups(); err != nil {
 		log.Error().Msgf("allowed group verification error: %s", err)
 		return PreAuthResponse{}, err

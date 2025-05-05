@@ -8,7 +8,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package oktaApiAuth
+package oktaAuthApi
 
 import (
 	"fmt"
@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
 	"gopkg.in/h2non/gock.v1"
 )
 
@@ -138,22 +139,24 @@ func TestCheckAllowedGroups(t *testing.T) {
 			gock.Clean()
 			gock.Flush()
 
-			apiCfg := &OktaAPIConfig{
+			apiCfg := &authApi.APIConfig{
 				Url:                 oktaEndpoint,
-				Token:               test.token,
 				UsernameSuffix:      "algolia.com",
 				AssertPin:           pin,
 				MFARequired:         false,
 				AllowUntrustedUsers: true,
-				MFAPushMaxRetries:   20,
-				MFAPushDelaySeconds: 3,
-				AllowedGroups:       test.allowedGroups,
 			}
-			userCfg := &OktaUserConfig{
+			userCfg := &authApi.APIUserConfig{
 				Username: username,
 				Password: password,
 				Passcode: "",
 				ClientIp: ip,
+			}
+			providerCfg := &ProviderApiConfig{
+				Token:               test.token,
+				MFAPushMaxRetries:   20,
+				MFAPushDelaySeconds: 3,
+				AllowedGroups:       test.allowedGroups,
 			}
 
 			for _, req := range test.requests {
@@ -171,7 +174,8 @@ func TestCheckAllowedGroups(t *testing.T) {
 			assert.NotNil(t, a)
 			a.ApiConfig = apiCfg
 			a.UserConfig = userCfg
-			err := a.InitPool()
+			a.ProviderConfig = providerCfg
+			err := a.Setup()
 			assert.NoError(t, err)
 			gock.InterceptClient(a.pool)
 			// Lets ensure we wont reach the real okta API

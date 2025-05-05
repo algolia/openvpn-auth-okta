@@ -8,7 +8,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package oktaApiAuth
+package oktaAuthApi
 
 import (
 	"crypto/tls"
@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
 	"gopkg.in/h2non/gock.v1"
 )
 
@@ -33,14 +34,6 @@ type setupTest struct {
 	testName string
 	requests []authRequest
 	errMsg   string
-}
-
-type errorTest struct {
-	testName    string
-	inputErrMsg string
-	inputErr2   error
-	count       int
-	errMsg      string
 }
 
 func startTLS(t *testing.T) {
@@ -66,7 +59,7 @@ func startTLS(t *testing.T) {
 	t.Cleanup(func() { _ = s.Close() })
 }
 
-func TestInitPool(t *testing.T) {
+func TestOktaInitPool(t *testing.T) {
 	invalidHost := "invalid{host"
 	invalidHostErr := fmt.Sprintf("parse \"https://%s:%s\": invalid character \"{\" in host name",
 		invalidHost,
@@ -116,7 +109,7 @@ func TestInitPool(t *testing.T) {
 			a := New()
 			a.ApiConfig.Url = fmt.Sprintf("https://%s:%s", test.host, test.port)
 			a.ApiConfig.AssertPin = test.pinset
-			err := a.InitPool()
+			err := a.Setup()
 			if test.errMsg == "" {
 				assert.NoError(t, err)
 			} else {
@@ -165,21 +158,23 @@ func TestOktaReq(t *testing.T) {
 			gock.Clean()
 			gock.Flush()
 
-			apiCfg := &OktaAPIConfig{
+			apiCfg := &authApi.APIConfig{
 				Url:                 oktaEndpoint,
-				Token:               token,
 				UsernameSuffix:      "algolia.com",
 				AssertPin:           pin,
 				MFARequired:         false,
 				AllowUntrustedUsers: true,
-				MFAPushMaxRetries:   20,
-				MFAPushDelaySeconds: 3,
 			}
-			userCfg := &OktaUserConfig{
+			userCfg := &authApi.APIUserConfig{
 				Username: username,
 				Password: password,
 				Passcode: "",
 				ClientIp: ip,
+			}
+			providerCfg := &ProviderApiConfig{
+				Token:               token,
+				MFAPushMaxRetries:   20,
+				MFAPushDelaySeconds: 3,
 			}
 
 			for _, req := range test.requests {
@@ -198,7 +193,8 @@ func TestOktaReq(t *testing.T) {
 			assert.NotNil(t, a)
 			a.ApiConfig = apiCfg
 			a.UserConfig = userCfg
-			err := a.InitPool()
+			a.ProviderConfig = providerCfg
+			err := a.Setup()
 			assert.Nil(t, err)
 			gock.InterceptClient(a.pool)
 			// Lets ensure we wont reach the real okta API
@@ -206,68 +202,6 @@ func TestOktaReq(t *testing.T) {
 			_, _, err = a.oktaReq(http.MethodPost, test.requests[0].path, test.requests[0].payload)
 			if test.errMsg == "" {
 				assert.Nil(t, err)
-			} else {
-				if assert.Error(t, err) {
-					assert.EqualError(t, err, test.errMsg)
-				}
-			}
-		})
-	}
-}
-
-func TestParseOktaError(t *testing.T) {
-	nonWrappedLast := "non-wrapped error for last factor"
-	nonWrapped := "non-wrapped error for first factor"
-	tests := []errorTest{
-		{
-			"Test non-wrapped error for last factor",
-			nonWrappedLast,
-			nil,
-			1,
-			nonWrappedLast,
-		},
-		{
-			"Test non-wrapped error for non-last factor",
-			nonWrapped,
-			nil,
-			0,
-			"",
-		},
-		{
-			"Test wrapped error for last factor",
-			nonWrappedLast,
-			fmt.Errorf("ERROR"),
-			1,
-			"ERROR",
-		},
-		{
-			"Test wrapped error for non-last factor",
-			nonWrapped,
-			fmt.Errorf("ERROR"),
-			0,
-			"",
-		},
-		{
-			"Test no Error",
-			"",
-			nil,
-			1,
-			"",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.testName, func(t *testing.T) {
-			var inputErr error
-			if test.inputErrMsg != "" {
-				if test.inputErr2 != nil {
-					inputErr = fmt.Errorf("%s %w", test.inputErrMsg, test.inputErr2)
-				} else {
-					inputErr = fmt.Errorf("%s", test.inputErrMsg)
-				}
-			}
-			err := parseOktaError(inputErr, test.count, 2)
-			if test.errMsg == "" {
-				assert.NoError(t, err)
 			} else {
 				if assert.Error(t, err) {
 					assert.EqualError(t, err, test.errMsg)

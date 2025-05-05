@@ -8,40 +8,47 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package oktaApiAuth
+package oktaAuthApi
 
 import (
 	"errors"
 	"fmt"
 
 	"github.com/phuslu/log"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
 )
 
-// Returns an initialized oktaApiAuth
-func New() *OktaApiAuth {
+// Returns an initialized oktaAuthApi
+func New() *OktaAuthApi {
 
-	return &OktaApiAuth{
-		ApiConfig: &OktaAPIConfig{
+	return &OktaAuthApi{
+		ApiConfig: &authApi.APIConfig{
+			Provider:            "Okta",
 			AllowUntrustedUsers: false,
 			MFARequired:         false,
-			MFAPushMaxRetries:   20,
-			MFAPushDelaySeconds: 3,
-			AllowedGroups:       "",
 			TOTPFallbackToPush:  false,
 		},
-		UserConfig: &OktaUserConfig{},
+		UserConfig: &authApi.APIUserConfig{},
 	}
+}
+
+func (auth *OktaAuthApi) GetApiConfig() *authApi.APIConfig {
+	return auth.ApiConfig
+}
+
+func (auth *OktaAuthApi) GetUserConfig() *authApi.APIUserConfig {
+	return auth.UserConfig
 }
 
 // Iterates on the factor list provided and tries to authenticate the user
 // exit with no error at the first successful factor auth
-func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, factorType string) (err error) {
-	log.Trace().Msgf("oktaApiAuth.verifyFactors() %s", factorType)
+func (auth *OktaAuthApi) verifyFactors(stateToken string, factors []AuthFactor, factorType string) (err error) {
+	log.Trace().Msgf("oktaAuthApi.verifyFactors() %s", factorType)
 	nbFactors := len(factors)
 	for count, factor := range factors {
 		log.Debug().Msgf("verifying %s factor nb %d", factorType, count)
 		authRes, err := auth.doAuthFirstStep(factor, stateToken, factorType)
-		err = parseOktaError(err, count, nbFactors)
+		err = authApi.ParseError(err, count, nbFactors)
 		if err != nil {
 			return err
 		}
@@ -58,8 +65,8 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				}
 				continue
 			}
-			authRes, err = auth.waitForPush(factor, count, nbFactors, stateToken)
-			err = parseOktaError(err, count, nbFactors)
+			authRes, err = auth.waitForPush(factor, stateToken)
+			err = authApi.ParseError(err, count, nbFactors)
 			if err != nil {
 				return err
 			}
@@ -87,7 +94,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				fmt.Errorf("%s MFA failed", factorType))
 		}
 
-		err = parseOktaError(mfaErr, count, nbFactors)
+		err = authApi.ParseError(mfaErr, count, nbFactors)
 		if err != nil {
 			return err
 		}
@@ -100,8 +107,8 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 // Gather the list of factors available from the pre authentication api response,
 // if the user provided a TOTP in its passwordd string, try TOTP MFA
 // otherwise try Push MFA
-func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error) {
-	log.Trace().Msg("oktaApiAuth.validateUserMFA()")
+func (auth *OktaAuthApi) validateUserMFA(preAuthRes PreAuthResponse) (err error) {
+	log.Trace().Msg("oktaAuthApi.validateUserMFA()")
 
 	factorsTOTP, factorsPush := auth.getUserFactors(preAuthRes)
 
@@ -139,8 +146,8 @@ ERR:
 
 // Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
 // returns nil if has been validated by Okta API, an error otherwise
-func (auth *OktaApiAuth) Auth() error {
-	log.Trace().Msg("oktaApiAuth.Auth()")
+func (auth *OktaAuthApi) Auth() error {
+	log.Trace().Msg("oktaAuthApi.Auth()")
 	log.Info().Msgf("Authenticating")
 	preAuthRes, err := auth.preChecks()
 	if err != nil {

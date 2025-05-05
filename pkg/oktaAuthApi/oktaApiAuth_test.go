@@ -8,7 +8,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package oktaApiAuth
+package oktaAuthApi
 
 import (
 	"fmt"
@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
 	"gopkg.in/h2non/gock.v1"
 )
 
@@ -38,7 +39,7 @@ const (
 	   	openssl dgst -sha256 -binary | base64
 	*/
 	tlsHost       string = "127.0.0.1"
-	tlsPort       string = "1443"
+	tlsPort       string = "2443"
 	validPinset   string = "j69yToSVkR6G7RKEc0qvsA6MysH+luI3wBIihDA20nI="
 	invalidPinset string = "ABCDEF"
 )
@@ -72,23 +73,25 @@ func commonAuthTest(authTests []authTest, t *testing.T) {
 			gock.CleanUnmatchedRequest()
 			gock.Flush()
 
-			apiCfg := &OktaAPIConfig{
+			apiCfg := &authApi.APIConfig{
 				Url:                 oktaEndpoint,
-				Token:               token,
 				UsernameSuffix:      "algolia.com",
 				AssertPin:           pin,
 				MFARequired:         test.mfaRequired,
 				AllowUntrustedUsers: true,
-				MFAPushMaxRetries:   test.pushRetries,
-				MFAPushDelaySeconds: 0,
-				AllowedGroups:       test.allowedGroups,
 				TOTPFallbackToPush:  test.fallback,
 			}
-			userCfg := &OktaUserConfig{
+			userCfg := &authApi.APIUserConfig{
 				Username: username,
 				Password: password,
 				Passcode: test.passcode,
 				ClientIp: ip,
+			}
+			providerCfg := &ProviderApiConfig{
+				Token:               token,
+				MFAPushMaxRetries:   test.pushRetries,
+				MFAPushDelaySeconds: 0,
+				AllowedGroups:       test.allowedGroups,
 			}
 
 			for _, req := range test.requests {
@@ -113,11 +116,12 @@ func commonAuthTest(authTests []authTest, t *testing.T) {
 				}
 			}
 
-			a := &OktaApiAuth{
-				ApiConfig:  apiCfg,
-				UserConfig: userCfg,
+			a := &OktaAuthApi{
+				ApiConfig:      apiCfg,
+				UserConfig:     userCfg,
+				ProviderConfig: providerCfg,
 			}
-			err := a.InitPool()
+			err := a.Setup()
 			assert.Nil(t, err)
 
 			gock.InterceptClient(a.pool)
