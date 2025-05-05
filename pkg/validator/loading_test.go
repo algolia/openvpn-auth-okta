@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaAuthApi"
 )
 
 const pin string = "SE4qe2vdD9tAegPwO79rMnZyhHvqj3i5g1c2HkyGUNE="
@@ -93,14 +93,15 @@ func TestLoadViaFile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			v := New()
-			v.api = oktaApiAuth.New()
-			v.api.ApiConfig.UsernameSuffix = test.usernameSuffix
+			v.api = oktaAuthApi.New()
+			v.api.GetApiConfig().UsernameSuffix = test.usernameSuffix
+			userConfig := v.api.GetUserConfig()
 			err := v.loadViaFile(test.path)
 			if test.errMsg == "" {
 				assert.NoError(t, err)
-				assert.NotNil(t, v.api.UserConfig)
-				assert.Equal(t, test.expectedUsername, v.api.UserConfig.Username)
-				assert.Equal(t, test.expectedPassword, v.api.UserConfig.Password)
+				assert.NotNil(t, userConfig)
+				assert.Equal(t, test.expectedUsername, userConfig.Username)
+				assert.Equal(t, test.expectedPassword, userConfig.Password)
 			} else {
 				if assert.Error(t, err) {
 					assert.EqualError(t, err, test.errMsg)
@@ -227,14 +228,15 @@ func TestLoadEnvVars(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			setEnv(test.env)
 			v := New()
-			v.api.ApiConfig.UsernameSuffix = test.usernameSuffix
-			v.api.ApiConfig.AllowUntrustedUsers = test.allowUntrustedUsers
+			v.api = oktaAuthApi.New()
+			v.api.GetApiConfig().UsernameSuffix = test.usernameSuffix
+			v.api.GetApiConfig().AllowUntrustedUsers = test.allowUntrustedUsers
 			err := v.loadEnvVars(nil)
 			unsetEnv(test.env)
 			assert.Equal(t, test.expectedTrusted, v.usernameTrusted)
 			if test.errMsg == "" {
 				assert.NoError(t, err)
-				assert.Equal(t, test.expectedUsername, v.api.UserConfig.Username)
+				assert.Equal(t, test.expectedUsername, v.api.GetUserConfig().Username)
 			} else {
 				assert.EqualError(t, err, test.errMsg)
 			}

@@ -32,7 +32,7 @@ func (validator *OktaOpenVPNValidator) parsePassword() {
 	// If the password provided by the user is longer than a OTP (6 cars)
 	// and the last 6 caracters are digits
 	// then extract the user password (first) and the OTP
-	userConfig := validator.api.UserConfig
+	userConfig := validator.api.GetUserConfig()
 	if len(userConfig.Password) > passcodeLen {
 		last := userConfig.Password[len(userConfig.Password)-passcodeLen:]
 		if _, err := strconv.Atoi(last); err == nil {
@@ -134,7 +134,7 @@ func (validator *OktaOpenVPNValidator) setLogUser() {
 			a.Time,
 			validator.sessionId,
 			strings.ToUpper(a.Level),
-			validator.api.UserConfig.Username,
+			validator.api.GetUserConfig().Username,
 			a.Message)
 	}
 }

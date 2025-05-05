@@ -17,10 +17,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaApiAuth"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/duoAuthApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaAuthApi"
 )
 
-type OktaApiAuth = oktaApiAuth.OktaApiAuth
+type OktaAuthApi = oktaAuthApi.OktaAuthApi
+type DuoAuthApi = duoAuthApi.DuoAuthApi
 
 type OktaOpenVPNValidator struct {
 	configFile      string
@@ -29,14 +32,14 @@ type OktaOpenVPNValidator struct {
 	isUserValid     bool
 	controlFile     string
 	sessionId       string
-	api             *OktaApiAuth
+	api             authApi.AuthApi
 }
 
 // Returns a validator:
 // if no args is provided LogLevel will be INFO
 // if a arg is provided and in ["TRACE","DEBUG","INFO","WARN","WARNING","ERROR"] use it as LogLevel
 func New(args ...string) *OktaOpenVPNValidator {
-	api := oktaApiAuth.New()
+	//api := oktaAuthApi.New()
 	luuid := uuid.NewString()
 	defaultLevel := "INFO"
 	if len(args) > 0 {
@@ -50,7 +53,7 @@ func New(args ...string) *OktaOpenVPNValidator {
 		controlFile:     "",
 		configFile:      "",
 		sessionId:       luuid,
-		api:             api,
+		api:             nil,
 	}
 	v.initLogFormatter(log.ParseLevel(defaultLevel))
 	return v
@@ -108,7 +111,7 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
 		return false
 	}
 	validator.parsePassword()
-	if err := validator.api.InitPool(); err != nil {
+	if err := validator.api.Setup(); err != nil {
 		log.Error().Msg("Initpool failure")
 		return false
 	}

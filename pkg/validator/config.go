@@ -12,9 +12,11 @@ package validator
 
 import (
 	"errors"
-	"gopkg.in/ini.v1"
 	"os"
 	"strings"
+
+	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
+	"gopkg.in/ini.v1"
 
 	"github.com/phuslu/log"
 )
@@ -72,18 +74,56 @@ func (validator *OktaOpenVPNValidator) readConfigFile() error {
 				log.DefaultLogger.Level.String(),
 				[]string{"TRACE", "DEBUG", "INFO", "WARN", "WARNING", "ERROR"}))
 
-		apiConfig := validator.api.ApiConfig
-		if err := cfg.Section("OktaAPI").StrictMapTo(apiConfig); err != nil {
+		apiConfig := &authApi.APIConfig{
+			Provider:            "",
+			AllowUntrustedUsers: false,
+			MFARequired:         false,
+			TOTPFallbackToPush:  false,
+		}
+
+		// Identify the MFA provider from the "General" section
+		apiConfig.Provider = cfg.Section("General").Key("Provider").In(
+			"",
+			[]string{"Okta", "Duo"})
+
+		if apiConfig.Provider != "Duo" && apiConfig.Provider != "Okta" {
+			log.Error().Msgf("Unsupported MFA provider %s in \"%s\"",
+				apiConfig.Provider,
+				cfgFile)
+			return errors.New("Unsupported MFA provider")
+		}
+
+		switch apiConfig.Provider {
+		case "Okta":
+			validator.api = &OktaAuthApi{
+				ApiConfig:  apiConfig,
+				UserConfig: &authApi.APIUserConfig{},
+			}
+
+		case "Duo":
+			validator.api = &DuoAuthApi{
+				ApiConfig:  apiConfig,
+				UserConfig: &authApi.APIUserConfig{},
+			}
+		}
+
+		if err = validator.api.ParseConfig(cfg); err != nil {
+			return err
+		}
+
+		if err := cfg.Section("General").StrictMapTo(apiConfig); err != nil {
 			log.Error().Msgf("Error parsing ini file \"%s\": %s",
 				cfgFile,
 				err)
 			return err
 		}
-		if apiConfig.Url == "" || apiConfig.Token == "" {
-			log.Error().Msgf("Missing Url or Token parameter in \"%s\"",
+
+		if apiConfig.Url == "" {
+			log.Error().Msgf("Missing Url parameter in \"%s\"",
 				cfgFile)
-			return errors.New("Missing param Url or Token")
+			return errors.New("Missing param Url")
 		}
+
 		validator.configFile = cfgFile
 		return nil
 	}
@@ -123,7 +163,7 @@ func (validator *OktaOpenVPNValidator) loadPinset() error {
 
 		pinsetArray := strings.Split(string(pinset), "\n")
 		cleanPinset := removeComments(removeEmptyStrings(pinsetArray))
-		validator.api.ApiConfig.AssertPin = cleanPinset
+		validator.api.GetApiConfig().AssertPin = cleanPinset
 		validator.pinsetFile = pinsetFile
 		return nil
 	}

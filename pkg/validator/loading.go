@@ -70,12 +70,12 @@ func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
 		return errors.New("Invalid CN or username format")
 	}
 
-	apiConfig := validator.api.ApiConfig
+	apiConfig := validator.api.GetApiConfig()
 	validator.usernameTrusted = true
 	if apiConfig.UsernameSuffix != "" && !strings.Contains(username, "@") {
 		username = fmt.Sprintf("%s@%s", username, apiConfig.UsernameSuffix)
 	}
-	userConfig := validator.api.UserConfig
+	userConfig := validator.api.GetUserConfig()
 	userConfig.Username = username
 	userConfig.Password = password
 	return nil
@@ -102,7 +102,7 @@ func (validator *OktaOpenVPNValidator) loadEnvVars(pluginEnv *PluginEnv) error {
 	// if the username comes from a certificate and AllowUntrustedUsers is false:
 	// user is trusted
 	// otherwise BE CAREFUL, username from OpenVPN credentials will be used !
-	apiConfig := validator.api.ApiConfig
+	apiConfig := validator.api.GetApiConfig()
 	if pluginEnv.CommonName != "" && !apiConfig.AllowUntrustedUsers {
 		validator.usernameTrusted = true
 		pluginEnv.Username = pluginEnv.CommonName
@@ -131,7 +131,7 @@ func (validator *OktaOpenVPNValidator) loadEnvVars(pluginEnv *PluginEnv) error {
 		pluginEnv.Username = fmt.Sprintf("%s@%s", pluginEnv.Username, apiConfig.UsernameSuffix)
 	}
 
-	userConfig := validator.api.UserConfig
+	userConfig := validator.api.GetUserConfig()
 	userConfig.Username = pluginEnv.Username
 	userConfig.Password = pluginEnv.Password
 	userConfig.ClientIp = pluginEnv.ClientIp
