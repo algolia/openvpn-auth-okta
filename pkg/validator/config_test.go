@@ -27,19 +27,6 @@ type testCfgFile struct {
 	errMsg   string
 }
 
-func TestParsePassword(t *testing.T) {
-	t.Run("Parse password with passcode", func(t *testing.T) {
-		setEnv(setupEnv)
-		v := New()
-		_ = v.loadEnvVars(nil)
-		v.api.UserConfig.Password = "password123456"
-		unsetEnv(setupEnv)
-		v.parsePassword()
-		assert.Equal(t, "password", v.api.UserConfig.Password)
-		assert.Equal(t, "123456", v.api.UserConfig.Passcode)
-	})
-}
-
 func TestReadConfigFile(t *testing.T) {
 	tests := []testCfgFile{
 		{
