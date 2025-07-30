@@ -48,3 +48,7 @@ Token:
 # If a passcode is provided and TOTP MFA fails, try Push MFA
 ## (Optional, default: False)
 TOTPFallbackToPush: False
+
+# Character used to separate VPN password from TOTP (passcode)
+## (Optional, default: "")
+PasscodeSeparator:

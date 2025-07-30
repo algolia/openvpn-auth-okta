@@ -28,6 +28,7 @@ func New() *OktaApiAuth {
 			MFAPushDelaySeconds: 3,
 			AllowedGroups:       "",
 			TOTPFallbackToPush:  false,
+			PasscodeSeparator:   "",
 		},
 		UserConfig: &OktaUserConfig{},
 	}

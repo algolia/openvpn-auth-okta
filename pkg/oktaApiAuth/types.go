@@ -47,6 +47,9 @@ type OktaAPIConfig struct {
 
 	// If a passcode is provided and TOTP MFA fails, try Push MFA
 	TOTPFallbackToPush bool // default: false
+
+	// Character used as separator between VPN password and Okta passcode
+	PasscodeSeparator string
 }
 
 // User credentials and informations
