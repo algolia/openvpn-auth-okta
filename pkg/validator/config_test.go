@@ -54,6 +54,12 @@ func TestReadConfigFile(t *testing.T) {
 			"key-value delimiter not found: UsernameSuffix\n",
 		},
 		{
+			"Invalid separator in config file - failure",
+			"../../testing/fixtures/validator/invalid_separator.ini",
+			"",
+			"Invalid passcode separator",
+		},
+		{
 			"Missing config file - failure",
 			"MISSING",
 			"",
