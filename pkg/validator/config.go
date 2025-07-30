@@ -12,9 +12,10 @@ package validator
 
 import (
 	"errors"
-	"gopkg.in/ini.v1"
 	"os"
 	"strings"
+
+	"gopkg.in/ini.v1"
 
 	"github.com/phuslu/log"
 )
@@ -83,6 +84,11 @@ func (validator *OktaOpenVPNValidator) readConfigFile() error {
 			log.Error().Msgf("Missing Url or Token parameter in \"%s\"",
 				cfgFile)
 			return errors.New("Missing param Url or Token")
+		}
+		if len(apiConfig.PasscodeSeparator) > 1 {
+			log.Error().Msgf("Invalid passcode separator in \"%s\", it should be empty or 1 character long",
+				cfgFile)
+			return errors.New("Invalid passcode separator")
 		}
 		validator.configFile = cfgFile
 		return nil
