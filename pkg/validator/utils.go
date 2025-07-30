@@ -29,18 +29,27 @@ const passcodeLen int = 6
 // Parse the password looking for an TOTP
 func (validator *OktaOpenVPNValidator) parsePassword() {
 	log.Trace().Msg("validator.parsePassword()")
+	separator := validator.api.ApiConfig.PasscodeSeparator
 	// If the password provided by the user is longer than a OTP (6 cars)
 	// and the last 6 caracters are digits
 	// then extract the user password (first) and the OTP
 	userConfig := validator.api.UserConfig
-	if len(userConfig.Password) > passcodeLen {
-		last := userConfig.Password[len(userConfig.Password)-passcodeLen:]
-		if _, err := strconv.Atoi(last); err == nil {
-			userConfig.Passcode = last
-			userConfig.Password = userConfig.Password[:len(userConfig.Password)-passcodeLen]
+
+	r, _ := regexp.Compile("[0-9]{" + strconv.Itoa(passcodeLen) + "}$")
+	idx := r.FindStringIndex(userConfig.Password)
+
+	if idx != nil {
+		if len(separator) == 1 && idx[0]-1 > 0 && userConfig.Password[idx[0]-1] == separator[0] {
+			userConfig.Passcode = userConfig.Password[idx[0]:]
+			userConfig.Password = userConfig.Password[0 : idx[0]-1]
+		} else if len(separator) == 0 {
+			userConfig.Passcode = userConfig.Password[idx[0]:]
+			userConfig.Password = userConfig.Password[0:idx[0]]
 		} else {
 			log.Debug().Msgf("no TOTP found in password")
 		}
+	} else {
+		log.Debug().Msgf("no TOTP found in password")
 	}
 }
 

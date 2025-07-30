@@ -32,6 +32,64 @@ type testControlFile struct {
 	errMsg   string
 }
 
+type testParse struct {
+	testName          string
+	password          string
+	separator         string
+	expected_password string
+	expected_passcode string
+}
+
+func TestParsePassword(t *testing.T) {
+	tests := []testParse{
+		{
+			"TOTP - empty separator",
+			"toto0123456",
+			"",
+			"toto0",
+			"123456",
+		},
+		{
+			"TOTP - non empty separator",
+			"toto0|123456",
+			"|",
+			"toto0",
+			"123456",
+		},
+		{
+			"no TOTP - empty separator",
+			"toto12345",
+			"",
+			"toto12345",
+			"",
+		},
+		{
+			"no TOTP - non empty separator",
+			"toto12345",
+			"|",
+			"toto12345",
+			"",
+		},
+		{
+			"no TOTP - misplaced non empty separator",
+			"tot|o123456",
+			"|",
+			"tot|o123456",
+			"",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			v := New()
+			v.api.ApiConfig.PasscodeSeparator = test.separator
+			v.api.UserConfig.Password = test.password
+			v.parsePassword()
+			assert.Equal(t, test.expected_password, v.api.UserConfig.Password)
+			assert.Equal(t, test.expected_passcode, v.api.UserConfig.Passcode)
+		})
+	}
+}
+
 func TestCheckUsernameFormat(t *testing.T) {
 	tests := []usernameTest{
 		{
