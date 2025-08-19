@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.8.6
+Version: 2.9.0
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -86,6 +86,16 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Tue Aug 19 2025 Jeremy JACQUE <jeremy.jacque@algolia.com> - 2.9.0-1
+- chore(deps): bump go dep to 1.24 for packaging
+- chore(doc): update list of available distro / arch
+- chore(deps): bump github.com/go-playground/validator/v10
+- chore(deps): bump github.com/phuslu/log from 1.0.117 to 1.0.119
+- feat: add an option to configure a separator between the VPN password and the TOTP passcode
+- chore(validator): ensure the separator length is 1 - a character
+- clean(validator/test): the TestParsePassword func has been move to utils test
+- chore: add missing test for separator validity in ini file
+
 * Wed Apr 30 2025 Jeremy JACQUE <jeremy.jacque@algolia.com> - 2.8.6-1
 - chore(deps): bump github.com/go-playground/validator/v10
 - chore(deps): bump golang.org/x/net from 0.34.0 to 0.36.0
