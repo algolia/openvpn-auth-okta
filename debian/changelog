@@ -1,3 +1,18 @@
+openvpn-auth-okta (2.9.0) stable; urgency=medium
+
+  [ Jeremy JACQUE ]
+  * chore(doc): update list of available distro / arch
+  * feat: add an potion to configure a separator between the VPN password and the TOTP passcode
+  * chore(validator): ensure the separator length is 1 - a character
+  * clean(validator/test): the TestParsePassword func has been move to utils test
+  * chore: add missing test for separator validity in ini file
+
+  [ dependabot[bot] ]
+  * chore(deps): bump github.com/go-playground/validator/v10
+  * chore(deps): bump github.com/phuslu/log from 1.0.117 to 1.0.119
+
+ -- Jeremy JACQUE <jeremy.jacque@algolia.com>  Tue, 19 Aug 2025 14:03:31 +0200
+
 openvpn-auth-okta (2.8.6) stable; urgency=medium
 
   [ dependabot[bot] ]
