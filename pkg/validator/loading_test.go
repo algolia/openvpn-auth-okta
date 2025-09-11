@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaAuthApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/oktaAuthApi"
 )
 
 const pin string = "SE4qe2vdD9tAegPwO79rMnZyhHvqj3i5g1c2HkyGUNE="

@@ -17,9 +17,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/duoAuthApi"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaAuthApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/duoAuthApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/oktaAuthApi"
 )
 
 type OktaAuthApi = oktaAuthApi.OktaAuthApi

@@ -15,7 +15,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
 	"gopkg.in/ini.v1"
 
 	"github.com/phuslu/log"

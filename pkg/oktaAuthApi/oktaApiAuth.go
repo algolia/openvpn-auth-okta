@@ -15,7 +15,7 @@ import (
 	"fmt"
 
 	"github.com/phuslu/log"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
 )
 
 // Returns an initialized oktaAuthApi

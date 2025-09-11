@@ -21,7 +21,7 @@ The following C functions are exported (and interesting):
 package main
 
 import (
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/validator"
 )
 
 /*

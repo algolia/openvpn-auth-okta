@@ -11,12 +11,11 @@
 package duoAuthApi
 
 import (
-	"net/http"
 	"time"
 
 	duo "github.com/duosecurity/duo_api_golang"
 	duoauth "github.com/duosecurity/duo_api_golang/authapi"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
 )
 
 // Prepare an http client with a safe TLS config
@@ -40,6 +39,8 @@ func (auth *DuoAuthApi) Setup() error {
 
 // only used by validator_test.go
 // nolint:unused
+/*
 func (auth *DuoAuthApi) getPool() *http.Client {
 	return auth.pool
 }
+*/

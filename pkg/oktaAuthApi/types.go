@@ -13,7 +13,7 @@ package oktaAuthApi
 import (
 	"net/http"
 
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
 )
 
 type ProviderApiConfig struct {

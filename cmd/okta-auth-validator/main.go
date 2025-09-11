@@ -17,7 +17,7 @@ import (
 	"flag"
 	"os"
 
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/validator"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/validator"
 )
 
 var (

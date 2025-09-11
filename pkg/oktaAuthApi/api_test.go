@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
 	"gopkg.in/h2non/gock.v1"
 )
 

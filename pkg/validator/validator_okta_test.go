@@ -18,7 +18,7 @@ import (
 	_ "unsafe"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaAuthApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/oktaAuthApi"
 	"gopkg.in/h2non/gock.v1"
 )
 

@@ -18,7 +18,7 @@ import (
 
 	duoauth "github.com/duosecurity/duo_api_golang/authapi"
 	"github.com/phuslu/log"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
 )
 
 var (

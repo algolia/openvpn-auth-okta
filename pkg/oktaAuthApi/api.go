@@ -22,7 +22,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/phuslu/log"
-	"gopkg.in/algolia/openvpn-auth-okta.v2/pkg/authApi"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
 )
 
 func (auth *OktaAuthApi) Setup() (err error) {
