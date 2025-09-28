@@ -25,7 +25,7 @@ var (
 	deferred *bool
 )
 
-type OktaOpenVPNValidator = validator.OktaOpenVPNValidator
+type OktaOpenVPNValidator = validator.OpenVPNValidator
 
 func main() {
 	logLevel := "INFO"

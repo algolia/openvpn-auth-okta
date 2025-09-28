@@ -26,17 +26,17 @@ GOPLUGIN_LDFLAGS := -ldflags '-s -w -extldflags "-static"'
 GOPLUGIN_FLAGS := -trimpath -buildmode=pie -a $(GOPLUGIN_LDFLAGS)
 
 ifeq ($(UNAME_S),Linux)
-LIBOKTA_LDFLAGS := -ldflags '-s -w -extldflags -Wl,-soname,libokta-auth-validator.so'
-CPLUGIN_LDFLAGS := $(LDFLAGS) -Wl,-soname,openvpn-plugin-auth-okta.so
+LIBOKTA_LDFLAGS := -ldflags '-s -w -extldflags -Wl,-soname,libauth-validator.so'
+CPLUGIN_LDFLAGS := $(LDFLAGS) -Wl,-soname,openvpn-plugin-auth.so
 else
 # MacOs X
-LIBOKTA_LDFLAGS := -ldflags '-s -w -extldflags -Wl,-install_name,libokta-auth-validator.so'
-CPLUGIN_LDFLAGS := $(LDFLAGS) -Wl,-install_name,openvpn-plugin-auth-okta.so
+LIBOKTA_LDFLAGS := -ldflags '-s -w -extldflags -Wl,-install_name,libauth-validator.so'
+CPLUGIN_LDFLAGS := $(LDFLAGS) -Wl,-install_name,openvpn-plugin-auth.so
 endif
 LIBOKTA_FLAGS := -trimpath -buildmode=c-shared $(LIBOKTA_LDFLAGS)
 
 PKG_SRC := $(shell ls pkg/*/*.go | grep -v "_test.go")
-PLUGIN_DEPS := $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.o openvpn-plugin.h
+PLUGIN_DEPS := $(BUILDDIR)/libauth-validator.so $(BUILDDIR)/openvpn-plugin-auth.o openvpn-plugin.h
 
 
 all: binary plugin
@@ -48,20 +48,20 @@ $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Build the plugin as a standalone binary
-binary: $(BUILDDIR)/okta-auth-validator
-$(BUILDDIR)/okta-auth-validator: cmd/okta-auth-validator/main.go $(PKG_SRC) | $(BUILDDIR)
-	CGO_ENABLED=$(CGO) go build $(GOPLUGIN_FLAGS) -o $(BUILDDIR)/okta-auth-validator cmd/okta-auth-validator/main.go
+binary: $(BUILDDIR)/auth-validator
+$(BUILDDIR)/auth-validator: cmd/auth-validator/main.go $(PKG_SRC) | $(BUILDDIR)
+	CGO_ENABLED=$(CGO) go build $(GOPLUGIN_FLAGS) -o $(BUILDDIR)/auth-validator cmd/auth-validator/main.go
 
-# Build the openvpn-plugin-auth-okta plugin (linked against the Go c-shared lib)
-$(BUILDDIR)/openvpn-plugin-auth-okta.so: $(PLUGIN_DEPS)
-	$(CC) $(CPLUGIN_LDFLAGS) -o $(BUILDDIR)/openvpn-plugin-auth-okta.so $(BUILDDIR)/openvpn-plugin-auth-okta.o
+# Build the openvpn-plugin-auth plugin (linked against the Go c-shared lib)
+$(BUILDDIR)/openvpn-plugin-auth.so: $(PLUGIN_DEPS)
+	$(CC) $(CPLUGIN_LDFLAGS) -o $(BUILDDIR)/openvpn-plugin-auth.so $(BUILDDIR)/openvpn-plugin-auth.o
 
-# Build the okta-auth-validator shared lib (Golang c-shared)
-$(BUILDDIR)/libokta-auth-validator.so: lib/libokta-auth-validator.go $(PKG_SRC) | $(BUILDDIR)
-	go build $(LIBOKTA_FLAGS) -o $(BUILDDIR)/libokta-auth-validator.so lib/libokta-auth-validator.go
+# Build the auth-validator shared lib (Golang c-shared)
+$(BUILDDIR)/libauth-validator.so: lib/libauth-validator.go $(PKG_SRC) | $(BUILDDIR)
+	go build $(LIBOKTA_FLAGS) -o $(BUILDDIR)/libauth-validator.so lib/libauth-validator.go
 
 # Build all shared libraries
-plugin: $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.so
+plugin: $(BUILDDIR)/libauth-validator.so $(BUILDDIR)/openvpn-plugin-auth.so
 
 test: $(BUILDDIR)/cover.out
 
@@ -78,7 +78,7 @@ badge: $(BUILDDIR)/cover-badge.out
 $(BUILDDIR)/cover.out: | $(BUILDDIR)
 	# Ensure tests wont fail because of crappy permissions
 	chmod -R g-w,o-w testing/fixtures
-	go test ./pkg/... -v -cover -coverprofile=$(BUILDDIR)/cover.out -covermode=atomic -coverpkg=./pkg/...
+	go test ./pkg/... -tags testing -failfast -v -cover -coverprofile=$(BUILDDIR)/cover.out -covermode=atomic -coverpkg=./pkg/...
 
 # Creates the coverage.html
 $(BUILDDIR)/coverage.html: $(BUILDDIR)/cover.out
@@ -98,18 +98,18 @@ lint:
 
 install: all
 	mkdir -p $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)
-	mkdir -p $(DESTDIR)/etc/okta-auth-validator/
+	mkdir -p $(DESTDIR)/etc/auth-validator/
 	mkdir -p $(DESTDIR)/usr/include
 	mkdir -p $(DESTDIR)/usr/bin
-	$(INSTALL) -m755 $(BUILDDIR)/okta-auth-validator $(DESTDIR)/usr/bin/
-	$(INSTALL) -m644 $(BUILDDIR)/libokta-auth-validator.so $(DESTDIR)/$(LIB_PREFIX)/
-	$(INSTALL) -m644 $(BUILDDIR)/libokta-auth-validator.h $(DESTDIR)/usr/include/
-	$(INSTALL) -m644 $(BUILDDIR)/openvpn-plugin-auth-okta.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
-	if [ ! -f $(DESTDIR)/etc/okta-auth-validator/pinset.cfg ]; then \
-		$(INSTALL) -m644 config/pinset.cfg $(DESTDIR)/etc/okta-auth-validator/pinset.cfg; \
+	$(INSTALL) -m755 $(BUILDDIR)/auth-validator $(DESTDIR)/usr/bin/
+	$(INSTALL) -m644 $(BUILDDIR)/libauth-validator.so $(DESTDIR)/$(LIB_PREFIX)/
+	$(INSTALL) -m644 $(BUILDDIR)/libauth-validator.h $(DESTDIR)/usr/include/
+	$(INSTALL) -m644 $(BUILDDIR)/openvpn-plugin-auth.so $(DESTDIR)/$(LIB_PREFIX)/$(PLUGIN_DIR)/
+	if [ ! -f $(DESTDIR)/etc/auth-validator/pinset.cfg ]; then \
+		$(INSTALL) -m644 config/pinset.cfg $(DESTDIR)/etc/auth-validator/pinset.cfg; \
 	fi
-	if [ ! -f $(DESTDIR)/etc/okta-auth-validator/api.ini ]; then \
-		$(INSTALL) -m640 config/api.ini.inc $(DESTDIR)/etc/okta-auth-validator/api.ini; \
+	if [ ! -f $(DESTDIR)/etc/auth-validator/api.ini ]; then \
+		$(INSTALL) -m640 config/api.ini.inc $(DESTDIR)/etc/auth-validator/api.ini; \
 	fi
 
 clean:

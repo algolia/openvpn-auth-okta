@@ -13,10 +13,10 @@ This lib is meant to be used along with OpenVPN:
 it's purpose is to be dynamically loaded (using dlopen/dlsyms/...)
 by a C "plugin wrapper".
 The following C functions are exported (and interesting):
-  - ArgsOktaAuthValidatorV2 * oav_args_from_env_v2(const char *envp[])
+  - ArgsAuthValidatorV3* oav_args_from_env(const char* envp[])
     that creates an plugin argument dedicated struct from the OPENVPN_PLUGIN env
-  - extern void OktaAuthValidatorV2(ArgsOktaAuthValidatorV2* args)
-    that run the Go OktaAuthValidator authentication (using the previously created struct)
+  - extern void AuthValidatorV3(ArgsAuthValidatorV3* args)
+    that run the Go AuthValidator authentication (using the previously created struct)
 */
 package main
 
@@ -58,7 +58,7 @@ get_env(const char *name, const char *envp[])
   return "";
 }
 
-// Used to pass arguments to OktaAuthValidatorV2()
+// Used to pass arguments to AuthValidatorV3()
 // None of this should be null, an empty string is at least expected
 typedef struct {
 	const char *CtrFile;
@@ -66,13 +66,13 @@ typedef struct {
 	const char *CN;
 	const char *User;
 	const char *Pass;
-} ArgsOktaAuthValidatorV2;
+} ArgsAuthValidatorV3;
 
 // Extract from envp all what's needed to populate a struct suitable
-// for OktaAuthValidatorV2
+// for AuthValidatorV3
 // The go_args pointer has to be allocated
 static bool
-oav_args_from_env_v2(const char *envp[], ArgsOktaAuthValidatorV2 *go_args)
+oav_args_from_env(const char *envp[], ArgsAuthValidatorV3 *go_args)
 {
   if(go_args)
   {
@@ -94,34 +94,22 @@ type PluginEnv = validator.PluginEnv
 func RunValidator(pluginEnv *PluginEnv) {
 	v := validator.New()
 	if res := v.Setup(true, nil, pluginEnv); !res {
+		// Setup failed, refuse permission by writing to control file (if possible) default value (false)
+		v.WriteControlFile()
 		return
 	}
 	_ = v.Authenticate()
 	v.WriteControlFile()
 }
 
-//export OktaAuthValidatorV2
-func OktaAuthValidatorV2(args *C.ArgsOktaAuthValidatorV2) {
+//export AuthValidatorV3
+func AuthValidatorV3(args *C.ArgsAuthValidatorV3) {
 	pluginEnv := &PluginEnv{
 		Username:    C.GoString(args.User),
 		CommonName:  C.GoString(args.CN),
 		Password:    C.GoString(args.Pass),
 		ClientIp:    C.GoString(args.IP),
 		ControlFile: C.GoString(args.CtrFile),
-	}
-	RunValidator(pluginEnv)
-}
-
-// Deprecated: replaced by OktaAuthValidatorV2
-//
-//export OktaAuthValidator
-func OktaAuthValidator(ctrF *C.char, ip *C.char, cn *C.char, user *C.char, pass *C.char) {
-	pluginEnv := &PluginEnv{
-		Username:    C.GoString(user),
-		CommonName:  C.GoString(cn),
-		Password:    C.GoString(pass),
-		ClientIp:    C.GoString(ip),
-		ControlFile: C.GoString(ctrF),
 	}
 	RunValidator(pluginEnv)
 }

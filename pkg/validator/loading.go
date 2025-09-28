@@ -41,7 +41,7 @@ type PluginEnv struct {
 }
 
 // Get user credentials from the OpenVPN via-file
-func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
+func (validator *OpenVPNValidator) loadViaFile(path string) error {
 	log.Trace().Msg("validator.loadViaFile()")
 	if _, err := os.Stat(path); err != nil {
 		log.Error().Msgf("OpenVPN via-file \"%s\" does not exists", path)
@@ -82,7 +82,7 @@ func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
 }
 
 // Get user credentials and info from the environment set by OpenVPN
-func (validator *OktaOpenVPNValidator) loadEnvVars(pluginEnv *PluginEnv) error {
+func (validator *OpenVPNValidator) loadEnvVars(pluginEnv *PluginEnv) error {
 	log.Trace().Msg("validator.loadEnvVars()")
 	if pluginEnv == nil {
 		pluginEnv = &PluginEnv{

@@ -25,7 +25,7 @@ import (
 type OktaAuthApi = oktaAuthApi.OktaAuthApi
 type DuoAuthApi = duoAuthApi.DuoAuthApi
 
-type OktaOpenVPNValidator struct {
+type OpenVPNValidator struct {
 	configFile      string
 	pinsetFile      string
 	usernameTrusted bool
@@ -38,7 +38,7 @@ type OktaOpenVPNValidator struct {
 // Returns a validator:
 // if no args is provided LogLevel will be INFO
 // if a arg is provided and in ["TRACE","DEBUG","INFO","WARN","WARNING","ERROR"] use it as LogLevel
-func New(args ...string) *OktaOpenVPNValidator {
+func New(args ...string) *OpenVPNValidator {
 	//api := oktaAuthApi.New()
 	luuid := uuid.NewString()
 	defaultLevel := "INFO"
@@ -47,7 +47,7 @@ func New(args ...string) *OktaOpenVPNValidator {
 			defaultLevel = args[0]
 		}
 	}
-	v := &OktaOpenVPNValidator{
+	v := &OpenVPNValidator{
 		usernameTrusted: false,
 		isUserValid:     false,
 		controlFile:     "",
@@ -60,7 +60,7 @@ func New(args ...string) *OktaOpenVPNValidator {
 }
 
 // Setup the validator depending on the way it's invoked
-func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, pluginEnv *PluginEnv) bool {
+func (validator *OpenVPNValidator) Setup(deferred bool, args []string, pluginEnv *PluginEnv) bool {
 	log.Trace().Msg("validator.Setup()")
 	if err := validator.readConfigFile(); err != nil {
 		log.Error().Msg("ReadConfigFile failure")
@@ -120,7 +120,7 @@ func (validator *OktaOpenVPNValidator) Setup(deferred bool, args []string, plugi
 }
 
 // Authenticate the user against Okta API
-func (validator *OktaOpenVPNValidator) Authenticate() error {
+func (validator *OpenVPNValidator) Authenticate() error {
 	log.Trace().Msg("validator.Authenticate()")
 	if !validator.usernameTrusted {
 		log.Warn().Msgf("is not trusted - failing")
@@ -136,7 +136,7 @@ func (validator *OktaOpenVPNValidator) Authenticate() error {
 }
 
 // Write the authentication result in the OpenVPN control file (only used in deferred mode)
-func (validator *OktaOpenVPNValidator) WriteControlFile() {
+func (validator *OpenVPNValidator) WriteControlFile() {
 	log.Trace().Msg("validator.WriteControlFile()")
 	if err := validator.checkControlFilePerm(); err != nil {
 		return

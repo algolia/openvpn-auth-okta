@@ -32,7 +32,7 @@
 #include <dlfcn.h>
 
 #include <openvpn-plugin.h>
-#include <libokta-auth-validator.h>
+#include <libauth-validator.h>
 
 /* Pointers to functions exported from openvpn */
 static plugin_log_t plugin_log = NULL;
@@ -58,7 +58,7 @@ static plugin_log_t plugin_log = NULL;
 struct plugin_context {};
 
 /* module name for plugin_log() */
-static char *MODULE = "openvpn-plugin-auth-okta";
+static char *MODULE = "openvpn-plugin-auth";
 
 void handle_sigchld(int sig)
 {
@@ -173,7 +173,7 @@ deferred_auth_handler(const char *argv[], const char *envp[])
 
   // Load the Golang c-shared lib
   // dlopen is needed here, otherwise Go runtime wont respect alredy set signal handlers
-  handle = dlopen ("libokta-auth-validator.so", RTLD_LAZY);
+  handle = dlopen ("libauth-validator.so", RTLD_LAZY);
   if (!handle) {
     err_msg =  "Can not load libopenvpn-auth-okta.so";
     goto clean_exit;
@@ -182,7 +182,7 @@ deferred_auth_handler(const char *argv[], const char *envp[])
   // Clear any existing error
   dlerror();
 
-  void (*OktaAuthValidator_V2)(ArgsOktaAuthValidatorV2*) = dlsym(handle, "OktaAuthValidatorV2");
+  void (*AuthValidator_V3)(ArgsAuthValidatorV3*) = dlsym(handle, "AuthValidatorV3");
   if ((error = dlerror()) != NULL)
   {
     err_msg = "Error loading OktaAuthValidatorV2 symbol from lib";
@@ -190,7 +190,7 @@ deferred_auth_handler(const char *argv[], const char *envp[])
   }
 
   // Allocate the struct needed to store OktaAuthValidatorV2 args
-  ArgsOktaAuthValidatorV2* go_args = (ArgsOktaAuthValidatorV2 *) calloc(1, sizeof(ArgsOktaAuthValidatorV2));
+  ArgsAuthValidatorV3* go_args = (ArgsAuthValidatorV3 *) calloc(1, sizeof(ArgsAuthValidatorV3));
   if(!go_args)
   {
     err_msg = "Error allocating ArgsOktaAuthValidatorV2 struct";
@@ -198,16 +198,16 @@ deferred_auth_handler(const char *argv[], const char *envp[])
   }
 
   // Fill an ArgsOktaAuthValidatorV2 struct from the plugin env
-  if (!oav_args_from_env_v2(envp, go_args))
+  if (!oav_args_from_env(envp, go_args))
   {
-    err_msg = "Error parsing plugin env with oav_args_from_env_v2";
+    err_msg = "Error parsing plugin env with oav_args_from_env";
     goto clean_exit;
   }
 
   plugin_log(PLOG_DEBUG, MODULE, "Initialization of the OktaAuthValidator lib succeeded");
 
    // Call the Golang c-shared lib function
-  (*OktaAuthValidator_V2)(go_args);
+  (*AuthValidator_V3)(go_args);
 
 clean_exit:
   if (handle)

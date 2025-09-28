@@ -27,7 +27,7 @@ import (
 const passcodeLen int = 6
 
 // Parse the password looking for an TOTP
-func (validator *OktaOpenVPNValidator) parsePassword() {
+func (validator *OpenVPNValidator) parsePassword() {
 	log.Trace().Msg("validator.parsePassword()")
 	// If the password provided by the user is longer than a OTP (6 cars)
 	// and the last 6 caracters are digits
@@ -45,7 +45,7 @@ func (validator *OktaOpenVPNValidator) parsePassword() {
 }
 
 // Validate the OpenVPN control file and its directory permissions
-func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
+func (validator *OpenVPNValidator) checkControlFilePerm() error {
 	log.Trace().Msg("validator.checkControlFilePerm()")
 	if validator.controlFile == "" {
 		return errors.New("Unknow control file")
@@ -126,7 +126,7 @@ func removeComments(s []string) []string {
 }
 
 // Update the log formatter to include the username
-func (validator *OktaOpenVPNValidator) setLogUser() {
+func (validator *OpenVPNValidator) setLogUser() {
 	log.DefaultLogger.Writer.(*log.ConsoleWriter).Formatter = func(w io.Writer, a *log.FormatterArgs) (int, error) {
 		return fmt.Fprintf(
 			w,
@@ -140,7 +140,7 @@ func (validator *OktaOpenVPNValidator) setLogUser() {
 }
 
 // Initialize the default logger (with the requested level)
-func (validator *OktaOpenVPNValidator) initLogFormatter(level log.Level) {
+func (validator *OpenVPNValidator) initLogFormatter(level log.Level) {
 	log.DefaultLogger = log.Logger{
 		Level:      level,
 		Caller:     1,
