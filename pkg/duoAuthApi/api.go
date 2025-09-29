@@ -11,36 +11,50 @@
 package duoAuthApi
 
 import (
+	"fmt"
+	"net/http"
+	"net/url"
 	"time"
 
 	duo "github.com/duosecurity/duo_api_golang"
 	duoauth "github.com/duosecurity/duo_api_golang/authapi"
-	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
+	"github.com/phuslu/log"
 )
+
+func (auth *DuoAuthApi) parseUrl() string {
+	if duoHost, err := url.Parse(auth.ApiConfig.Url); err == nil {
+		if duoHost.Port() != "" {
+			return fmt.Sprintf("%s:%s", duoHost.Hostname(), duoHost.Port())
+		}
+		if duoHost.Hostname() != "" {
+			return duoHost.Hostname()
+		}
+	}
+	return auth.ApiConfig.Url
+}
 
 // Prepare an http client with a safe TLS config
 // validate the server public key against our list of pinned key fingerprint
-func (auth *DuoAuthApi) Setup() error {
-	if pool, err := authApi.ApiInitPool(auth.ApiConfig); err != nil {
+func (auth *DuoAuthApi) Setup() (err error) {
+	log.Trace().Msg("duoAuthApi.Setup()")
+	var pool *http.Client
+	if pool, err = auth.ApiConfig.ApiInitPool(); err != nil {
 		return err
-	} else {
-		auth.pool = pool
-		api := duo.NewDuoApi(auth.ProviderConfig.Ikey,
-			auth.ProviderConfig.Skey,
-			auth.ApiConfig.Url,
-			"Algolia Bastion",
-			duo.SetTimeout(time.Duration(auth.ProviderConfig.Timeout)*time.Second))
-
-		auth.duoApi = duoauth.NewAuthApi(*api)
-		auth.duoApi.SetCustomHTTPClient(pool)
-		return nil
 	}
+	auth.pool = pool
+	api := duo.NewDuoApi(auth.ProviderConfig.Ikey,
+		auth.ProviderConfig.Skey,
+		auth.parseUrl(),
+		"Algolia Bastion",
+		duo.SetTimeout(time.Duration(auth.ProviderConfig.Timeout)*time.Second))
+
+	auth.duoApi = duoauth.NewAuthApi(*api)
+	auth.duoApi.SetCustomHTTPClient(pool)
+	return nil
 }
 
 // only used by validator_test.go
 // nolint:unused
-/*
 func (auth *DuoAuthApi) getPool() *http.Client {
 	return auth.pool
 }
-*/
