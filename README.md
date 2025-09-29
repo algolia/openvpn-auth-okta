@@ -1,15 +1,15 @@
 ![Release](https://img.shields.io/github/v/release/algolia/openvpn-auth-okta.svg)
 ![Go version](https://img.shields.io/github/go-mod/go-version/algolia/openvpn-auth-okta.svg)
-[![Go Reference](https://pkg.go.dev/badge/gopkg.in/algolia/openvpn-auth-okta.v2.svg)](https://pkg.go.dev/gopkg.in/algolia/openvpn-auth-okta.v2)
-![CI status](https://circleci.com/gh/algolia/openvpn-auth-okta/tree/v2.svg?style=shield)
+[![Go Reference](https://pkg.go.dev/badge/gopkg.in/algolia/openvpn-auth-okta.v3.svg)](https://pkg.go.dev/gopkg.in/algolia/openvpn-auth-okta.v3)
+![CI status](https://circleci.com/gh/algolia/openvpn-auth-okta/tree/v3.svg?style=shield)
 ![Coverage](https://img.shields.io/badge/Coverage-97.2%25-brightgreen)
-[![Go Report Card](https://goreportcard.com/badge/gopkg.in/algolia/openvpn-auth-okta.v2)](https://goreportcard.com/report/gopkg.in/algolia/openvpn-auth-okta.v2)
+[![Go Report Card](https://goreportcard.com/badge/gopkg.in/algolia/openvpn-auth-okta.v3)](https://goreportcard.com/report/gopkg.in/algolia/openvpn-auth-okta.v3)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/66b5143777dc441993ebfcea172e0626)](https://app.codacy.com/gh/algolia/openvpn-auth-okta/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
 # Introduction
 
-This offers a set of lib and binary to authenticate users against [Okta Authentication API](https://developer.okta.com/docs/reference/api/authn/) , with support for MFA (TOTP or PUSH only).
+This offers a set of lib and binary to authenticate users against extenal auth providers (as of today only [Okta Authentication API](https://developer.okta.com/docs/reference/api/authn/) and [Duo Authentication API](https://duo.com/docs/authapi)), with support for MFA (TOTP or PUSH only).
 It also offers a plugin for OpenVPN (Community Edition) using the lib mentionned above.
 
 > :exclamation: Note: The plugin does not work with OpenVPN Access Server (OpenVPN-AS)
@@ -26,15 +26,15 @@ For TOTP, if a user's password is `correcthorsebatterystaple` and their six-digi
 
 # Installation
 
-## Install the Okta OpenVPN plugin
+## Install the OpenVPN Auth plugin
 
-You have three options to install the Okta OpenVPN plugin:
+You have three options to install the OpenVPN Auth plugin:
 
 ### 1.  Use pre-built packages from repositories
 
 Thanks to the [OpenSUSE Build Service](https://build.opensuse.org/) packages are available for multiple distros: CentOS, Debian, Fedora, openSUSE, Ubuntu.
 
-Choose the proper instructions for your Linux distribution [here](https://software.opensuse.org/download/package?package=openvpn-auth-okta&project=home%3AAlgolia%3AOSS).
+Choose the proper instructions for your Linux distribution [here](https://software.opensuse.org/download/package?package=openvpn-auth&project=home%3AAlgolia%3AOSS).
 
 #### Packages are available for
 
@@ -58,7 +58,7 @@ Build requirements:
 - golang (>= 1.23)
 - make
 
-If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openvpn/plugins` and configuration files are stored in `/etc/okta-auth-validator`, then you can use the `make install` command to install the Okta OpenVPN plugin:
+If you have a default OpenVPN setup, where plugins are stored in `/usr/lib/openvpn/plugins` and configuration files are stored in `/etc/auth-validator`, then you can use the `make install` command to install the Okta OpenVPN plugin:
 
 ```shell
 sudo make install
@@ -86,17 +86,17 @@ Compile the Golang binary from this repository using this command:
 make binary
 ```
 
-#### Manually installing the Okta OpenVPN plugin
+#### Manually installing the OpenVPN Auth plugin
 
-If you have a custom setup, follow the instructions below to install the C plugin and Golang library that constitute the Okta OpenVPN plugin.
+If you have a custom setup, follow the instructions below to install the C plugin and Golang library that constitute the OpenVPN plugin Auth.
 
 #### Manually installing the C Plugin
 
-To manually install the C plugin, copy the `build/openvpn-plugin-auth-okta.so` file to the location where your OpenVPN plugins are stored and the `libokta-auth-validator.so` file to your system libdir.
+To manually install the C plugin, copy the `build/openvpn-plugin-auth.so` file to the location where your OpenVPN plugins are stored and the `libauth-validator.so` file to your system libdir.
 
 #### Manually installing the Golang binary
 
-To manually install the binary, copy the `okta-auth-validator` to your system bin dir; the `pinset.cfg`, and `api.ini` files to the location where your OpenVPN plugin scripts are stored.
+To manually install the binary, copy the `auth-validator` to your system bin dir; the `pinset.cfg`, and `api.ini` files to the location where your OpenVPN plugin scripts are stored.
 
 ## Make sure that OpenVPN has a tempory directory
 
@@ -110,25 +110,25 @@ Use the [chown](https://en.wikipedia.org/wiki/Chown) and [chmod](https://en.wiki
 
 # Configuration
 
-## Configure the Okta OpenVPN plugin
+## Configure the OpenVPN Auth plugin
 
-The Okta OpenVPN plugin is configured using the `api.ini` file. You **must** update this file with the configuration options for your Okta organization for the plugin to work.
+The OpenVPN Auth plugin is configured using the `api.ini` file. You **must** update this file with the configuration options for your Auth provider organization for the plugin to work.
 
-If you installed the Okta OpenVPN plugin to the default location, run this command to edit your configuration file.
+If you installed the OpenVPN Auth plugin to the default location, run this command to edit your configuration file.
 
 ```shell
-sudo $EDITOR /etc/okta-auth-validator/api.ini
+sudo $EDITOR /etc/auth-validator/api.ini
 ```
-> :warning: As this file contains your Okta token, please ensure it has limited permissions (should only be readable by root or the user running OpenVPN) !
+> :warning: As this file contains your auth provider credentials, please ensure it has limited permissions (should only be readable by root or the user running OpenVPN) !
 
-See [api.ini](https://github.com/algolia/openvpn-auth-okta/blob/v2/api.ini.inc) for configuration options.
+See [api.ini](https://github.com/algolia/openvpn-auth-okta/blob/v3/api.ini.inc) for configuration options.
 
 ## Configure OpenVPN to use the C `Shared Object Plugin`
 
-Set up OpenVPN to call the Okta plugin by adding the following lines to your OpenVPN `server.conf` configuration file:
+Set up OpenVPN to call the Auth plugin by adding the following lines to your OpenVPN `server.conf` configuration file:
 
 ```ini
-plugin openvpn-plugin-auth-okta.so
+plugin openvpn-plugin-auth.so
 tmp-dir "/etc/openvpn/tmp"
 ```
 
@@ -141,7 +141,7 @@ Set up OpenVPN to call the Golang binary by adding the following lines to your O
 
 ```ini
 # "via-file" method
-auth-user-pass-verify /usr/bin/okta-auth-validator via-file
+auth-user-pass-verify /usr/bin/auth-validator via-file
 tmp-dir "/etc/openvpn/tmp"
 ```
 > :exclamation: it is strongly advised when using the via file method, that the tmp-dir is located on a tmpfs filesystem (so that the user's credentials never reach the disk). Systemd can help for that:
@@ -154,7 +154,7 @@ sudo systemd-tmpfiles  --create /etc/tmpfiles.d/openvpn-tmp.conf
 
 ```ini
 # "via-env" method
-auth-user-pass-verify /usr/bin/okta-auth-validator via-env
+auth-user-pass-verify /usr/bin/auth-validator via-env
 tmp-dir "/etc/openvpn/tmp"
 ```
 
@@ -166,18 +166,18 @@ Outputs have been designed to be easily parsable, you'll find 2 different format
 
 Before
 ```
-Thu Dec 21 03:41:28 2023 [okta-auth-validator:4dd5f892-c51d-43bf-94c7-87b25b81707e](ERROR): Initpool failure
+Thu Dec 21 03:41:28 2023 [auth-validator:4dd5f892-c51d-43bf-94c7-87b25b81707e](ERROR): Initpool failure
 ```
 
 After
 ```
-Thu Dec 21 03:41:28 2023 [okta-auth-validator:50bc833a-dcea-4337-9d73-41af17371c4e](INFO): [dade.murphy@example.com] Authenticating
+Thu Dec 21 03:41:28 2023 [auth-validator:50bc833a-dcea-4337-9d73-41af17371c4e](INFO): [dade.murphy@example.com] Authenticating
 ```
 
 A grok pattern could be:
 ```
 DATESTAMP_OKTA %{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{YEAR}
-%{DATESTAMP_OKTA:timestamp} \[okta-auth-validator:%{UUID:session_id}\]\(%{LOGLEVEL:level}\):(%{SPACE}\[((%{EMAILADDRESS:username})|(%{EMAILLOCALPART:username}))\])? %{GREEDYDATA:message}
+%{DATESTAMP_OKTA:timestamp} \[auth-validator:%{UUID:session_id}\]\(%{LOGLEVEL:level}\):(%{SPACE}\[((%{EMAILADDRESS:username})|(%{EMAILLOCALPART:username}))\])? %{GREEDYDATA:message}
 ```
 
 # Useful links
@@ -185,9 +185,14 @@ DATESTAMP_OKTA %{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{YEAR}
 - [OpenVPN: Using alternative authentication methods](https://openvpn.net/community-resources/using-alternative-authentication-methods/)
 - [OpenVPN 2.4 manual](https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/)
 - [Openvpn multi-auth sample plugin code](https://github.com/OpenVPN/openvpn/blob/master/sample/sample-plugins/defer/multi-auth.c)
-- [Okta API - PreAuth](https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application)
-- [Okta API - Auth with TOTP MFA](https://developer.okta.com/docs/reference/api/authn/#verify-totp-factor)
-- [Okta API - Auth with Push MFA](https://developer.okta.com/docs/reference/api/authn/#verify-push-factor)
+- Okta:
+  - [Okta API - PreAuth](https://developer.okta.com/docs/reference/api/authn/#primary-authentication-with-public-application)
+  - [Okta API - Auth with TOTP MFA](https://developer.okta.com/docs/reference/api/authn/#verify-totp-factor)
+  - [Okta API - Auth with Push MFA](https://developer.okta.com/docs/reference/api/authn/#verify-push-factor)
+- Duo:
+  - [Duo Api - PreAuth](https://duo.com/docs/authapi#preauth)
+  - [Duo Api - Auth](https://duo.com/docs/authapi#auth)
+  - [Go bindings for the Duo APIs](https://github.com/duosecurity/duo_api_golang)
 
 # Contact
 
