@@ -81,7 +81,7 @@ type AuthApi interface {
 
 // Prepare an http client with a safe TLS config
 // validate the server public key against our list of pinned key fingerprint
-func ApiInitPool(cfg *APIConfig) (*http.Client, error) {
+func (cfg *APIConfig) ApiInitPool() (*http.Client, error) {
 	log.Trace().Msg("authApi.ApiInitPool()")
 	if rawURL, err := url.Parse(cfg.Url); err != nil {
 		return nil, err
