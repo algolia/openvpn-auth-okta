@@ -14,7 +14,7 @@ endif
 INSTALL := install
 CC := gcc
 INC := -I. -I./build
-CFLAGS := -fPIC $(INC) -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+CFLAGS := -fPIC $(INC) -O2 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700 -fstack-protector-strong
 LDFLAGS := -shared -fPIC
 
 DESTDIR :=
