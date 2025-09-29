@@ -13,9 +13,19 @@ package authApi
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/OAtest"
 )
+
+type poolTest struct {
+	testName string
+	host     string
+	port     string
+	pinset   []string
+	errMsg   string
+}
 
 type errorTest struct {
 	testName    string
@@ -25,7 +35,73 @@ type errorTest struct {
 	errMsg      string
 }
 
-func TestParseOktaError(t *testing.T) {
+func TestApiInitPool(t *testing.T) {
+	invalidHost := "invalid{host"
+	invalidHostErr := fmt.Sprintf("parse \"https://%s:%s\": invalid character \"{\" in host name",
+		invalidHost,
+		OAtest.TLSPort)
+
+	tests := []poolTest{
+		{
+			"Test valid pinset",
+			OAtest.TLSHost,
+			OAtest.TLSPort,
+			[]string{OAtest.TLSValidPinset},
+			"",
+		},
+
+		{
+			"Test invalid pinset",
+			OAtest.TLSHost,
+			OAtest.TLSPort,
+			[]string{OAtest.TLSInvalidPinset},
+			"Server pubkey does not match pinned keys",
+		},
+
+		{
+			"Test unreachable host",
+			OAtest.TLSHost,
+			"1444",
+			[]string{},
+			fmt.Sprintf("dial tcp %s:1444: connect: connection refused", OAtest.TLSHost),
+		},
+
+		{
+			"Test invalid url",
+			invalidHost,
+			OAtest.TLSPort,
+			[]string{},
+			invalidHostErr,
+		},
+	}
+
+	srv := OAtest.StartTestHttpsServer(t)
+
+	time.Sleep(1 * time.Second)
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			a := &APIConfig{
+				Url:       fmt.Sprintf("https://%s:%s", test.host, test.port),
+				AssertPin: test.pinset,
+			}
+			h, err := a.ApiInitPool()
+			if test.errMsg == "" {
+				assert.NoError(t, err)
+				assert.NotNil(t, h)
+			} else {
+				if assert.Error(t, err) {
+					assert.EqualError(t, err, test.errMsg)
+					assert.Nil(t, h)
+				}
+			}
+		})
+	}
+	if err := srv.Close(); err != nil {
+		panic(err) // failure/timeout shutting down the server gracefully
+	}
+}
+
+func TestApiParseError(t *testing.T) {
 	nonWrappedLast := "non-wrapped error for last factor"
 	nonWrapped := "non-wrapped error for first factor"
 	tests := []errorTest{
