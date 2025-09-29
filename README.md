@@ -5,6 +5,7 @@
 ![Coverage](https://img.shields.io/badge/Coverage-97.3%25-brightgreen)
 [![Go Report Card](https://goreportcard.com/badge/gopkg.in/algolia/openvpn-auth-okta.v2)](https://goreportcard.com/report/gopkg.in/algolia/openvpn-auth-okta.v2)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/66b5143777dc441993ebfcea172e0626)](https://app.codacy.com/gh/algolia/openvpn-auth-okta/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
 # Introduction
 
