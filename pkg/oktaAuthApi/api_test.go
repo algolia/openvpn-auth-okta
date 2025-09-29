@@ -11,13 +11,13 @@
 package oktaAuthApi
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/OAtest"
 	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
 	"gopkg.in/h2non/gock.v1"
 )
@@ -36,72 +36,47 @@ type setupTest struct {
 	errMsg   string
 }
 
-func startTLS(t *testing.T) {
-	t.Helper()
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("This is an example server.\n"))
-	})
-	cfg := &tls.Config{MinVersion: tls.VersionTLS12}
-	s := http.Server{
-		Addr:         fmt.Sprintf("%s:%s", tlsHost, tlsPort),
-		Handler:      mux,
-		TLSConfig:    cfg,
-		ReadTimeout:  1 * time.Second,
-		WriteTimeout: 1 * time.Second,
-	}
-	err := s.ListenAndServeTLS("../../testing/fixtures/utils/server.crt",
-		"../../testing/fixtures/utils/server.key")
-	assert.NoError(t, err)
-	t.Cleanup(func() { _ = s.Close() })
-}
-
-func TestOktaInitPool(t *testing.T) {
+func TestOktaSetup(t *testing.T) {
 	invalidHost := "invalid{host"
 	invalidHostErr := fmt.Sprintf("parse \"https://%s:%s\": invalid character \"{\" in host name",
 		invalidHost,
-		tlsPort)
+		OAtest.TLSPort)
 
 	tests := []poolTest{
 		{
 			"Test valid pinset",
-			tlsHost,
-			tlsPort,
-			[]string{validPinset},
+			OAtest.TLSHost,
+			OAtest.TLSPort,
+			[]string{OAtest.TLSValidPinset},
 			"",
 		},
 
 		{
 			"Test invalid pinset",
-			tlsHost,
-			tlsPort,
-			[]string{invalidPinset},
+			OAtest.TLSHost,
+			OAtest.TLSPort,
+			[]string{OAtest.TLSInvalidPinset},
 			"Server pubkey does not match pinned keys",
 		},
 
 		{
 			"Test unreachable host",
-			tlsHost,
+			OAtest.TLSHost,
 			"1444",
 			[]string{},
-			fmt.Sprintf("dial tcp %s:1444: connect: connection refused", tlsHost),
+			fmt.Sprintf("dial tcp %s:1444: connect: connection refused", OAtest.TLSHost),
 		},
 
 		{
 			"Test invalid url",
 			invalidHost,
-			tlsPort,
+			OAtest.TLSPort,
 			[]string{},
 			invalidHostErr,
 		},
 	}
 
-	go func() {
-		startTLS(t)
-	}()
+	srv := OAtest.StartTestHttpsServer(t)
 
 	time.Sleep(1 * time.Second)
 	for _, test := range tests {
@@ -118,6 +93,9 @@ func TestOktaInitPool(t *testing.T) {
 				}
 			}
 		})
+	}
+	if err := srv.Close(); err != nil {
+		panic(err) // failure/timeout shutting down the server gracefully
 	}
 }
 
