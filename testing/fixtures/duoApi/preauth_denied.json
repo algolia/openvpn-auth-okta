@@ -1,0 +1,7 @@
+{
+    "stat": "OK",
+    "response": {
+        "result": "deny",
+        "status_msg": "Account is inactive"
+    }
+}

@@ -1,0 +1,7 @@
+{
+    "stat": "OK",
+    "response": {
+          "result": "allow",
+          "status_msg": "Device is trusted."
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "stat": "OK",
+    "response": {
+      "devices": [
+        {
+          "device": "DHEKH0JJIYC1LX3AZWO4",
+          "name": "0",
+          "type": "token"
+  
+        }
+      ],
+      "result": "auth",
+      "status_msg": "Account is active"
+    }
+}

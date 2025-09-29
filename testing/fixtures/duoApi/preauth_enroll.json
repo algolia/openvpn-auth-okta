@@ -1,0 +1,8 @@
+{
+    "stat": "OK",
+    "response": {
+      "enroll_portal_url": "https://api-abcd1234.duosecurity.com/portal?code=48bac5d9393fb2c2&akey=DIXXXXXXXXXXXXXXXXXX",
+      "result": "enroll",
+      "status_msg": "Enroll an authentication device to proceed"
+    }
+}

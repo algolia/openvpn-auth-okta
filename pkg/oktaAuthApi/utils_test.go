@@ -28,7 +28,7 @@ type allowedGroupsTest struct {
 	errMsg        string
 }
 
-func TestCheckAllowedGroups(t *testing.T) {
+func TestOktaCheckAllowedGroups(t *testing.T) {
 	defer gock.Off()
 	// Uncomment the following line to see HTTP requests intercepted by gock
 	//gock.Observe(gock.DumpRequest)

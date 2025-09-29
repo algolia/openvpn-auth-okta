@@ -22,7 +22,7 @@ import (
 	"gopkg.in/h2non/gock.v1"
 )
 
-//go:linkname getOktaPool gopkg.in/algolia/openvpn-auth-okta.v2/pkg/oktaAuthApi.(*OktaAuthApi).getPool
+//go:linkname getOktaPool gopkg.in/algolia/openvpn-auth-okta.v3/pkg/oktaAuthApi.(*OktaAuthApi).getPool
 func getOktaPool(*oktaAuthApi.OktaAuthApi) *http.Client
 
 func TestOktaAuthenticate(t *testing.T) {

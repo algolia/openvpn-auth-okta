@@ -1,0 +1,7 @@
+{
+    "stat": "FAIL",
+    "response": {
+          "result": "XXXX",
+          "status_msg": "Unknown error."
+    }
+}

@@ -1,0 +1,29 @@
+{
+  "stat": "OK",
+  "response": {
+    "devices": [
+      {
+        "capabilities": [
+            "auto",
+            "push",
+            "sms",
+            "phone",
+            "mobile_otp"
+        ],
+        "device": "DPFZRS9FB0D46QFTM891",
+        "display_name": "iOS (XXX-XXX-0100)",
+        "name": "",
+        "number": "XXX-XXX-0100",
+        "type": "phone"
+      },
+      {
+        "device": "DHEKH0JJIYC1LX3AZWO4",
+        "name": "0",
+        "type": "token"
+
+      }
+    ],
+    "result": "auth",
+    "status_msg": "Account is active"
+  }
+}
