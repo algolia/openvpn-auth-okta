@@ -26,6 +26,15 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+var (
+	ErrPushFailed           = errors.New("Push MFA failed")
+	ErrTOTPFailed           = errors.New("TOTP MFA failed")
+	ErrMFAUnavailable       = errors.New("No MFA factor available")
+	ErrMFARequired          = errors.New("MFA required")
+	ErrEnrollNeeded         = errors.New("MFA enroll needed")
+	ErrPreauthUnknownStatus = errors.New("Preauth unknown status")
+)
+
 // Contains the configuration for the Okta API connection
 // Those configuration options are read from api.ini
 type APIConfig struct {
