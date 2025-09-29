@@ -64,6 +64,7 @@ func (auth *DuoAuthApi) GetUserConfig() *authApi.APIUserConfig {
 // Check if DUO endpoint is available and if config is OK
 // by using PreAuth
 func (auth *DuoAuthApi) preAuthDuo() (*duoauth.PreauthResult, error) {
+	log.Trace().Msg("duoAuthApi.preAuthDuo()")
 	log.Info().Msg("Running Duo PreAuth")
 	// Prepare the pre auth request
 	options := func(opts *url.Values) {
@@ -79,18 +80,16 @@ func (auth *DuoAuthApi) preAuthDuo() (*duoauth.PreauthResult, error) {
 	}
 
 	if preAuthResult.Stat != "OK" {
-		msg := fmt.Sprintf("Error during Duo preAuth: stat not OK (%s).", preAuthResult.Stat)
+		msg := fmt.Sprintf("error during Duo preAuth%s", getDuoResultErrorMsg(preAuthResult))
 		log.Error().Msg(msg)
 		return nil, errors.New(msg)
 	}
 
-	if preAuthResult.Response.Result != "auth" {
-		return nil, errors.New("error during Duo preAuth: unknown Duo user or unauthorised user.")
-	}
 	return preAuthResult, nil
 }
 
 func (auth *DuoAuthApi) authDevice(device string) error {
+	log.Trace().Msg("duoAuthApi.authDevice()")
 	options := func(opts *url.Values) {
 		opts.Set("username", auth.UserConfig.Username)
 		opts.Set("type", "OpenVPN authentication")
@@ -100,7 +99,7 @@ func (auth *DuoAuthApi) authDevice(device string) error {
 		}
 	}
 
-	log.Info().Msg("Running Duo Auth")
+	log.Info().Msg("Running Push Duo Auth")
 	authResult, err := auth.duoApi.Auth("push", options)
 	if err != nil {
 		log.Error().Msgf("error during Duo auth: %s", err)
@@ -111,10 +110,11 @@ func (auth *DuoAuthApi) authDevice(device string) error {
 	}
 
 	if authResult.Stat != "OK" {
-		log.Error().Msgf("error during Duo auth: %s", *authResult.Message)
+		msg := getDuoResultErrorMsg(authResult)
+		log.Error().Msgf("error during Duo auth: %s", msg)
 		return fmt.Errorf("%s Push MFA authentication failed: %s, %w",
 			device,
-			*authResult.Message,
+			msg,
 			authApi.ErrPushFailed)
 	}
 
@@ -136,14 +136,14 @@ func (auth *DuoAuthApi) authPasscode() error {
 		opts.Set("passcode", auth.UserConfig.Passcode)
 	}
 
-	log.Info().Msg("Running Duo Auth")
+	log.Info().Msg("Running TOTP Duo Auth")
 	authResult, err := auth.duoApi.Auth("passcode", options)
 	if err != nil {
 		return fmt.Errorf("error during Duo auth: %w", err)
 	}
 
 	if authResult.Stat != "OK" {
-		return fmt.Errorf("error during Duo auth: stat not OK (%s).", authResult.Stat)
+		return fmt.Errorf("error during Duo auth%s", getDuoResultErrorMsg(authResult))
 	}
 
 	if authResult.Response.Result == "allow" {
@@ -217,7 +217,7 @@ func (auth *DuoAuthApi) Auth() error {
 	switch preAuthResult.Response.Result {
 	case "allow":
 		if auth.ApiConfig.MFARequired {
-			log.Warn().Msgf("allowed without MFA but MFA is required - rejected")
+			log.Error().Msg("error during Duo preAuth: allowed but MFA is required")
 			return authApi.ErrMFARequired
 		}
 		return nil
@@ -226,12 +226,15 @@ func (auth *DuoAuthApi) Auth() error {
 		return auth.validateUserMFA(preAuthResult)
 
 	case "deny":
+		log.Error().Msg("error during Duo preAuth: denied")
 		return errors.New("error during Duo preAuth: denied")
 
 	case "enroll":
+		log.Error().Msg("error during Duo preAuth: user needs to enroll MFA")
 		return authApi.ErrEnrollNeeded
 
 	default:
+		log.Error().Msgf("unknown Duo preauth status: %s", preAuthResult.Response.Result)
 		return authApi.ErrPreauthUnknownStatus
 	}
 }
