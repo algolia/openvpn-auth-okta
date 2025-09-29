@@ -21,13 +21,7 @@ import (
 	"gopkg.in/algolia/openvpn-auth-okta.v3/pkg/authApi"
 )
 
-var (
-	errPushFailed   = errors.New("Push MFA failed")
-	errTOTPFailed   = errors.New("TOTP MFA failed")
-	errMFARequired  = errors.New("MFA required")
-	errEnrollNeeded = errors.New("Needs to enroll")
-	errCheckFailed  = errors.New("Check failed")
-)
+var errCheckFailed = errors.New("Duo check failed")
 
 type ProviderApiConfig struct {
 	// Your (company's) Duo Integartion key
@@ -104,7 +98,7 @@ func (auth *DuoAuthApi) authDevice(device string) error {
 		return fmt.Errorf("%s Push MFA authentication failed: %s, %w",
 			device,
 			err,
-			errPushFailed)
+			authApi.ErrPushFailed)
 	}
 
 	if authResult.Stat != "OK" {
@@ -112,7 +106,7 @@ func (auth *DuoAuthApi) authDevice(device string) error {
 		return fmt.Errorf("%s Push MFA authentication failed: %s, %w",
 			device,
 			*authResult.Message,
-			errPushFailed)
+			authApi.ErrPushFailed)
 	}
 
 	if authResult.Response.Result == "allow" {
@@ -123,7 +117,7 @@ func (auth *DuoAuthApi) authDevice(device string) error {
 	log.Error().Msgf("%s Push MFA authentication failed", device)
 	return fmt.Errorf("%s Push MFA authentication denied, %w",
 		device,
-		errPushFailed)
+		authApi.ErrPushFailed)
 }
 
 func (auth *DuoAuthApi) authPasscode() error {
@@ -147,7 +141,7 @@ func (auth *DuoAuthApi) authPasscode() error {
 		log.Info().Msg("Access authorized")
 		return nil
 	}
-	return errTOTPFailed
+	return authApi.ErrTOTPFailed
 }
 
 func (auth *DuoAuthApi) verifyPushFactors(preAuthRes *duoauth.PreauthResult) (err error) {
@@ -167,7 +161,7 @@ func (auth *DuoAuthApi) verifyPushFactors(preAuthRes *duoauth.PreauthResult) (er
 	}
 	// Reached only when the list of factors provided is empty
 	log.Debug().Msg("No Push MFA available")
-	return fmt.Errorf("No Push MFA available")
+	return authApi.ErrMFAUnavailable
 }
 
 // Gather the list of factors available from the pre authentication api response,
@@ -215,7 +209,7 @@ func (auth *DuoAuthApi) Auth() error {
 	case "allow":
 		if auth.ApiConfig.MFARequired {
 			log.Warn().Msgf("allowed without MFA but MFA is required - rejected")
-			return errMFARequired
+			return authApi.ErrMFARequired
 		}
 		return nil
 
@@ -223,13 +217,12 @@ func (auth *DuoAuthApi) Auth() error {
 		return auth.validateUserMFA(preAuthResult)
 
 	case "deny":
-		return errors.New("pre-authentication denied")
+		return errors.New("error during Duo preAuth: denied")
 
-	case "enrol":
-		return errEnrollNeeded
+	case "enroll":
+		return authApi.ErrEnrollNeeded
 
 	default:
-		log.Error().Msgf("unknown preauth status: %s", preAuthResult.Response.Result)
-		return errors.New("Unknown preauth status")
+		return authApi.ErrPreauthUnknownStatus
 	}
 }

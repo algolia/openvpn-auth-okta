@@ -11,7 +11,6 @@
 package oktaAuthApi
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/phuslu/log"
@@ -61,7 +60,7 @@ func (auth *OktaAuthApi) verifyFactors(stateToken string, factors []AuthFactor, 
 		if factorType == "Push" {
 			if authRes.Result != "WAITING" {
 				if count == nbFactors-1 {
-					return errPushFailed
+					return authApi.ErrPushFailed
 				}
 				continue
 			}
@@ -141,7 +140,7 @@ PUSH:
 ERR:
 	log.Error().Msgf("No MFA factor available")
 	auth.cancelAuth(preAuthRes.Token)
-	return errMFAUnavailable
+	return authApi.ErrMFAUnavailable
 }
 
 // Do a full authentication transaction: preAuth, doAuth (when needed), cancelAuth (when needed)
@@ -158,7 +157,7 @@ func (auth *OktaAuthApi) Auth() error {
 	case "SUCCESS":
 		if auth.ApiConfig.MFARequired {
 			log.Warn().Msgf("allowed without MFA but MFA is required - rejected")
-			return errMFARequired
+			return authApi.ErrMFARequired
 		}
 		return nil
 
@@ -178,17 +177,17 @@ func (auth *OktaAuthApi) Auth() error {
 		if preAuthRes.Token != "" {
 			auth.cancelAuth(preAuthRes.Token)
 		}
-		return errEnrollNeeded
+		return authApi.ErrEnrollNeeded
 
 	case "MFA_REQUIRED", "MFA_CHALLENGE":
 		log.Debug().Msgf("checking second factor")
 		return auth.validateUserMFA(preAuthRes)
 
 	default:
-		log.Error().Msgf("unknown preauth status: %s", preAuthRes.Status)
+		log.Error().Msgf("unknown Okta preauth status: %s", preAuthRes.Status)
 		if preAuthRes.Token != "" {
 			auth.cancelAuth(preAuthRes.Token)
 		}
-		return errors.New("Unknown preauth status")
+		return authApi.ErrPreauthUnknownStatus
 	}
 }

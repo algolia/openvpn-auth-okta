@@ -31,17 +31,6 @@ const (
 	stateToken   string = "007ucIX7PATyn94hsHfOLVaXAmOBkKHWnOOLG43bsb"
 	pushFID      string = "opf3hkfocI4JTLAju0g4"
 	totpFID      string = "ostfm3hPNYSOIOIVTQWY"
-	// validPinset has been computed using:
-	/*
-	   cat testing/fixtures/server.crt |\
-	   	openssl x509 -noout -pubkey |\
-	   	openssl rsa	-pubin -outform der 2>/dev/null |\
-	   	openssl dgst -sha256 -binary | base64
-	*/
-	tlsHost       string = "127.0.0.1"
-	tlsPort       string = "2443"
-	validPinset   string = "j69yToSVkR6G7RKEc0qvsA6MysH+luI3wBIihDA20nI="
-	invalidPinset string = "ABCDEF"
 )
 
 type authTest struct {
@@ -148,7 +137,7 @@ func commonAuthTest(authTests []authTest, t *testing.T) {
 	}
 }
 
-func TestAuthGroups(t *testing.T) {
+func TestOktaAuthGroups(t *testing.T) {
 	authTests := []authTest{
 		{
 			"Not member of allowed groups - failure",
@@ -172,7 +161,7 @@ func TestAuthGroups(t *testing.T) {
 	commonAuthTest(authTests, t)
 }
 
-func TestAuthPreAuth(t *testing.T) {
+func TestOktaAuthPreAuth(t *testing.T) {
 	authTests := []authTest{
 		{
 			"PreAuth connection issue - failure",
@@ -348,7 +337,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			errMFARequired.Error(),
+			authApi.ErrMFARequired.Error(),
 		},
 
 		{
@@ -373,7 +362,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			errEnrollNeeded.Error(),
+			authApi.ErrEnrollNeeded.Error(),
 		},
 
 		{
@@ -398,13 +387,13 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			"Unknown preauth status",
+			authApi.ErrPreauthUnknownStatus.Error(),
 		},
 	}
 	commonAuthTest(authTests, t)
 }
 
-func TestAuthMFA(t *testing.T) {
+func TestOktaAuthMFA(t *testing.T) {
 	authTests := []authTest{
 		{
 			"Auth with MFA required, HTTP err - failure",
@@ -447,7 +436,7 @@ func TestAuthMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errMFAUnavailable.Error(),
+			authApi.ErrMFAUnavailable.Error(),
 		},
 
 		{
@@ -472,13 +461,13 @@ func TestAuthMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errMFAUnavailable.Error(),
+			authApi.ErrMFAUnavailable.Error(),
 		},
 	}
 	commonAuthTest(authTests, t)
 }
 
-func TestAuthPushMFA(t *testing.T) {
+func TestOktaAuthPushMFA(t *testing.T) {
 	authTests := []authTest{
 		{
 			"Auth with push MFA required - success",
@@ -539,7 +528,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed.Error(),
+			authApi.ErrPushFailed.Error(),
 		},
 
 		{
@@ -576,7 +565,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed.Error(),
+			authApi.ErrPushFailed.Error(),
 		},
 
 		{
@@ -625,7 +614,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed.Error(),
+			authApi.ErrPushFailed.Error(),
 		},
 
 		{
@@ -662,7 +651,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed.Error(),
+			authApi.ErrPushFailed.Error(),
 		},
 
 		{
@@ -792,7 +781,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errPushFailed.Error(),
+			authApi.ErrPushFailed.Error(),
 		},
 
 		{
@@ -1315,7 +1304,7 @@ func TestAuthPushMFA(t *testing.T) {
 	commonAuthTest(authTests, t)
 }
 
-func TestAuthTOTPMFA(t *testing.T) {
+func TestOktaAuthTOTPMFA(t *testing.T) {
 	authTests := []authTest{
 		{
 			"Auth with TOTP MFA required - success",
@@ -1426,7 +1415,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errTOTPFailed.Error(),
+			authApi.ErrTOTPFailed.Error(),
 		},
 
 		{
@@ -1457,7 +1446,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errTOTPFailed.Error(),
+			authApi.ErrTOTPFailed.Error(),
 		},
 
 		{
@@ -1494,7 +1483,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			errTOTPFailed.Error(),
+			authApi.ErrTOTPFailed.Error(),
 		},
 
 		{
@@ -1618,7 +1607,7 @@ func TestAuthTOTPMFA(t *testing.T) {
 	commonAuthTest(authTests, t)
 }
 
-func TestAuthMFAFallback(t *testing.T) {
+func TestOktaAuthMFAFallback(t *testing.T) {
 	authTests := []authTest{
 		{
 			"Auth with invalid TOTP MFA, fallback to Push - success",
@@ -1696,7 +1685,7 @@ func TestAuthMFAFallback(t *testing.T) {
 			"",
 			1,
 			true,
-			errPushFailed.Error(),
+			authApi.ErrPushFailed.Error(),
 		},
 	}
 	commonAuthTest(authTests, t)
