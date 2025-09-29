@@ -155,20 +155,29 @@ func (auth *DuoAuthApi) authPasscode() error {
 
 func (auth *DuoAuthApi) verifyPushFactors(preAuthRes *duoauth.PreauthResult) (err error) {
 	log.Trace().Msg("duoAuthApi.verifyPushFactors()")
-	nbDevices := len(preAuthRes.Response.Devices)
+	nbDevices := 0
+	for _, d := range preAuthRes.Response.Devices {
+		if d.Type == "phone" {
+			nbDevices++
+		}
+	}
 	// Send push notification to first capable device
 	for count, device := range preAuthRes.Response.Devices {
+		if device.Type != "phone" {
+			continue
+		}
 		for _, capa := range device.Capabilities {
-			if capa == "push" || capa == "auto" {
+			if capa == "push" {
 				log.Debug().Msgf("Trying to authenticate with %s", device.Device)
 
 				if err = authApi.ParseError(auth.authDevice(device.Device), count, nbDevices); err != nil {
 					return err
 				}
+				return nil
 			}
 		}
 	}
-	// Reached only when the list of factors provided is empty
+	// Reached only when the list of factors provided is empty or no push capable device is available
 	log.Debug().Msg("No Push MFA available")
 	return authApi.ErrMFAUnavailable
 }
