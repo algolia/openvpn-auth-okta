@@ -66,7 +66,13 @@ func (auth *DuoAuthApi) GetUserConfig() *authApi.APIUserConfig {
 func (auth *DuoAuthApi) preAuthDuo() (*duoauth.PreauthResult, error) {
 	log.Info().Msg("Running Duo PreAuth")
 	// Prepare the pre auth request
-	preAuthResult, err := auth.duoApi.Preauth(duoauth.PreauthUsername(auth.UserConfig.Username))
+	options := func(opts *url.Values) {
+		opts.Set("username", auth.UserConfig.Username)
+		if auth.UserConfig.ClientIp != "" {
+			opts.Set("ipaddr", auth.UserConfig.ClientIp)
+		}
+	}
+	preAuthResult, err := auth.duoApi.Preauth(options)
 	if err != nil {
 		log.Error().Msgf("Error connecting to the Duo Api: %s", err)
 		return nil, err
@@ -87,8 +93,11 @@ func (auth *DuoAuthApi) preAuthDuo() (*duoauth.PreauthResult, error) {
 func (auth *DuoAuthApi) authDevice(device string) error {
 	options := func(opts *url.Values) {
 		opts.Set("username", auth.UserConfig.Username)
-		opts.Set("type", "Certificate request")
+		opts.Set("type", "OpenVPN authentication")
 		opts.Set("device", device)
+		if auth.UserConfig.ClientIp != "" {
+			opts.Set("ipaddr", auth.UserConfig.ClientIp)
+		}
 	}
 
 	log.Info().Msg("Running Duo Auth")
