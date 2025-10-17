@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
@@ -64,13 +65,12 @@ func StartTestHttpsServer(t *testing.T) *http.Server {
 		}
 
 		ln, err := lc.Listen(context.Background(), "tcp", srv.Addr)
-		if err != nil {
-			panic(err)
-		}
+		require.NoError(t, err, "Fail to have test Http server listen")
 		if err := srv.ServeTLS(ln, "../../testing/fixtures/utils/server.crt",
 			"../../testing/fixtures/utils/server.key"); err != http.ErrServerClosed {
 			log.Fatalf("ListenAndServe(): %v", err)
 		}
 	}()
+	t.Cleanup(func() { srv.Close() })
 	return &srv
 }

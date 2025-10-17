@@ -22,21 +22,16 @@ import (
 	"gopkg.in/h2non/gock.v1"
 )
 
-type poolTest struct {
-	testName string
-	host     string
-	port     string
-	pinset   []string
-	errMsg   string
-}
-
-type setupTest struct {
-	testName string
-	requests []authRequest
-	errMsg   string
-}
-
 func TestOktaSetup(t *testing.T) {
+
+	type poolTest struct {
+		testName string
+		host     string
+		port     string
+		pinset   []string
+		errMsg   string
+	}
+
 	invalidHost := "invalid{host"
 	invalidHostErr := fmt.Sprintf("parse \"https://%s:%s\": invalid character \"{\" in host name",
 		invalidHost,
@@ -76,7 +71,7 @@ func TestOktaSetup(t *testing.T) {
 		},
 	}
 
-	srv := OAtest.StartTestHttpsServer(t)
+	OAtest.StartTestHttpsServer(t)
 
 	time.Sleep(1 * time.Second)
 	for _, test := range tests {
@@ -94,12 +89,16 @@ func TestOktaSetup(t *testing.T) {
 			}
 		})
 	}
-	if err := srv.Close(); err != nil {
-		panic(err) // failure/timeout shutting down the server gracefully
-	}
 }
 
 func TestOktaReq(t *testing.T) {
+
+	type setupTest struct {
+		testName string
+		requests []authRequest
+		errMsg   string
+	}
+
 	defer gock.Off()
 	// Uncomment the following line to see HTTP requests intercepted by gock
 	//gock.Observe(gock.DumpRequest)
