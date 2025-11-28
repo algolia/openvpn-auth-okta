@@ -1,6 +1,6 @@
 module gopkg.in/algolia/openvpn-auth-okta.v2
 
-go 1.24.1
+go 1.25.4
 
 require (
 	github.com/go-playground/validator/v10 v10.28.0
