@@ -48,7 +48,7 @@ func (auth *OktaApiAuth) InitPool() error {
 			log.Error().Msgf("Error in Dial: %s", err)
 			return err
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		certs := conn.ConnectionState().PeerCertificates
 		for _, cert := range certs {
 			if !cert.IsCA {
@@ -66,7 +66,7 @@ func (auth *OktaApiAuth) InitPool() error {
 						"a TLS public key pinning check.",
 						"Update your \"pinset.cfg\" file or ",
 						"contact support@okta.com with this error message")
-					return errors.New("Server pubkey does not match pinned keys")
+					return errors.New("server pubkey does not match pinned keys")
 				}
 			}
 		}
@@ -153,7 +153,7 @@ func (auth *OktaApiAuth) oktaReq(method string, path string, data map[string]str
 	if err != nil {
 		return 0, nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	jsonBody, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error().Msgf("Error reading Okta API response: %s", err)
@@ -203,13 +203,13 @@ func parseAuthResponse(apiRes []byte) (AuthResponse, error) {
 	var authRes AuthResponse
 	err := json.Unmarshal(apiRes, &authRes)
 	if err != nil {
-		return AuthResponse{}, fmt.Errorf("Error unmarshaling Okta API response: %w", err)
+		return AuthResponse{}, fmt.Errorf("error unmarshaling Okta API response: %w", err)
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	err = validate.Struct(authRes)
 	if err != nil {
-		return AuthResponse{}, fmt.Errorf("Error unmarshaling Okta API response: %w", err)
+		return AuthResponse{}, fmt.Errorf("error unmarshaling Okta API response: %w", err)
 	}
 	return authRes, nil
 }
@@ -237,7 +237,7 @@ func (auth *OktaApiAuth) doAuthFirstStep(factor AuthFactor, stateToken string, f
 	log.Trace().Msgf("oktaApiAuth.doAuthFirstStep() %s %s", factor.Type, factor.Provider)
 	code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 	if err != nil {
-		return AuthResponse{}, fmt.Errorf("Okta Authentication request error: %w", err)
+		return AuthResponse{}, fmt.Errorf("okta authentication request error: %w", err)
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
@@ -277,20 +277,20 @@ func (auth *OktaApiAuth) waitForPush(factor AuthFactor, count int, nbFactors int
 
 	for checkCount := 0; checkCount == 0 || authRes.Result == "WAITING"; checkCount++ {
 		if checkCount >= auth.ApiConfig.MFAPushMaxRetries {
-			return AuthResponse{}, fmt.Errorf("%s %w", factor.Provider, errors.New("Push MFA timeout"))
+			return AuthResponse{}, fmt.Errorf("%s %w", factor.Provider, errors.New("push MFA timeout"))
 		}
 
 		time.Sleep(time.Duration(auth.ApiConfig.MFAPushDelaySeconds) * time.Second)
 
 		code, apiRes, err := auth.doAuth(factor.Id, stateToken)
 		if err != nil {
-			return AuthResponse{}, fmt.Errorf("Okta Authentication request error: %w", err)
+			return AuthResponse{}, fmt.Errorf("okta authentication request error: %w", err)
 		}
 		if code != 200 && code != 202 {
 			return AuthResponse{}, fmt.Errorf("%s push MFA invalid HTTP status code %d, %w",
 				factor.Provider,
 				code,
-				errors.New("Push MFA failed"))
+				errors.New("push MFA failed"))
 		}
 
 		authRes, err = parseAuthResponse(apiRes)

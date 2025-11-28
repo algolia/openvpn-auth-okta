@@ -54,7 +54,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 			return errors.New("invalid group list return by API")
 		}
 
-		var aGroups []string = strings.Split(auth.ApiConfig.AllowedGroups, ",")
+		var aGroups = strings.Split(auth.ApiConfig.AllowedGroups, ",")
 		for _, uGroup := range groupRes {
 			gName := uGroup.Profile.Name
 			if slices.Contains(aGroups, gName) {
@@ -62,7 +62,7 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 				return nil
 			}
 		}
-		return errors.New("Not mmember of an AllowedGroup")
+		return errors.New("not member of an AllowedGroup")
 	}
 	return nil
 }
@@ -72,13 +72,14 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP []AuthFactor, factorsPush []AuthFactor) {
 	log.Trace().Msg("oktaApiAuth.getUserFactors()")
 	for _, f := range preAuthRes.Embedded.Factors {
-		if f.Type == "token:software:totp" {
+		switch f.Type {
+		case "token:software:totp":
 			if auth.UserConfig.Passcode != "" {
 				factorsTOTP = append(factorsTOTP, f)
 			}
-		} else if f.Type == "push" {
+		case "push":
 			factorsPush = append(factorsPush, f)
-		} else {
+		default:
 			log.Debug().Msgf("unsupported factortype: %s, skipping", f.Type)
 		}
 	}

@@ -121,11 +121,11 @@ func (validator *OktaOpenVPNValidator) Authenticate() error {
 	log.Trace().Msg("validator.Authenticate()")
 	if !validator.usernameTrusted {
 		log.Warn().Msgf("is not trusted - failing")
-		return errors.New("User not trusted")
+		return errors.New("user not trusted")
 	}
 
 	if err := validator.api.Auth(); err != nil {
-		return errors.New("Authentication failed")
+		return errors.New("authentication failed")
 	}
 
 	validator.isUserValid = true

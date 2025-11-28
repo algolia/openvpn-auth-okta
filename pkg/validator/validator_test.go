@@ -85,7 +85,7 @@ func TestAuthenticate(t *testing.T) {
 			false,
 			nil,
 			false,
-			"User not trusted",
+			"user not trusted",
 		},
 
 		{
@@ -125,7 +125,7 @@ func TestAuthenticate(t *testing.T) {
 				},
 			},
 			false,
-			"Authentication failed",
+			"authentication failed",
 		},
 	}
 

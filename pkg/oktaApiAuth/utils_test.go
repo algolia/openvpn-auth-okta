@@ -129,7 +129,7 @@ func TestCheckAllowedGroups(t *testing.T) {
 			},
 			"test1, test2",
 			token,
-			"Not mmember of an AllowedGroup",
+			"not member of an AllowedGroup",
 		},
 	}
 

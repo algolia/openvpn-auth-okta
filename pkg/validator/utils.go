@@ -57,7 +57,7 @@ func (validator *OktaOpenVPNValidator) parsePassword() {
 func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
 	log.Trace().Msg("validator.checkControlFilePerm()")
 	if validator.controlFile == "" {
-		return errors.New("Unknow control file")
+		return errors.New("unknown control file")
 	}
 
 	if !checkNotWritable(validator.controlFile) {

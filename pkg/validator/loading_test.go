@@ -63,7 +63,7 @@ func TestLoadViaFile(t *testing.T) {
 			"",
 			"dade.murphy",
 			"password",
-			"Invalid via-file",
+			"invalid via-file",
 		},
 		{
 			"Invalid username in via file - failure",
@@ -71,7 +71,7 @@ func TestLoadViaFile(t *testing.T) {
 			"",
 			"dade.murphy*",
 			"password",
-			"Invalid CN or username format",
+			"invalid CN or username format",
 		},
 		{
 			"Missing via file - failure",
@@ -112,13 +112,13 @@ func TestLoadViaFile(t *testing.T) {
 
 func setEnv(e map[string]string) {
 	for k, v := range e {
-		os.Setenv(k, v)
+		_ = os.Setenv(k, v)
 	}
 }
 
 func unsetEnv(e map[string]string) {
 	for k := range e {
-		os.Unsetenv(k)
+		_ = os.Unsetenv(k)
 	}
 }
 
@@ -150,7 +150,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "",
 				"untrusted_ip": "1.2.3.4",
 			},
-			"No password",
+			"no password",
 		},
 		{
 			"Test username/!allowUntrustedUsers/usernameSuffix - success",
@@ -206,7 +206,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "password",
 				"untrusted_ip": "1.2.3.4",
 			},
-			"No CN or username",
+			"no CN or username",
 		},
 		{
 			"Test invalid username/common_name - failure",
@@ -220,7 +220,7 @@ func TestLoadEnvVars(t *testing.T) {
 				"password":     "password",
 				"untrusted_ip": "1.2.3.4",
 			},
-			"Invalid CN or username format",
+			"invalid CN or username format",
 		},
 	}
 	for _, test := range tests {
