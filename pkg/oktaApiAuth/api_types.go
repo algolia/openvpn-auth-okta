@@ -13,13 +13,13 @@ package oktaApiAuth
 import "errors"
 
 var (
-	errPushFailed      = errors.New("Push MFA failed")
+	errPushFailed      = errors.New("push MFA failed")
 	errTOTPFailed      = errors.New("TOTP MFA failed")
-	errMFAUnavailable  = errors.New("No MFA factor available")
+	errMFAUnavailable  = errors.New("no MFA factor available")
 	errMFARequired     = errors.New("MFA required")
-	errUserLocked      = errors.New("User locked out")
-	errPasswordExpired = errors.New("User password expired")
-	errEnrollNeeded    = errors.New("Needs to enroll")
+	errUserLocked      = errors.New("user locked out")
+	errPasswordExpired = errors.New("user password expired")
+	errEnrollNeeded    = errors.New("needs to enroll")
 )
 
 type ErrorResponse struct {

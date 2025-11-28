@@ -86,7 +86,7 @@ func TestInitPool(t *testing.T) {
 			tlsHost,
 			tlsPort,
 			[]string{invalidPinset},
-			"Server pubkey does not match pinned keys",
+			"server pubkey does not match pinned keys",
 		},
 
 		{

@@ -162,7 +162,7 @@ func TestAuthGroups(t *testing.T) {
 			"test1, test2",
 			1,
 			false,
-			"Not mmember of an AllowedGroup",
+			"not member of an AllowedGroup",
 		},
 	}
 	commonAuthTest(authTests, t)
@@ -394,7 +394,7 @@ func TestAuthPreAuth(t *testing.T) {
 			"",
 			1,
 			false,
-			"Unknown preauth status",
+			"unknown preauth status",
 		},
 	}
 	commonAuthTest(authTests, t)
@@ -825,7 +825,7 @@ func TestAuthPushMFA(t *testing.T) {
 			"",
 			1,
 			false,
-			"Push MFA timeout",
+			"push MFA timeout",
 		},
 
 		{

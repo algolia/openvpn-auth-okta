@@ -83,18 +83,18 @@ func (validator *OktaOpenVPNValidator) readConfigFile() error {
 		if apiConfig.Url == "" || apiConfig.Token == "" {
 			log.Error().Msgf("Missing Url or Token parameter in \"%s\"",
 				cfgFile)
-			return errors.New("Missing param Url or Token")
+			return errors.New("missing param Url or Token")
 		}
 		if len(apiConfig.PasscodeSeparator) > 1 {
 			log.Error().Msgf("Invalid passcode separator in \"%s\", it should be empty or 1 character long",
 				cfgFile)
-			return errors.New("Invalid passcode separator")
+			return errors.New("invalid passcode separator")
 		}
 		validator.configFile = cfgFile
 		return nil
 	}
 	log.Error().Msgf("No ini file found in %v", cfgPaths)
-	return errors.New("No ini file found")
+	return errors.New("no ini file found")
 }
 
 // Read all allowed pubkey fingerprints for the API server from pinset file
@@ -133,5 +133,5 @@ func (validator *OktaOpenVPNValidator) loadPinset() error {
 		validator.pinsetFile = pinsetFile
 		return nil
 	}
-	return errors.New("No pinset file found")
+	return errors.New("no pinset file found")
 }

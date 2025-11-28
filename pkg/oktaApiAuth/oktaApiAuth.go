@@ -39,6 +39,10 @@ func New() *OktaApiAuth {
 func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, factorType string) (err error) {
 	log.Trace().Msgf("oktaApiAuth.verifyFactors() %s", factorType)
 	nbFactors := len(factors)
+	ftype := factorType
+	if factorType == "Push" {
+		ftype = "push"
+	}
 	for count, factor := range factors {
 		log.Debug().Msgf("verifying %s factor nb %d", factorType, count)
 		authRes, err := auth.doAuthFirstStep(factor, stateToken, factorType)
@@ -80,12 +84,12 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 				factor.Provider,
 				factorType,
 				authRes.Result,
-				fmt.Errorf("%s MFA failed", factorType))
+				fmt.Errorf("%s MFA failed", ftype))
 		} else {
 			mfaErr = fmt.Errorf("%s %s MFA authentication failed, %w",
 				factor.Provider,
 				factorType,
-				fmt.Errorf("%s MFA failed", factorType))
+				fmt.Errorf("%s MFA failed", ftype))
 		}
 
 		err = parseOktaError(mfaErr, count, nbFactors)
@@ -95,7 +99,7 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 	}
 	// Reached only when the list of factors provided is empty
 	log.Debug().Msgf("No %s MFA available", factorType)
-	return fmt.Errorf("No %s MFA available", factorType)
+	return fmt.Errorf("no %s MFA available", ftype)
 }
 
 // Gather the list of factors available from the pre authentication api response,
@@ -113,7 +117,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error)
 				// try Push MFA authentication
 				goto PUSH
 			}
-			if err.Error() != "No TOTP MFA available" {
+			if err.Error() != "no TOTP MFA available" {
 				auth.cancelAuth(preAuthRes.Token)
 				return err
 			}
@@ -124,7 +128,7 @@ func (auth *OktaApiAuth) validateUserMFA(preAuthRes PreAuthResponse) (err error)
 
 PUSH:
 	if err = auth.verifyFactors(preAuthRes.Token, factorsPush, "Push"); err != nil {
-		if err.Error() != "No Push MFA available" {
+		if err.Error() != "no push MFA available" {
 			auth.cancelAuth(preAuthRes.Token)
 			return err
 		}
@@ -183,6 +187,6 @@ func (auth *OktaApiAuth) Auth() error {
 		if preAuthRes.Token != "" {
 			auth.cancelAuth(preAuthRes.Token)
 		}
-		return errors.New("Unknown preauth status")
+		return errors.New("unknown preauth status")
 	}
 }

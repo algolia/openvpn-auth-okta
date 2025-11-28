@@ -45,7 +45,7 @@ func TestReadConfigFile(t *testing.T) {
 			"Invalid config file - failure",
 			"../../testing/fixtures/validator/invalid.ini",
 			"",
-			"Missing param Url or Token",
+			"missing param Url or Token",
 		},
 		{
 			"Invalid 2 config file - failure",
@@ -57,19 +57,19 @@ func TestReadConfigFile(t *testing.T) {
 			"Invalid separator in config file - failure",
 			"../../testing/fixtures/validator/invalid_separator.ini",
 			"",
-			"Invalid passcode separator",
+			"invalid passcode separator",
 		},
 		{
 			"Missing config file - failure",
 			"MISSING",
 			"",
-			"No ini file found",
+			"no ini file found",
 		},
 		{
 			"Config file is a dir - failure",
 			"../../testing/fixtures/validator/",
 			"",
-			"No ini file found",
+			"no ini file found",
 		},
 	}
 
@@ -113,13 +113,13 @@ func TestLoadPinset(t *testing.T) {
 			"Missing pinset file - failure",
 			"MISSING",
 			"",
-			"No pinset file found",
+			"no pinset file found",
 		},
 		{
 			"Pinset file is a dir - failure",
 			"../../testing/fixtures/validator/",
 			"",
-			"No pinset file found",
+			"no pinset file found",
 		},
 	}
 

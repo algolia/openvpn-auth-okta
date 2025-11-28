@@ -60,14 +60,14 @@ func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
 	viaFileInfos = removeEmptyStrings(viaFileInfos)
 	if len(viaFileInfos) < 2 {
 		log.Error().Msgf("Invalid OpenVPN via-file \"%s\" content", path)
-		return errors.New("Invalid via-file")
+		return errors.New("invalid via-file")
 	}
 	username := viaFileInfos[0]
 	password := viaFileInfos[1]
 
 	if !checkUsernameFormat(username) {
 		log.Error().Msg("Username or CN invalid format")
-		return errors.New("Invalid CN or username format")
+		return errors.New("invalid CN or username format")
 	}
 
 	apiConfig := validator.api.ApiConfig
@@ -111,17 +111,17 @@ func (validator *OktaOpenVPNValidator) loadEnvVars(pluginEnv *PluginEnv) error {
 	// if username is empty, there is an issue somewhere
 	if pluginEnv.Username == "" {
 		log.Error().Msg("No username or CN provided")
-		return errors.New("No CN or username")
+		return errors.New("no CN or username")
 	}
 
 	if pluginEnv.Password == "" {
 		log.Error().Msg("No password provided")
-		return errors.New("No password")
+		return errors.New("no password")
 	}
 
 	if !checkUsernameFormat(pluginEnv.Username) {
 		log.Error().Msg("Username or CN invalid format")
-		return errors.New("Invalid CN or username format")
+		return errors.New("invalid CN or username format")
 	}
 
 	if apiConfig.AllowUntrustedUsers {

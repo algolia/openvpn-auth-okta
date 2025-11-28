@@ -137,7 +137,7 @@ func TestCheckControlFilePerm(t *testing.T) {
 			"Test empty control file path - failure",
 			"",
 			0600,
-			"Unknow control file",
+			"unknown control file",
 		},
 		{
 			"Test valid control file permissions - success",
