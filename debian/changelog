@@ -1,3 +1,22 @@
+openvpn-auth-okta (2.9.1) stable; urgency=medium
+
+  [ dependabot[bot] ]
+  * chore(deps): bump github.com/stretchr/testify from 1.10.0 to 1.11.1
+  * chore(deps): bump github.com/phuslu/log from 1.0.119 to 1.0.120
+  * chore(deps): bump github.com/go-playground/validator/v10
+  * chore(deps): bump golang.org/x/crypto from 0.42.0 to 0.45.0
+
+  [ Jeremy JACQUE ]
+  * doc: expose MPL v2 licensing in README
+  * fix(openvpn-plugin): make sure the C source is a _XOPEN_SOURCE - fixes sigaction incomplete type
+  * chore: update Go to version 1.25
+  * chore(ci): update codacy orb
+  * chore(ci): update golangci-lint
+  * fix: multiple ggolangci-lint issues
+  * chore(dist): Update changelog for 2.9.1 release
+
+ -- Jeremy JACQUE <jeremy.jacque@algolia.com>  Mon, 01 Dec 2025 12:15:30 +0100
+
 openvpn-auth-okta (2.9.0) stable; urgency=medium
 
   [ Jeremy JACQUE ]
