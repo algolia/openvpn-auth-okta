@@ -1,5 +1,5 @@
 Name: openvpn-auth-okta
-Version: 2.9.0
+Version: 2.9.1
 Release: 1%{?dist}
 Summary: Go programming language
 Group: Productivity/Networking/Security
@@ -86,6 +86,18 @@ make DESTDIR=%{buildroot} LIB_PREFIX=%{_libdir} install
 
 
 %changelog
+* Mon Dec 01 2025 Jeremy JACQUE <jeremy.jacque@algolia.com> - 2.9.1-1
+- chore(deps): bump github.com/stretchr/testify from 1.10.0 to 1.11.1
+- chore(deps): bump github.com/phuslu/log from 1.0.119 to 1.0.120
+- chore(deps): bump github.com/go-playground/validator/v10
+- chore(deps): bump golang.org/x/crypto from 0.42.0 to 0.45.0
+- doc: expose MPL v2 licensing in README
+- fix(openvpn-plugin): make sure the C source is a _XOPEN_SOURCE - fixes sigaction incomplete type
+- chore: update Go to version 1.25
+- chore(ci): update codacy orb
+- chore(ci): update golangci-lint
+- fix: multiple ggolangci-lint issues
+
 * Tue Aug 19 2025 Jeremy JACQUE <jeremy.jacque@algolia.com> - 2.9.0-1
 - chore(deps): bump go dep to 1.24 for packaging
 - chore(doc): update list of available distro / arch
