@@ -14,15 +14,17 @@ endif
 INSTALL := install
 CC := gcc
 INC := -I. -I./build
-CFLAGS := -fPIC $(INC) -O2 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700 -fstack-protector-strong
-LDFLAGS := -shared -fPIC
+
+SEC_CFLAGS := -D_FORTIFY_SOURCE=2 -fstack-protector-strong -D_GLIBCXX_ASSERTIONS -Wformat -Wformat-security -Werror=format-security
+CFLAGS := -fPIC $(INC) -O3 -D_XOPEN_SOURCE=700 $(SEC_CFLAGS) -fomit-frame-pointer
+LDFLAGS := -shared -fPIC -Wl,-O3 -Wl,--strip-all -Wl,--as-needed
 
 DESTDIR :=
 LIB_PREFIX := /usr/lib
 PLUGIN_DIR := openvpn/plugins
 BUILDDIR := build
 
-GOPLUGIN_LDFLAGS := -ldflags '-s -w -extldflags "-static"'
+GOPLUGIN_LDFLAGS := -ldflags '-s -w -extldflags "-static -O3 -fno-plt -flto=auto"'
 GOPLUGIN_FLAGS := -trimpath -buildmode=pie -a $(GOPLUGIN_LDFLAGS)
 
 ifeq ($(UNAME_S),Linux)
