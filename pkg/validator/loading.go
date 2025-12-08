@@ -19,28 +19,70 @@ import (
 	"github.com/phuslu/log"
 )
 
-// PluginEnv represents the information passed to the validator when it's running as
-// `Shared Object Plugin`
+// PluginEnv encapsulates OpenVPN environment variables passed to the validator
+// when running in deferred plugin mode (Shared Object Plugin).
+//
+// In deferred mode, OpenVPN loads the plugin as a shared library and invokes it
+// with environment variables containing connection details. The C plugin layer
+// extracts these variables and marshals them into this struct before passing to Go.
+//
+// Security note: These values come from OpenVPN's plugin API and are considered
+// trusted. The Username from environment is only trusted if it matches CommonName
+// from the client's SSL certificate (controlled by AllowUntrustedUsers config).
 type PluginEnv struct {
-	// ControlFile is the path to the OpenVPN auth control file
-	// where the authentication result is written
+	// ControlFile is the absolute path to the OpenVPN auth control file.
+	// The validator writes "1" (success) or "0" (failure) to this file.
+	// OpenVPN reads this file to determine authentication result.
+	// Example: "/tmp/openvpn_acf_abc123.tmp"
 	ControlFile string
 
-	// The OpenVPN client ip address, used as `X-Forwarded-For` payload attribute
-	// to the Okta API
+	// ClientIp is the untrusted IP address of the OpenVPN client.
+	// Forwarded to Okta API as X-Forwarded-For for audit/security purposes.
+	// Example: "192.168.1.100"
 	ClientIp string
 
-	// The CN of the SSL certificate presented by the OpenVPN client
+	// CommonName is the CN field from the client's SSL certificate.
+	// Used as the trusted username source when AllowUntrustedUsers is false.
+	// Example: "user@example.com" or "john.doe"
 	CommonName string
 
-	// The client username submitted during OpenVPN authentication
+	// Username is the username submitted by the client during authentication.
+	// Only trusted if AllowUntrustedUsers is true or matches CommonName.
+	// Example: "john.doe"
 	Username string
 
-	// The client password submitted during OpenVPN authentication
+	// Password is the password submitted by the client.
+	// May contain appended TOTP passcode (last 6 digits).
+	// Example: "mypassword123456" (password + TOTP)
 	Password string
 }
 
-// Get user credentials from the OpenVPN via-file
+// loadViaFile reads user credentials from a temporary file (via-file method).
+//
+// In script plugin mode with via-file method, OpenVPN writes credentials to a
+// temporary file and passes the path as an argument. This is more secure than
+// via-env on systems where environment variables might be visible to other users.
+//
+// File format (created by OpenVPN):
+//	Line 1: username
+//	Line 2: password (may include appended TOTP)
+//
+// Security considerations:
+//  - File should be on tmpfs to prevent credentials touching disk
+//  - OpenVPN creates file with restrictive permissions
+//  - File is deleted by OpenVPN after plugin completes
+//
+// The function:
+//  1. Validates file exists and is readable
+//  2. Reads and parses the two-line format
+//  3. Validates username format per OpenVPN requirements
+//  4. Applies UsernameSuffix if configured
+//  5. Sets usernameTrusted=true (via-file implies SSL cert auth)
+//
+// Parameters:
+//   - path: absolute path to temporary credentials file
+//
+// Returns nil on success, error if file invalid or credentials malformed.
 func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
 	log.Trace().Msg("validator.loadViaFile()")
 	if _, err := os.Stat(path); err != nil {
@@ -81,7 +123,36 @@ func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
 	return nil
 }
 
-// Get user credentials and info from the environment set by OpenVPN
+// loadEnvVars extracts user credentials and metadata from OpenVPN environment variables.
+//
+// This function handles both script plugin mode (via-env) and deferred plugin mode.
+// The source of environment variables differs by mode:
+//  - Script mode: Standard Unix environment variables set by OpenVPN
+//  - Deferred mode: Passed via pluginEnv struct marshalled from C plugin
+//
+// Environment variables used:
+//  - username: User-submitted username (untrusted unless cert validated)
+//  - password: User-submitted password (may include appended TOTP)
+//  - common_name: CN from client SSL certificate (trusted identity source)
+//  - untrusted_ip: Client IP address (forwarded to Okta for audit)
+//  - auth_control_file: Path to write authentication result (deferred mode only)
+//
+// Username trust model:
+//  - If AllowUntrustedUsers=false: username must match common_name (SSL cert)
+//  - If AllowUntrustedUsers=true: username from credentials is trusted (NOT RECOMMENDED)
+//
+// The function:
+//  1. Populates pluginEnv from environment if nil (script mode)
+//  2. Validates control file is present (deferred mode warning if missing)
+//  3. Determines username trust based on SSL certificate and config
+//  4. Validates username and password are present and properly formatted
+//  5. Applies UsernameSuffix if configured and username lacks @
+//  6. Sets client IP for Okta API X-Forwarded-For header
+//
+// Parameters:
+//   - pluginEnv: pre-populated environment (deferred mode) or nil (script mode)
+//
+// Returns nil on success, error if credentials missing or invalid.
 func (validator *OktaOpenVPNValidator) loadEnvVars(pluginEnv *PluginEnv) error {
 	log.Trace().Msg("validator.loadEnvVars()")
 	if pluginEnv == nil {
