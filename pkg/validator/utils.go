@@ -30,13 +30,13 @@ const passcodeLen int = 6
 //
 // OpenVPN users can append their 6-digit TOTP code to their password for MFA.
 // This function detects this pattern and splits the password into two parts:
-//  - userConfig.Password: the actual password (without TOTP)
-//  - userConfig.Passcode: the 6-digit TOTP code
+//   - userConfig.Password: the actual password (without TOTP)
+//   - userConfig.Passcode: the 6-digit TOTP code
 //
 // The function respects the PasscodeSeparator configuration:
-//  - If separator is empty: extracts last 6 digits if present (e.g., "mypass123456")
-//  - If separator is set (e.g., "+"): requires separator before TOTP (e.g., "mypass+123456")
-//  - If pattern doesn't match: leaves password unchanged, no TOTP extracted
+//   - If separator is empty: extracts last 6 digits if present (e.g., "mypass123456")
+//   - If separator is set (e.g., "+"): requires separator before TOTP (e.g., "mypass+123456")
+//   - If pattern doesn't match: leaves password unchanged, no TOTP extracted
 //
 // Example:
 //
@@ -76,9 +76,9 @@ func (validator *OktaOpenVPNValidator) parsePassword() {
 // result and bypass authentication.
 //
 // Security requirements enforced:
-//  - Control file must not be group writable (prevents tampering by same group)
-//  - Control file must not be world writable (prevents tampering by any user)
-//  - Parent directory must not be group/world writable (prevents file replacement)
+//   - Control file must not be group writable (prevents tampering by same group)
+//   - Control file must not be world writable (prevents tampering by any user)
+//   - Parent directory must not be group/world writable (prevents file replacement)
 //
 // This follows OpenVPN's security guidelines for deferred plugin authentication.
 // See: https://openvpn.net/community-resources/using-alternative-authentication-methods/
@@ -128,11 +128,11 @@ func getEnv(key, fallback string) string {
 // that restriction.
 //
 // Allowed characters:
-//  - Alphanumeric: a-z, A-Z, 0-9
-//  - Underscore: _
-//  - Dash: -
-//  - Dot: .
-//  - At sign: @
+//   - Alphanumeric: a-z, A-Z, 0-9
+//   - Underscore: _
+//   - Dash: -
+//   - Dot: .
+//   - At sign: @
 //
 // Reference: OpenVPN manual section on auth-user-pass-verify security
 //
@@ -155,8 +155,8 @@ func checkUsernameFormat(name string) bool {
 // or any local user could modify critical files.
 //
 // Checks Unix permission bits:
-//  - S_IWGRP (020): Group write permission
-//  - S_IWOTH (002): Other write permission
+//   - S_IWGRP (020): Group write permission
+//   - S_IWOTH (002): Other write permission
 //
 // Returns true if file/directory is safe (not group/world writable), false otherwise.
 // Returns false if path does not exist or stat fails.

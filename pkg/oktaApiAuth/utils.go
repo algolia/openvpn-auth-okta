@@ -43,7 +43,6 @@ import (
 // Example configuration:
 //
 //	AllowedGroups: "vpn-users,developers,admins"
-//
 func (auth *OktaApiAuth) checkAllowedGroups() error {
 	log.Trace().Msg("oktaApiAuth.checkAllowedGroups()")
 	// https://developer.okta.com/docs/reference/api/users/#request-parameters-8
@@ -91,18 +90,18 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 // getUserFactors categorizes available MFA factors into TOTP and Push lists.
 //
 // Parses the factors from pre-authentication response and separates them by type:
-//  - TOTP factors: Only included if user provided a passcode
-//  - Push factors: Always included if available
-//  - Other factor types: Logged and skipped (not supported)
+//   - TOTP factors: Only included if user provided a passcode
+//   - Push factors: Always included if available
+//   - Other factor types: Logged and skipped (not supported)
 //
 // This separation enables the validator to:
-//  - Try TOTP first when passcode provided
-//  - Fall back to Push if configured
-//  - Skip TOTP factors when no passcode available
+//   - Try TOTP first when passcode provided
+//   - Fall back to Push if configured
+//   - Skip TOTP factors when no passcode available
 //
 // Supported factor types:
-//  - "token:software:totp": TOTP authenticator apps (Google Authenticator, Okta Verify TOTP)
-//  - "push": Push notifications (Okta Verify)
+//   - "token:software:totp": TOTP authenticator apps (Google Authenticator, Okta Verify TOTP)
+//   - "push": Push notifications (Okta Verify)
 //
 // Parameters:
 //   - preAuthRes: Pre-authentication response containing user's enrolled factors
@@ -135,10 +134,10 @@ func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP
 //  3. Returns pre-authentication response for status/MFA processing
 //
 // The pre-authentication response indicates:
-//  - Whether username/password are valid
-//  - User account status (active, locked, password expired, etc.)
-//  - MFA requirements and available factors
-//  - State token for continuing the authentication flow
+//   - Whether username/password are valid
+//   - User account status (active, locked, password expired, etc.)
+//   - MFA requirements and available factors
+//   - State token for continuing the authentication flow
 //
 // Parameters: None (uses auth.ApiConfig and auth.UserConfig)
 //

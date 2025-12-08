@@ -20,18 +20,18 @@ import (
 // New creates a new OktaApiAuth instance with default configuration values.
 //
 // Returns an initialized OktaApiAuth with:
-//  - ApiConfig populated with secure defaults
-//  - UserConfig initialized but empty (populate before calling Auth)
-//  - pool uninitialized (call InitPool before Auth)
+//   - ApiConfig populated with secure defaults
+//   - UserConfig initialized but empty (populate before calling Auth)
+//   - pool uninitialized (call InitPool before Auth)
 //
 // Default configuration:
-//  - AllowUntrustedUsers: false (require SSL certificates)
-//  - MFARequired: false (allow authentication without MFA if Okta permits)
-//  - MFAPushMaxRetries: 20 (60 seconds with default delay)
-//  - MFAPushDelaySeconds: 3 (check Push MFA every 3 seconds)
-//  - AllowedGroups: "" (no group restriction)
-//  - TOTPFallbackToPush: false (don't retry with Push if TOTP fails)
-//  - PasscodeSeparator: "" (extract last 6 digits as TOTP)
+//   - AllowUntrustedUsers: false (require SSL certificates)
+//   - MFARequired: false (allow authentication without MFA if Okta permits)
+//   - MFAPushMaxRetries: 20 (60 seconds with default delay)
+//   - MFAPushDelaySeconds: 3 (check Push MFA every 3 seconds)
+//   - AllowedGroups: "" (no group restriction)
+//   - TOTPFallbackToPush: false (don't retry with Push if TOTP fails)
+//   - PasscodeSeparator: "" (extract last 6 digits as TOTP)
 //
 // The returned instance must be further configured:
 //  1. Set ApiConfig.Url and ApiConfig.Token (required)
@@ -67,16 +67,16 @@ func New() *OktaApiAuth {
 //   - factorType: "TOTP" or "Push" (for logging and error messages)
 //
 // Behavior:
-//  - For TOTP: Immediately verifies passcode against each factor
-//  - For Push: Sends notification then polls for user response
-//  - Logs warnings for non-final factor failures
-//  - Returns error only if all factors fail
-//  - Returns success on first successful factor
+//   - For TOTP: Immediately verifies passcode against each factor
+//   - For Push: Sends notification then polls for user response
+//   - Logs warnings for non-final factor failures
+//   - Returns error only if all factors fail
+//   - Returns success on first successful factor
 //
 // Error handling:
-//  - Uses parseOktaError to suppress errors for non-final factors
-//  - Only the last factor's error is returned to caller
-//  - This prevents premature failure when multiple factors exist
+//   - Uses parseOktaError to suppress errors for non-final factors
+//   - Only the last factor's error is returned to caller
+//   - This prevents premature failure when multiple factors exist
 //
 // Returns:
 //   - nil: Successfully authenticated with one of the factors
@@ -150,9 +150,9 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 // validateUserMFA orchestrates MFA verification based on available factors and user input.
 //
 // Determines which MFA factors to attempt based on:
-//  - Available factors from pre-authentication (factorsTOTP, factorsPush)
-//  - Whether user provided a TOTP passcode
-//  - TOTPFallbackToPush configuration setting
+//   - Available factors from pre-authentication (factorsTOTP, factorsPush)
+//   - Whether user provided a TOTP passcode
+//   - TOTPFallbackToPush configuration setting
 //
 // MFA selection logic:
 //  1. If passcode provided:
@@ -164,8 +164,8 @@ func (auth *OktaApiAuth) verifyFactors(stateToken string, factors []AuthFactor, 
 //     b. If none available: return errMFAUnavailable
 //
 // Transaction management:
-//  - Cancels authentication transaction on any error
-//  - Prevents abandoned transactions from accumulating in Okta
+//   - Cancels authentication transaction on any error
+//   - Prevents abandoned transactions from accumulating in Okta
 //
 // Parameters:
 //   - preAuthRes: Pre-authentication response containing state token and factors
@@ -214,9 +214,9 @@ ERR:
 // Auth performs the complete Okta authentication flow with MFA support.
 //
 // Prerequisites:
-//  - ApiConfig must be fully populated (Url, Token, AssertPin, etc.)
-//  - UserConfig must contain Username and Password
-//  - InitPool() must have been called successfully
+//   - ApiConfig must be fully populated (Url, Token, AssertPin, etc.)
+//   - UserConfig must contain Username and Password
+//   - InitPool() must have been called successfully
 //
 // Authentication flow:
 //  1. Validates user group membership (if AllowedGroups configured)
@@ -234,19 +234,19 @@ ERR:
 //  5. Cancels transaction on errors (prevents session buildup)
 //
 // MFA behavior:
-//  - Tries all available factors of each type sequentially
-//  - Returns on first successful factor
-//  - Logs warnings for non-final factor failures
-//  - Returns error only if all factors fail
+//   - Tries all available factors of each type sequentially
+//   - Returns on first successful factor
+//   - Logs warnings for non-final factor failures
+//   - Returns error only if all factors fail
 //
 // Returns:
-//  - nil: Authentication successful
-//  - errMFARequired: User succeeded without MFA but MFARequired=true
-//  - errUserLocked: Account locked in Okta
-//  - errPasswordExpired: User must reset password
-//  - errEnrollNeeded: User must enroll in MFA
-//  - errMFAUnavailable: No suitable MFA factors available
-//  - Other errors: API errors, network issues, invalid responses
+//   - nil: Authentication successful
+//   - errMFARequired: User succeeded without MFA but MFARequired=true
+//   - errUserLocked: Account locked in Okta
+//   - errPasswordExpired: User must reset password
+//   - errEnrollNeeded: User must enroll in MFA
+//   - errMFAUnavailable: No suitable MFA factors available
+//   - Other errors: API errors, network issues, invalid responses
 //
 // All authentication attempts are logged with structured logging.
 func (auth *OktaApiAuth) Auth() error {

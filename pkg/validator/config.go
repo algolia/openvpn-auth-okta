@@ -89,9 +89,9 @@ var (
 // If validator.configFile is already set, only that path is checked.
 //
 // Configuration validation:
-//  - Url and Token are required fields (must not be empty)
-//  - PasscodeSeparator must be empty or exactly 1 character
-//  - LogLevel is validated and applied to the logger
+//   - Url and Token are required fields (must not be empty)
+//   - PasscodeSeparator must be empty or exactly 1 character
+//   - LogLevel is validated and applied to the logger
 //
 // The function uses strict mapping to ensure all INI keys are valid,
 // preventing silent configuration errors.
@@ -173,9 +173,9 @@ func (validator *OktaOpenVPNValidator) readConfigFile() error {
 // If validator.pinsetFile is already set, only that path is checked.
 //
 // File format:
-//  - One base64-encoded SHA256 digest per line
-//  - Lines starting with # are comments (ignored)
-//  - Empty lines are ignored
+//   - One base64-encoded SHA256 digest per line
+//   - Lines starting with # are comments (ignored)
+//   - Empty lines are ignored
 //
 // Returns nil on success, error if no pinset file found.
 //

@@ -64,13 +64,14 @@ type PluginEnv struct {
 // via-env on systems where environment variables might be visible to other users.
 //
 // File format (created by OpenVPN):
+//
 //	Line 1: username
 //	Line 2: password (may include appended TOTP)
 //
 // Security considerations:
-//  - File should be on tmpfs to prevent credentials touching disk
-//  - OpenVPN creates file with restrictive permissions
-//  - File is deleted by OpenVPN after plugin completes
+//   - File should be on tmpfs to prevent credentials touching disk
+//   - OpenVPN creates file with restrictive permissions
+//   - File is deleted by OpenVPN after plugin completes
 //
 // The function:
 //  1. Validates file exists and is readable
@@ -127,19 +128,19 @@ func (validator *OktaOpenVPNValidator) loadViaFile(path string) error {
 //
 // This function handles both script plugin mode (via-env) and deferred plugin mode.
 // The source of environment variables differs by mode:
-//  - Script mode: Standard Unix environment variables set by OpenVPN
-//  - Deferred mode: Passed via pluginEnv struct marshalled from C plugin
+//   - Script mode: Standard Unix environment variables set by OpenVPN
+//   - Deferred mode: Passed via pluginEnv struct marshalled from C plugin
 //
 // Environment variables used:
-//  - username: User-submitted username (untrusted unless cert validated)
-//  - password: User-submitted password (may include appended TOTP)
-//  - common_name: CN from client SSL certificate (trusted identity source)
-//  - untrusted_ip: Client IP address (forwarded to Okta for audit)
-//  - auth_control_file: Path to write authentication result (deferred mode only)
+//   - username: User-submitted username (untrusted unless cert validated)
+//   - password: User-submitted password (may include appended TOTP)
+//   - common_name: CN from client SSL certificate (trusted identity source)
+//   - untrusted_ip: Client IP address (forwarded to Okta for audit)
+//   - auth_control_file: Path to write authentication result (deferred mode only)
 //
 // Username trust model:
-//  - If AllowUntrustedUsers=false: username must match common_name (SSL cert)
-//  - If AllowUntrustedUsers=true: username from credentials is trusted (NOT RECOMMENDED)
+//   - If AllowUntrustedUsers=false: username must match common_name (SSL cert)
+//   - If AllowUntrustedUsers=true: username from credentials is trusted (NOT RECOMMENDED)
 //
 // The function:
 //  1. Populates pluginEnv from environment if nil (script mode)
