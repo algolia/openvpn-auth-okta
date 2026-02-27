@@ -94,8 +94,12 @@ $(BUILDDIR)/cover-badge.out: $(BUILDDIR)/cover.out
 # You'll need to install golangci-lint and cppcheck
 # see https://github.com/danmar/cppcheck#packages
 # https://github.com/golangci/golangci-lint#install-golangci-lint
-lint:
+lint: golang-lint cpp-lint
+
+golang-lint:
 	golangci-lint run
+
+cpp-lint:
 	cppcheck $(INC) --enable=all --disable=missingInclude --check-level=exhaustive *.c
 
 install: all
