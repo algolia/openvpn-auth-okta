@@ -12,7 +12,7 @@ executors:
       - image: cimg/openjdk:8.0
 
 jobs:
-  golangci-lint:
+  lint:
     executor: golang
     steps:
       - checkout
@@ -39,6 +39,14 @@ jobs:
       - run:
           name: GolangCI Lint
           command: golangci-lint run
+      - run:
+          name: Install cppcheck
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y cppcheck
+      - run:
+          name: C Lint
+          command: make cpp-lint
       - save_cache: &save-cache
           paths:
             - /home/circleci/go/pkg/mod
@@ -86,10 +94,10 @@ jobs:
 workflows:
   lint_test_build:
     jobs:
-      - golangci-lint
+      - lint
       - test:
           requires:
-            - golangci-lint
+            - lint
       - codacy-coverage:
           requires:
             - test
