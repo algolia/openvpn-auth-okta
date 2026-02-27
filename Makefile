@@ -40,7 +40,7 @@ LIBOKTA_FLAGS := -trimpath -buildmode=c-shared $(LIBOKTA_LDFLAGS)
 PKG_SRC := $(shell ls pkg/*/*.go | grep -v "_test.go")
 PLUGIN_DEPS := $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.o openvpn-plugin.h
 
-
+.PHONY: all
 all: binary plugin
 
 $(BUILDDIR):
@@ -50,6 +50,7 @@ $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Build the plugin as a standalone binary
+.PHONY: binary
 binary: $(BUILDDIR)/okta-auth-validator
 $(BUILDDIR)/okta-auth-validator: cmd/okta-auth-validator/main.go $(PKG_SRC) | $(BUILDDIR)
 	CGO_ENABLED=$(CGO) go build $(GOPLUGIN_FLAGS) -o $(BUILDDIR)/okta-auth-validator cmd/okta-auth-validator/main.go
@@ -63,13 +64,17 @@ $(BUILDDIR)/libokta-auth-validator.so: lib/libokta-auth-validator.go $(PKG_SRC) 
 	go build $(LIBOKTA_FLAGS) -o $(BUILDDIR)/libokta-auth-validator.so lib/libokta-auth-validator.go
 
 # Build all shared libraries
+.PHONY: plugin
 plugin: $(BUILDDIR)/libokta-auth-validator.so $(BUILDDIR)/openvpn-plugin-auth-okta.so
 
+.PHONY: test
 test: $(BUILDDIR)/cover.out
 
+.PHONY: coverage
 coverage: $(BUILDDIR)/coverage.html
 
-# Run gobagde to update the README coverage badge after golang tests
+# Run gobadge to update the README coverage badge after golang tests
+.PHONY: badge
 badge: $(BUILDDIR)/cover-badge.out
 	if [ ! -f /tmp/gobadge ]; then \
 		curl -sf https://gobinaries.com/github.com/AlexBeauchemin/gobadge@v0.3.0 | PREFIX=/tmp sh; \
@@ -94,11 +99,14 @@ $(BUILDDIR)/cover-badge.out: $(BUILDDIR)/cover.out
 # You'll need to install golangci-lint and cppcheck
 # see https://github.com/danmar/cppcheck#packages
 # https://github.com/golangci/golangci-lint#install-golangci-lint
+.PHONY: lint
 lint: golang-lint cpp-lint
 
+.PHONY: golang-lint
 golang-lint:
 	golangci-lint run
 
+.PHONY: cpp-lint
 cpp-lint:
 	cppcheck $(INC) --enable=all --disable=missingInclude --check-level=exhaustive *.c
 
@@ -118,10 +126,9 @@ install: all
 		$(INSTALL) -m640 config/api.ini.inc $(DESTDIR)/etc/okta-auth-validator/api.ini; \
 	fi
 
+.PHONY: clean
 clean:
 	rm -Rf $(BUILDDIR)
 	rm -f testing/fixtures/validator/valid_control_file
 	rm -f testing/fixtures/validator/invalid_control_file
 	rm -f testing/fixtures/validator/control_file
-
-.PHONY: clean binary install lint badge coverage test plugin
