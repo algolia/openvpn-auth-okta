@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    uses: algolia/github-actions/.github/workflows/go-debian-package-s3.yml@08d60f47ef669547f52152fb43bcca1883d17123 # PR #686
+    uses: algolia/github-actions/.github/workflows/go-debian-package-s3.yml@3b7dae436adb660882f7f176b7a2a9c02f585eb4 # v4.12.0
     with:
       git-ref: ${{ github.ref }}
       publish: ${{ startsWith(github.ref, 'refs/tags/v') }}
