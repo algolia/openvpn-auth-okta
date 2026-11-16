@@ -22,7 +22,27 @@ import (
 	"github.com/phuslu/log"
 )
 
-// Checks that the user belongs to the allowed groups list provided in the conf
+// checkAllowedGroups validates user membership in required Okta groups.
+//
+// If ApiConfig.AllowedGroups is configured, this function:
+//  1. Fetches all groups the user belongs to via Okta API
+//  2. Checks if user is member of at least one allowed group
+//  3. Returns error if no matching group found
+//
+// Group matching is case-sensitive and exact (no wildcards or regex).
+//
+// API endpoint: GET /api/v1/users/{username}/groups
+// See: https://developer.okta.com/docs/reference/api/users/#get-user-s-groups
+//
+// Parameters: None (uses auth.ApiConfig.AllowedGroups and auth.UserConfig.Username)
+//
+// Returns:
+//   - nil: User belongs to at least one allowed group, OR no groups configured
+//   - error: User not in allowed groups, API error, or invalid response
+//
+// Example configuration:
+//
+//	AllowedGroups: "vpn-users,developers,admins"
 func (auth *OktaApiAuth) checkAllowedGroups() error {
 	log.Trace().Msg("oktaApiAuth.checkAllowedGroups()")
 	// https://developer.okta.com/docs/reference/api/users/#request-parameters-8
@@ -67,8 +87,28 @@ func (auth *OktaApiAuth) checkAllowedGroups() error {
 	return nil
 }
 
-// Parse the pre authentication api response and create 2 factor lists:
-// one for the TOTP factors and one for the Push factors
+// getUserFactors categorizes available MFA factors into TOTP and Push lists.
+//
+// Parses the factors from pre-authentication response and separates them by type:
+//   - TOTP factors: Only included if user provided a passcode
+//   - Push factors: Always included if available
+//   - Other factor types: Logged and skipped (not supported)
+//
+// This separation enables the validator to:
+//   - Try TOTP first when passcode provided
+//   - Fall back to Push if configured
+//   - Skip TOTP factors when no passcode available
+//
+// Supported factor types:
+//   - "token:software:totp": TOTP authenticator apps (Google Authenticator, Okta Verify TOTP)
+//   - "push": Push notifications (Okta Verify)
+//
+// Parameters:
+//   - preAuthRes: Pre-authentication response containing user's enrolled factors
+//
+// Returns:
+//   - factorsTOTP: List of TOTP factors (empty if no passcode provided)
+//   - factorsPush: List of Push factors (empty if none available)
 func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP []AuthFactor, factorsPush []AuthFactor) {
 	log.Trace().Msg("oktaApiAuth.getUserFactors()")
 	for _, f := range preAuthRes.Embedded.Factors {
@@ -86,6 +126,26 @@ func (auth *OktaApiAuth) getUserFactors(preAuthRes PreAuthResponse) (factorsTOTP
 	return
 }
 
+// preChecks performs group validation and primary authentication.
+//
+// This function executes the preliminary steps before MFA verification:
+//  1. Validates user group membership (if AllowedGroups configured)
+//  2. Calls Okta primary authentication endpoint with username/password
+//  3. Returns pre-authentication response for status/MFA processing
+//
+// The pre-authentication response indicates:
+//   - Whether username/password are valid
+//   - User account status (active, locked, password expired, etc.)
+//   - MFA requirements and available factors
+//   - State token for continuing the authentication flow
+//
+// Parameters: None (uses auth.ApiConfig and auth.UserConfig)
+//
+// Returns:
+//   - PreAuthResponse: Okta's authentication response
+//   - error: Group check failed or API error
+//
+// Caller should inspect PreAuthResponse.Status to determine next steps.
 func (auth *OktaApiAuth) preChecks() (PreAuthResponse, error) {
 	log.Trace().Msg("oktaApiAuth.preChecks()")
 	if err := auth.checkAllowedGroups(); err != nil {

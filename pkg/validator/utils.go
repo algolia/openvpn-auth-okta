@@ -26,7 +26,22 @@ import (
 
 const passcodeLen int = 6
 
-// Parse the password looking for an TOTP
+// parsePassword extracts TOTP passcode from the end of the user's password.
+//
+// OpenVPN users can append their 6-digit TOTP code to their password for MFA.
+// This function detects this pattern and splits the password into two parts:
+//   - userConfig.Password: the actual password (without TOTP)
+//   - userConfig.Passcode: the 6-digit TOTP code
+//
+// The function respects the PasscodeSeparator configuration:
+//   - If separator is empty: extracts last 6 digits if present (e.g., "mypass123456")
+//   - If separator is set (e.g., "+"): requires separator before TOTP (e.g., "mypass+123456")
+//   - If pattern doesn't match: leaves password unchanged, no TOTP extracted
+//
+// Example:
+//
+//	Password: "correcthorsebatterystaple123456"
+//	Result: Password="correcthorsebatterystaple", Passcode="123456"
 func (validator *OktaOpenVPNValidator) parsePassword() {
 	log.Trace().Msg("validator.parsePassword()")
 	separator := validator.api.ApiConfig.PasscodeSeparator
@@ -53,7 +68,22 @@ func (validator *OktaOpenVPNValidator) parsePassword() {
 	}
 }
 
-// Validate the OpenVPN control file and its directory permissions
+// checkControlFilePerm validates OpenVPN control file security permissions.
+//
+// This is a critical security check for deferred plugin mode. The control file
+// contains the authentication result (1=success, 0=failure). If the file or its
+// directory is writable by group/other users, a local attacker could modify the
+// result and bypass authentication.
+//
+// Security requirements enforced:
+//   - Control file must not be group writable (prevents tampering by same group)
+//   - Control file must not be world writable (prevents tampering by any user)
+//   - Parent directory must not be group/world writable (prevents file replacement)
+//
+// This follows OpenVPN's security guidelines for deferred plugin authentication.
+// See: https://openvpn.net/community-resources/using-alternative-authentication-methods/
+//
+// Returns error if permissions are insecure or file path is empty.
 func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
 	log.Trace().Msg("validator.checkControlFilePerm()")
 	if validator.controlFile == "" {
@@ -74,7 +104,16 @@ func (validator *OktaOpenVPNValidator) checkControlFilePerm() error {
 	return nil
 }
 
-// get an env var by its name, returns the fallback if not found
+// getEnv retrieves an environment variable value with fallback support.
+//
+// Unlike os.Getenv, this function returns the fallback value if the
+// environment variable is not set OR is set to an empty string.
+//
+// Parameters:
+//   - key: environment variable name
+//   - fallback: value to return if key is not set or empty
+//
+// Returns the environment variable value, or fallback if not found/empty.
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok && value != "" {
 		return value
@@ -82,7 +121,22 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// check that username respects OpenVPN recomandation
+// checkUsernameFormat validates username against OpenVPN security requirements.
+//
+// OpenVPN documentation requires that usernames contain only safe characters
+// to prevent injection attacks and malformed input. This function enforces
+// that restriction.
+//
+// Allowed characters:
+//   - Alphanumeric: a-z, A-Z, 0-9
+//   - Underscore: _
+//   - Dash: -
+//   - Dot: .
+//   - At sign: @
+//
+// Reference: OpenVPN manual section on auth-user-pass-verify security
+//
+// Returns true if username format is valid, false otherwise.
 func checkUsernameFormat(name string) bool {
 	log.Trace().Msg("validator.checkUsernameFormat()")
 	/* OpenVPN doc says:
@@ -94,7 +148,18 @@ func checkUsernameFormat(name string) bool {
 	return match
 }
 
-// Check that path is not group or other writable
+// checkNotWritable verifies that a file or directory is not writable by group or others.
+//
+// This security check prevents privilege escalation and tampering attacks.
+// If a file/directory is writable by non-owners, attackers in the same group
+// or any local user could modify critical files.
+//
+// Checks Unix permission bits:
+//   - S_IWGRP (020): Group write permission
+//   - S_IWOTH (002): Other write permission
+//
+// Returns true if file/directory is safe (not group/world writable), false otherwise.
+// Returns false if path does not exist or stat fails.
 func checkNotWritable(path string) bool {
 	sIWGRP := 0b000010000 // Group write permissions
 	sIWOTH := 0b000000010 // Other write permissions
@@ -111,7 +176,15 @@ func checkNotWritable(path string) bool {
 	return true
 }
 
-// remove all empty strings from string slice
+// removeEmptyStrings filters out empty strings from a slice.
+//
+// Used for cleaning up file content (via-file, pinset.cfg) where empty
+// lines should be ignored.
+//
+// Parameters:
+//   - s: input slice that may contain empty strings
+//
+// Returns a new slice containing only non-empty strings, preserving order.
 func removeEmptyStrings(s []string) []string {
 	var r []string
 	for _, str := range s {
@@ -122,7 +195,15 @@ func removeEmptyStrings(s []string) []string {
 	return r
 }
 
-// remove all comments from string slice
+// removeComments filters out comment lines from a slice.
+//
+// Lines starting with # (optionally preceded by whitespace) are considered
+// comments and removed. Used for processing pinset.cfg and other config files.
+//
+// Parameters:
+//   - s: input slice that may contain comment lines
+//
+// Returns a new slice with comment lines removed, preserving order.
 func removeComments(s []string) []string {
 	var r []string
 	reg, _ := regexp.Compile(`^[[:blank:]]*#`)
@@ -134,7 +215,19 @@ func removeComments(s []string) []string {
 	return r
 }
 
-// Update the log formatter to include the username
+// setLogUser updates the log formatter to include the authenticated username.
+//
+// Called after credentials are loaded to enhance audit trail. All subsequent
+// log messages will include the username being authenticated, making it easier
+// to correlate log entries with specific user authentication attempts.
+//
+// Log format after this call:
+//
+//	<timestamp> [okta-auth-validator:<sessionID>](<LEVEL>): [<username>] <message>
+//
+// Example:
+//
+//	Mon Jan 2 15:04:05 2006 [okta-auth-validator:uuid-123](INFO): [user@example.com] authenticated with Okta TOTP MFA
 func (validator *OktaOpenVPNValidator) setLogUser() {
 	log.DefaultLogger.Writer.(*log.ConsoleWriter).Formatter = func(w io.Writer, a *log.FormatterArgs) (int, error) {
 		return fmt.Fprintf(
@@ -148,7 +241,20 @@ func (validator *OktaOpenVPNValidator) setLogUser() {
 	}
 }
 
-// Initialize the default logger (with the requested level)
+// initLogFormatter initializes the global logger with session-specific formatting.
+//
+// Called during validator creation (New) to set up structured logging for this
+// authentication session. Each validator instance gets a unique session UUID that
+// appears in all log messages, enabling correlation of log entries.
+//
+// Parameters:
+//   - level: logging verbosity (TRACE, DEBUG, INFO, WARN, ERROR)
+//
+// Initial log format (before credentials loaded):
+//
+//	<timestamp> [okta-auth-validator:<sessionID>](<LEVEL>): <message>
+//
+// The formatter is updated by setLogUser() after credentials are available.
 func (validator *OktaOpenVPNValidator) initLogFormatter(level log.Level) {
 	log.DefaultLogger = log.Logger{
 		Level:      level,
